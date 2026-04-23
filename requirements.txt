@@ -1,0 +1,10 @@
+# 依据 CDDM 项目源码中的 import 汇总；PyTorch 请按本机 CUDA/CPU 从 https://pytorch.org 选择对应 wheel
+numpy>=1.19.0
+scipy>=1.5.0
+matplotlib>=3.3.0
+timm>=0.6.0
+tqdm>=4.60.0
+pymongo>=4.0.0
+imageio>=2.9.0
+pydicom>=2.0.0
+lpips>=0.1.4
