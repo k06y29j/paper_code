@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual envs
+.venv/
+venv/
+env/
+.env
+.env.local
+.env.*.local
+
+# Test / type / linters
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# IDEs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 训练产出（权重、日志）
+checkpoints/
+checkpoints-*/
+log/
+*.pth
+*.pt
+*.ckpt
+runs/
+wandb/
+
+# 数据与缓存（按需在本地保留，不入库）
+data/
+*.lmdb
+*.tar
+*.zip
+
+# 临时
+*.log
+tmp/
+temp/
+*.swp
+*~

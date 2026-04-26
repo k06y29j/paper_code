@@ -78,12 +78,8 @@ class MIMOChannelMMSE:
 
         return x_hat, sinr_mean, beta
 
-    # ------------------------------------------------------------------
-    # 模拟 JSCC 传输（主接口）
-    # ------------------------------------------------------------------
-
     def forward(self, z: torch.Tensor) -> tuple[torch.Tensor, float, torch.Tensor]:
-        """模拟 JSCC 传输：实数特征张量经 MIMO 信道后返回均衡结果、噪声估计与等效增益统计。
+        """实数特征张量经 MIMO 信道后返回均衡结果、噪声估计与等效增益统计。
 
         Args:
             z: [B, C, H', W']，C 必须为偶数（相邻通道对 = 复数实/虚部）

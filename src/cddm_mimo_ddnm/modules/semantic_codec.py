@@ -490,7 +490,8 @@ class SemanticEncoder(nn.Module):
         self.norm = nn.LayerNorm(current_dim)
         self.head = nn.Conv2d(current_dim, embed_dim, kernel_size=1)
         if use_vae:
-            self.vae_proj = nn.Conv2d(current_dim, 2 * current_dim, kernel_size=1)
+            # 在 embed 维上做高斯 VAE，与 decoder 输入维一致
+            self.vae_proj = nn.Conv2d(embed_dim, 2 * embed_dim, kernel_size=1)
 
     def _extract_features(self, x: torch.Tensor) -> torch.Tensor:
         x = self.patch_embed(x)
@@ -507,22 +508,24 @@ class SemanticEncoder(nn.Module):
         """提取特征并可选地进行 VAE 重参数化。
 
         Returns:
-            z:      潜变量 [B, stage_embed_dims[-1], H', W']
-            mu:     VAE 均值，shape 与 z 相同；use_vae=False 时为 None
-            logvar: VAE 对数方差，shape 与 z 相同；use_vae=False 时为 None
+            z:      供解码器使用 [B, embed_dim, H', W']；无 VAE 为 head(features)，有 VAE 为在 **embed 空间** 上采样
+            mu:     VAE 均值 [B, embed_dim, H', W']；use_vae=False 时为 None
+            logvar: VAE 对数方差 [B, embed_dim, H', W']；use_vae=False 时为 None
         """
         features = self._extract_features(x)
-        # if self.use_vae:
-        #     moments = self.vae_proj(features)
-        #     mu, logvar = moments.chunk(2, dim=1)
-        #     logvar = logvar.clamp(-30.0, 20.0)
-        #     if sample:
-        #         std = torch.exp(0.5 * logvar)
-        #         z = mu + std * torch.randn_like(std)
-        #     else:
-        #         z = mu
-        #     return z, mu, logvar
-        # return features, None, None
+        if self.use_vae:
+            h = self.head(features)  # latent_dim -> embed_dim，与 vae_proj 的 in_ch 一致
+            moments = self.vae_proj(h)
+            mu, logvar = moments.chunk(2, dim=1)
+            logvar = logvar.clamp(-30.0, 20.0)
+            if sample:
+                std = torch.exp(0.5 * logvar)
+                z = mu + std * torch.randn_like(std)
+            else:
+                z = mu
+            return z, mu, logvar
+        z = self.head(features)
+        return z, None, None
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         z, _, _ = self.encode(x, sample=self.training)
@@ -641,7 +644,7 @@ class SemanticDecoder(nn.Module):
             )
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
-        x = z
+        x = self.head(z)
         for layer in self.layers:
             x = layer(x)
         x = self.final_expand(x)

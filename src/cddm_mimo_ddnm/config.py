@@ -125,9 +125,26 @@ def get_div2k_config() -> SystemConfig:
     """
     return SystemConfig(
         semantic=SemanticConfig(
+            #checkpoint 1 : 3 stage, no vae
+            # image_channels=3,
+            # patch_size=8,
+            # embed_dim=16,
+            # num_heads=8,
+            # window_size=8,
+            # num_swin_blocks=3,
+            # stage_embed_dims=(128, 192, 256),
+            # stage_depths=(2, 2, 6),
+            # stage_num_heads=(4, 6, 8),
+            # stem_stride=2,
+            # stage_downsample=(False, True, True),
+            # use_vae=True,
+            # lambda_kl=1e-4,
+            # num_decoder_refine_blocks=2,
+
+            #checkpoint 2 : 4 stage, use vae
             image_channels=3,
             patch_size=16,
-            embed_dim=36,
+            embed_dim=72,
             num_heads=8,
             window_size=8,
             num_swin_blocks=4,
@@ -136,7 +153,7 @@ def get_div2k_config() -> SystemConfig:
             stage_num_heads=(4, 6, 8, 10),
             stem_stride=2,
             stage_downsample=(False, True, True, True),
-            use_vae=False,
+            use_vae=True,
             lambda_kl=1e-4,
             num_decoder_refine_blocks=2,
         ),

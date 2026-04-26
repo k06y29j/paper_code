@@ -1,0 +1,887 @@
+#!/usr/bin/env python
+"""Stage 1：语义编解码器（SemanticEncoder + SemanticDecoder）训练脚本。
+
+针对多 GPU 服务器优化：
+  - torch.compile 图编译加速前向/反向传播
+  - AMP 混合精度（BF16，L40S/409D 原生支持）
+  - DistributedDataParallel 多卡并行（推荐 torchrun 启动）
+  - 大量 worker + pin_memory + prefetch 充分利用 128GB 内存预加载数据
+  - 损失参数直接取自 config.py 的 SemanticConfig，无需命令行重复传入
+
+用法:
+    # CIFAR-10（5 卡 DDP 并行）
+    torchrun --standalone --nproc_per_node=5 train/train_sc.py \
+        --dataset cifar10 --data_dir /path/to/cifar10 \
+        --batch_size 256 --epochs 200 --num_workers 16
+
+    # DIV2K（5 卡 DDP 并行，每卡 batch_size=4 → 总 batch_size=20）
+    torchrun --standalone --nproc_per_node=5 train/train_sc.py \
+        --dataset div2k --data_dir /path/to/DIV2K \
+        --batch_size 4 --epochs 600 --crop_size 256 --num_workers 12
+
+    # 单卡调试
+    CUDA_VISIBLE_DEVICES=0 python train/train_sc.py --dataset cifar10 \
+        --data_dir /path/to/cifar10 --batch_size 128 --compile off
+
+    # 恢复训练
+    python train/train_sc.py --resume checkpoints/sc_cifar10_best.pth
+"""
+
+from __future__ import annotations
+
+import argparse
+import builtins
+import contextlib
+import os
+import sys
+import time
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data import DataLoader
+
+# ---------------------------------------------------------------------------
+# 项目路径
+# ---------------------------------------------------------------------------
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from src.cddm_mimo_ddnm import (
+    SystemConfig,
+    SemanticCommSystem,
+    get_cifar10_config,
+    get_div2k_config,
+)
+from src.cddm_mimo_ddnm.datasets import (
+    get_cifar10_loaders,
+    get_div2k_loaders,
+)
+from src.cddm_mimo_ddnm.loss import kl_loss, semantic_codec_loss
+
+
+# ===========================================================================
+# 命令行参数
+# ===========================================================================
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Stage 1 - 语义编解码器训练（多GPU/AMP/torch.compile 优化版）",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    # ---- 数据集 ----
+    parser.add_argument("--dataset", type=str, default="div2k",
+                        choices=["cifar10", "div2k"], help="数据集")
+    parser.add_argument("--data_dir", type=str, required=False, default=None, help="数据集根目录")
+    parser.add_argument("--crop_size", type=int, default=256, help="DIV2K 裁剪尺寸")
+    parser.add_argument(
+        "--train_lmdb_path",
+        type=str,
+        default="/data/small-datasets-1/DF2K/train-256.lmdb",
+        help="可选：显式指定训练集 LMDB 路径（如 DF2K train-256.lmdb）",
+    )
+    parser.add_argument(
+        "--val_lmdb_path",
+        type=str,
+        default="/data/small-datasets-1/DIV2K/DIV2K_valid_HR/valid-256.lmdb",
+        help="可选：显式指定验证集 LMDB 路径（如 DIV2K valid-256.lmdb）",
+    )
+
+    # ---- 训练超参（核心）----
+    parser.add_argument("--epochs", type=int, default=5, help="总轮次")
+    parser.add_argument("--batch_size", type=int, default=16,
+                        help="每张 GPU 的批大小（总 batch_size = 此值 × GPU 数量）")
+    parser.add_argument("--lr", type=float, default=1e-4, help="第 2 个 epoch 起的基础学习率（见 --lr_first_epoch）")
+    parser.add_argument(
+        "--lr_first_epoch",
+        type=float,
+        default=1e-4,
+        help="仅第 1 个 epoch 使用的学习率；与 --lr 相同时不启用两阶段",
+    )
+    parser.add_argument("--weight_decay", type=float, default=0.0, help="权重衰减")
+    parser.add_argument(
+        "--grad_accum_steps",
+        type=int,
+        default=1,
+        help="梯度累积步数（>1 可在小 batch 下保持等效总 batch）",
+    )
+    parser.add_argument(
+        "--lr_scheduler",
+        type=str,
+        default="cosine_warmup",
+        choices=["cosine_warmup", "plateau", "cosine", "step", "none"],
+        help=(
+            "LR 调度策略：\n"
+            "  cosine_warmup  推荐。按 optimizer step 调度：先线性 warmup，再余弦衰减到 min_lr。\n"
+            "  plateau        按 val PSNR 触发：连续 patience 次不提升就乘 factor。\n"
+            "  cosine         旧行为：CosineAnnealingLR(T_max=epochs)，按 epoch 级。\n"
+            "  step           StepLR(step_size=100, gamma=0.5)，按 epoch 级。\n"
+            "  none           不调度。"
+        ),
+    )
+    parser.add_argument("--warmup_steps", type=int, default=500,
+                        help="cosine_warmup 的 warmup（按 optimizer step 计；不是 batch）")
+    parser.add_argument("--warmup_start_ratio", type=float, default=0.1,
+                        help="cosine_warmup 起始 lr 与 base lr 的比例")
+    parser.add_argument("--min_lr_ratio", type=float, default=0.05,
+                        help="cosine_warmup / plateau 的 lr 下限与 base lr 的比例")
+    parser.add_argument("--plateau_patience", type=int, default=3,
+                        help="plateau：连续多少次 eval 没新 best 就降 lr")
+    parser.add_argument("--plateau_factor", type=float, default=0.5,
+                        help="plateau：每次降 lr 的乘数")
+
+    # ---- 系统性能调优 ----
+    parser.add_argument("--num_workers", type=int, default=64,
+                        help="DataLoader 工作线程数（128GB RAM 建议设大）")
+    parser.add_argument("--compile", type=str, default="reduce-overheads",
+                        choices=["on", "off", "default", "reduce-overheads"],
+                        help="torch.compile 模式（'reduce-overheads' 推荐，'off' 关闭）")
+    parser.add_argument("--amp_dtype", type=str, default="bfloat16",
+                        choices=["float16", "bfloat16", "none"],
+                        help="AMP 混合精度类型（L40S/409D 推荐 bfloat16，显存紧张用 float16）")
+    parser.add_argument("--seed", type=int, default=42, help="随机种子")
+    parser.add_argument("--device", type=str, default=None,
+                        help="指定设备（如 cuda:0），留空则自动选择所有可用 GPU")
+
+    # ---- 日志 & 保存 ----
+    parser.add_argument("--save_dir", type=str,
+                        default=os.path.join(PROJECT_ROOT, "checkpoints-v2"))
+    parser.add_argument("--log_file", type=str, default="log/sc-2.txt", help="终端日志保存路径")
+    parser.add_argument("--log_freq", type=int, default=50, help="训练日志打印频率（按 batch）")
+    parser.add_argument("--eval_every_batches", type=int, default=400,
+                        help="每多少个 batch 在验证集上评估并尝试保存最优模型")
+    parser.add_argument("--resume", type=str, default=None, help="恢复检查点路径")
+
+    return parser.parse_args()
+
+
+# ===========================================================================
+# 辅助工具
+# ===========================================================================
+
+class AverageMeter:
+    """运行均值统计"""
+
+    def __init__(self) -> None:
+        self.reset()
+
+    def reset(self):
+        self.val = 0.0
+        self.avg = 0.0
+        self.sum = 0.0
+        self.count = 0
+
+    def update(self, val: float, n: int = 1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count if self.count else 0.0
+
+
+class TeeStream:
+    """将终端输出同时写入文件。"""
+
+    def __init__(self, *streams):
+        self.streams = streams
+
+    def write(self, data):
+        for s in self.streams:
+            s.write(data)
+            s.flush()
+        return len(data)
+
+    def flush(self):
+        for s in self.streams:
+            s.flush()
+
+
+def setup_log_file(log_path: str):
+    abs_path = log_path if os.path.isabs(log_path) else os.path.join(PROJECT_ROOT, log_path)
+    os.makedirs(os.path.dirname(abs_path), exist_ok=True)
+    f = open(abs_path, "a", encoding="utf-8", buffering=1)
+    sys.stdout = TeeStream(sys.stdout, f)
+    sys.stderr = TeeStream(sys.stderr, f)
+    builtins.print(f"\n=== New session @ {time.strftime('%Y-%m-%d %H:%M:%S')} ===")
+    builtins.print(f"Log file: {abs_path}")
+    return f
+
+
+def is_dist_ready() -> bool:
+    return dist.is_available() and dist.is_initialized()
+
+
+def is_main_process() -> bool:
+    return (not is_dist_ready()) or dist.get_rank() == 0
+
+
+def unwrap_model(model: nn.Module) -> nn.Module:
+    return model.module if hasattr(model, "module") else model
+
+
+def dist_barrier():
+    if is_dist_ready():
+        dist.barrier()
+
+
+class Stage1Wrapper(nn.Module):
+    """将 forward_stage1 封装为标准 forward，确保 DDP hook 生效。"""
+
+    def __init__(self, core_system: nn.Module):
+        super().__init__()
+        self.system = core_system
+
+    def forward(self, x: torch.Tensor):
+        return self.system.forward_stage1(x)
+
+
+def compute_psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
+    """计算 PSNR (dB)，输入范围 [0,1]。"""
+    mse_val = torch.mean((pred - target) ** 2).item()
+    if mse_val < 1e-12:
+        return float("inf")
+    return float(10.0 * torch.log10(torch.tensor(1.0 / mse_val)))
+
+
+# ===========================================================================
+# 构建函数：配置 / 数据 / 模型 / 编译
+# ===========================================================================
+
+def build_config(dataset: str) -> SystemConfig:
+    if dataset == "div2k":
+        return get_div2k_config()
+    return get_cifar10_config()
+
+
+def build_dataloaders(args: argparse.Namespace, device: torch.device):
+    """构建 DataLoader，充分利用 128GB RAM 做 I/O 预加载。
+
+    num_workers 设大 + pin_memory=True + prefetch_factor=4 + persistent_workers
+    可确保 GPU 几乎不会因数据读取而等待。
+    """
+    nw = args.num_workers
+    if args.dataset == "div2k":
+        # 当显式指定 train/val LMDB 时，data_dir 可能为空；这里兜底为空字符串，
+        # 以兼容 get_div2k_loaders 内部默认路径拼接逻辑。
+        data_dir = args.data_dir or ""
+        train_loader, val_loader, _ = get_div2k_loaders(
+            data_dir=data_dir,
+            batch_size=args.batch_size,
+            crop_size=args.crop_size,
+            num_workers=nw,
+            distributed=args.distributed,
+            train_lmdb_path=args.train_lmdb_path,
+            val_lmdb_path=args.val_lmdb_path,
+        )
+    else:
+        train_loader, val_loader, _ = get_cifar10_loaders(
+            data_dir=args.data_dir,
+            batch_size=args.batch_size,
+            num_workers=nw,
+            distributed=args.distributed,
+        )
+
+    # DataLoader 初始化后不允许再直接修改 drop_last/prefetch_factor/pin_memory 等属性。
+    # 这些参数已在 datasets.py 的 _make_loaders 中配置，这里不再覆盖。
+    return train_loader, val_loader
+
+
+def build_model_and_optimizer(cfg: SystemConfig, args, device: torch.device):
+    """构建模型、DDP 包装、AMP GradScaler、优化器、scheduler。
+
+    Stage 1 只优化 semantic_encoder + semantic_decoder 的参数。
+    """
+    core_system = SemanticCommSystem(cfg).to(device)
+    model = Stage1Wrapper(core_system)
+
+    # Stage1 仅训练语义编解码器；其余参数全部冻结，避免 DDP 等待无梯度参数。
+    for p in core_system.parameters():
+        p.requires_grad = False
+    for p in core_system.semantic_encoder.parameters():
+        p.requires_grad = True
+    for p in core_system.semantic_decoder.parameters():
+        p.requires_grad = True
+
+    # ---- torch.compile 加速 ----
+    compile_mode = args.compile
+    if compile_mode != "off" and hasattr(torch, "compile"):
+        if is_main_process():
+            print(f"  torch.compile mode: {compile_mode}")
+        try:
+            model = torch.compile(model, mode=compile_mode)
+        except Exception as e:
+            if is_main_process():
+                print(f"  [WARN] torch.compile 失败 ({e})，回退到 eager 模式")
+
+    # ---- Stage 1 可训参数（仅语义编解码器）----
+    sc_params = (
+        list(core_system.semantic_encoder.parameters())
+        + list(core_system.semantic_decoder.parameters())
+    )
+
+    optimizer = optim.Adam(sc_params, lr=args.lr, weight_decay=args.weight_decay)
+
+    total_p = sum(p.numel() for p in core_system.parameters())
+    train_p = sum(p.numel() for p in sc_params)
+    if is_main_process():
+        print(f"  模型总参数 : {total_p:,}")
+        print(f"  可训练参数 : {train_p:,} ({train_p/total_p*100:.1f}%)")
+
+    # ---- AMP GradScaler ----
+    amp_enabled = args.amp_dtype != "none"
+    dtype_map = {"bfloat16": torch.bfloat16, "float16": torch.float16}
+    amp_dtype = dtype_map.get(args.amp_dtype, torch.bfloat16)
+    scaler = torch.amp.GradScaler("cuda", enabled=(amp_enabled and amp_dtype == torch.float16))
+
+    if args.distributed:
+        model = DDP(model, device_ids=[args.local_rank], output_device=args.local_rank)
+
+    return model, optimizer, scaler, amp_enabled, amp_dtype
+
+
+def build_lr_scheduler(args, optimizer, train_loader_len: int):
+    """根据 args 创建 lr scheduler。
+
+    返回 (scheduler, mode):
+        mode == "step"    : 每个 optimizer.step() 后调度（warmup+cosine）
+        mode == "epoch"   : 每个 epoch 末调度（旧的 CosineAnnealingLR / StepLR）
+        mode == "plateau" : 每次 val 评估后用指标触发
+        mode == "none"    : 不调度
+    """
+    name = args.lr_scheduler
+    base_lr = float(args.lr)
+    accum = max(1, int(args.grad_accum_steps))
+    two_tier = abs(float(args.lr_first_epoch) - base_lr) > 1e-12
+
+    if name == "cosine_warmup":
+        if two_tier and is_main_process():
+            print("  [LR] cosine_warmup 与两阶段 lr 不兼容：忽略 --lr_first_epoch。")
+        steps_per_epoch = max(1, train_loader_len // accum)
+        total_steps = max(1, steps_per_epoch * int(args.epochs))
+        warmup_steps = max(0, int(args.warmup_steps))
+        warmup_steps = min(warmup_steps, max(1, total_steps - 1))
+        start_ratio = max(1e-6, float(args.warmup_start_ratio))
+        min_ratio = max(0.0, float(args.min_lr_ratio))
+        import math
+
+        def lr_lambda(step: int) -> float:
+            if step < warmup_steps:
+                if warmup_steps == 0:
+                    return 1.0
+                t = step / float(max(1, warmup_steps))
+                return start_ratio + (1.0 - start_ratio) * t
+            t = (step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+            t = min(max(t, 0.0), 1.0)
+            cos_factor = 0.5 * (1.0 + math.cos(math.pi * t))
+            return min_ratio + (1.0 - min_ratio) * cos_factor
+
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lr_lambda)
+        if is_main_process():
+            print(
+                f"  [LR] cosine_warmup: total_steps={total_steps}  "
+                f"warmup={warmup_steps}  start={base_lr*start_ratio:.2e} -> peak={base_lr:.2e} "
+                f"-> min={base_lr*min_ratio:.2e}"
+            )
+        return scheduler, "step"
+
+    if name == "plateau":
+        if two_tier and is_main_process():
+            print("  [LR] plateau 与两阶段 lr 不兼容：忽略 --lr_first_epoch。")
+        min_lr = base_lr * max(0.0, float(args.min_lr_ratio))
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="max",
+            factor=float(args.plateau_factor),
+            patience=int(args.plateau_patience),
+            threshold=1e-3,
+            min_lr=min_lr,
+        )
+        if is_main_process():
+            print(
+                f"  [LR] plateau(monitor=val PSNR, max): "
+                f"factor={args.plateau_factor}  patience={args.plateau_patience}  "
+                f"min_lr={min_lr:.2e}"
+            )
+        return scheduler, "plateau"
+
+    if name == "cosine":
+        if two_tier:
+            if is_main_process():
+                print("  [LR] 两阶段 lr：第 1 epoch 用 lr_first_epoch，之后用 lr；已禁用 Cosine 调度。")
+            return None, "none"
+        return optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs), "epoch"
+
+    if name == "step":
+        return optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.5), "epoch"
+
+    return None, "none"
+
+
+# ===========================================================================
+# 训练 & 验证循环
+# ===========================================================================
+
+@torch.enable_grad()
+def train_one_epoch(
+    model, loader: DataLoader, optimizer, scaler, device, epoch, args,
+    amp_enabled: bool, amp_dtype: torch.dtype, cfg: SystemConfig,
+    global_batch_start: int = 0,
+    on_eval_interval=None,
+    scheduler=None,
+    scheduler_mode: str = "none",
+):
+    model.train()
+    loss_meter = AverageMeter()
+    psnr_meter = AverageMeter()
+
+    # 从 config.py 取损失参数（用户要求不重新设计 loss）
+    lam_l1 = 0.01
+    lam_perc = 0.01
+    lam_kl = cfg.semantic.lambda_kl      # config.py SemanticConfig.lambda_kl
+    use_vae = cfg.semantic.use_vae        # config.py SemanticConfig.use_vae
+    use_perc = False                      # 感知损失按需开启
+
+    autocast_kw = dict(enabled=amp_enabled, dtype=amp_dtype)
+
+    t0 = time.time()
+    accum_steps = max(1, int(args.grad_accum_steps))
+    optimizer.zero_grad(set_to_none=True)
+    for i, batch in enumerate(loader):
+        if isinstance(batch, (tuple, list)):
+            images = batch[0]
+        else:
+            images = batch
+        images_non_blocking = images.to(device, non_blocking=True)
+        should_step = ((i + 1) % accum_steps == 0) or ((i + 1) == len(loader))
+        sync_context = (
+            model.no_sync() if args.distributed and not should_step else contextlib.nullcontext()
+        )
+        with sync_context:
+            with torch.autocast("cuda", **autocast_kw):
+                x_hat, mu, logvar = model(images_non_blocking)
+            loss = semantic_codec_loss(
+                x_hat=x_hat, x=images_non_blocking,
+                mu=mu, logvar=logvar,
+                lambda_l1=lam_l1, lambda_perc=lam_perc,
+                lambda_kl=lam_kl, use_perceptual=use_perc,
+                use_vae=use_vae,
+            )
+            loss_for_backward = loss / accum_steps
+            if scaler.is_enabled():
+                scaler.scale(loss_for_backward).backward()
+            else:
+                loss_for_backward.backward()
+        if should_step:
+            if scaler.is_enabled():
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            if scheduler is not None and scheduler_mode == "step":
+                scheduler.step()
+
+        bs = images.shape[0]
+        loss_meter.update(loss.item(), bs)
+        psnr_meter.update(
+            compute_psnr(
+                x_hat.detach().float().clamp(0, 1),
+                images_non_blocking.float(),
+            ),
+            bs,
+        )
+
+        if args.is_main and ((i + 1) % args.log_freq == 0 or i + 1 == len(loader)):
+            lr_now = optimizer.param_groups[0]["lr"]
+            elapsed = time.time() - t0
+            it_s = elapsed / (i + 1)
+            remaining = it_s * (len(loader) - i - 1)
+            print(f"  [{epoch+1}/{args.epochs}][{i+1}/{len(loader)}]  "
+                  f"Loss:{loss_meter.avg:.4f}  PSNR:{psnr_meter.avg:.2f}dB  "
+                  f"LR:{lr_now:.6f}  {it_s:.2f}s/it  ETA:{remaining:.0f}s")
+        global_batch = global_batch_start + i + 1
+        if (
+            on_eval_interval is not None
+            and args.eval_every_batches > 0
+            and (global_batch % args.eval_every_batches == 0)
+        ):
+            on_eval_interval(global_batch, epoch, {
+                "loss": loss_meter.avg,
+                "psnr": psnr_meter.avg,
+            })
+            model.train()
+
+    return {"loss": loss_meter.avg, "psnr": psnr_meter.avg}, global_batch_start + len(loader)
+
+
+@torch.no_grad()
+def validate(model, loader: DataLoader, device, args,
+             amp_enabled: bool, amp_dtype: torch.dtype, cfg: SystemConfig):
+    """验证评估。use_vae 时同步估计 KL(未加权)、mu/logvar 的分布统计，便于看 KL 是否过弱。"""
+    model.eval()
+    loss_meter = AverageMeter()
+    psnr_meter = AverageMeter()
+    vae = cfg.semantic.use_vae
+    kl_raw_meter = AverageMeter()
+    logvar_mean_meter = AverageMeter()
+    mu_mean_meter = AverageMeter()
+    mu_var_meter = AverageMeter()
+    mu_ch_std_mean_meter = AverageMeter()
+
+    lam_kl = cfg.semantic.lambda_kl
+    autocast_kw = dict(enabled=amp_enabled, dtype=amp_dtype)
+
+    for batch in loader:
+        if isinstance(batch, (tuple, list)):
+            images = batch[0]
+        else:
+            images = batch
+        images_d = images.to(device, non_blocking=True)
+        with torch.autocast("cuda", **autocast_kw):
+            x_hat, mu, logvar = model(images_d)
+            loss = semantic_codec_loss(
+                x_hat=x_hat, x=images_d, mu=mu, logvar=logvar,
+                lambda_l1=0.01, lambda_perc=0.01,
+                lambda_kl=lam_kl, use_perceptual=False,
+                use_vae=cfg.semantic.use_vae,
+            )
+
+        bs = images.shape[0]
+        loss_meter.update(loss.item(), bs)
+        psnr_meter.update(compute_psnr(x_hat.float().clamp(0, 1), images_d.float()), bs)
+        if vae and mu is not None and logvar is not None:
+            # fp32 统计，避免半精度下 var/std 失准
+            mu_f = mu.detach().float()
+            logv_f = logvar.detach().float()
+            klv = kl_loss(mu_f, logv_f)
+            kl_raw_meter.update(klv.item(), bs)
+            logvar_mean_meter.update(logv_f.mean().item(), bs)
+            mu_mean_meter.update(mu_f.mean().item(), bs)
+            mu_var_meter.update(mu_f.var().item(), bs)
+            c = mu_f.shape[1]
+            flat = mu_f.permute(1, 0, 2, 3).reshape(c, -1)
+            ch_std = flat.std(dim=1)
+            mu_ch_std_mean_meter.update(ch_std.mean().item(), bs)
+
+    if is_dist_ready():
+        if vae:
+            stats = torch.tensor(
+                [
+                    loss_meter.sum,
+                    psnr_meter.sum,
+                    loss_meter.count,
+                    kl_raw_meter.sum,
+                    kl_raw_meter.count,
+                    logvar_mean_meter.sum,
+                    logvar_mean_meter.count,
+                    mu_mean_meter.sum,
+                    mu_mean_meter.count,
+                    mu_var_meter.sum,
+                    mu_var_meter.count,
+                    mu_ch_std_mean_meter.sum,
+                    mu_ch_std_mean_meter.count,
+                ],
+                device=device,
+                dtype=torch.float64,
+            )
+        else:
+            stats = torch.tensor(
+                [loss_meter.sum, psnr_meter.sum, loss_meter.count],
+                device=device,
+                dtype=torch.float64,
+            )
+        dist.all_reduce(stats, op=dist.ReduceOp.SUM)
+        avg_loss = (stats[0] / stats[2]).item()
+        avg_psnr = (stats[1] / stats[2]).item()
+        out: dict = {"loss": avg_loss, "psnr": avg_psnr}
+        if vae:
+            out["kl_raw"] = (stats[3] / stats[4]).item()
+            out["logvar_mean"] = (stats[5] / stats[6]).item()
+            out["mu_mean"] = (stats[7] / stats[8]).item()
+            out["mu_var"] = (stats[9] / stats[10]).item()
+            out["mu_ch_std_mean"] = (stats[11] / stats[12]).item()
+        return out
+
+    out = {"loss": loss_meter.avg, "psnr": psnr_meter.avg}
+    if vae:
+        out["kl_raw"] = kl_raw_meter.avg
+        out["logvar_mean"] = logvar_mean_meter.avg
+        out["mu_mean"] = mu_mean_meter.avg
+        out["mu_var"] = mu_var_meter.avg
+        out["mu_ch_std_mean"] = mu_ch_std_mean_meter.avg
+    return out
+
+
+# ===========================================================================
+# 检查点管理
+# ===========================================================================
+
+def save_checkpoint(path, model, optimizer, scheduler, epoch, metrics, args):
+    core_model = unwrap_model(model)
+    state = {
+        "epoch": epoch,
+        "metrics": metrics,
+        "model_state_dict": core_model.state_dict(),
+    }
+    if optimizer is not None:
+        state["optimizer_state_dict"] = optimizer.state_dict()
+    if scheduler is not None:
+        state["scheduler_state_dict"] = scheduler.state_dict()
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    torch.save(state, path)
+    print(f"  >> Saved {path}")
+
+
+def load_checkpoint(path, model, optimizer=None, scheduler=None):
+    state = torch.load(path, map_location="cpu", weights_only=False)
+    core_model = unwrap_model(model)
+    core_model.load_state_dict(state["model_state_dict"])
+    start_epoch = state["epoch"] + 1
+    if optimizer and "optimizer_state_dict" in state:
+        optimizer.load_state_dict(state["optimizer_state_dict"])
+    if scheduler and "scheduler_state_dict" in state:
+        scheduler.load_state_dict(state["scheduler_state_dict"])
+    print(f"  >> Loaded {path}  resume epoch={start_epoch}")
+    if "metrics" in state:
+        print(f"     prev best: {state['metrics']}")
+    return start_epoch
+
+
+# ===========================================================================
+# 主流程
+# ===========================================================================
+
+def main():
+    args = parse_args()
+    world_size = int(os.environ.get("WORLD_SIZE", "1"))
+    rank = int(os.environ.get("RANK", "0"))
+    local_rank = int(os.environ.get("LOCAL_RANK", "0"))
+    args.distributed = world_size > 1
+    args.rank = rank
+    args.world_size = world_size
+    args.local_rank = local_rank
+    args.is_main = rank == 0
+
+    if args.distributed:
+        if not torch.cuda.is_available():
+            raise RuntimeError("DDP 需要 CUDA 环境。")
+        torch.cuda.set_device(local_rank)
+        dist.init_process_group(backend="nccl", init_method="env://")
+
+    log_f = setup_log_file(args.log_file) if args.is_main else None
+    if args.dataset == "div2k":
+        explicit_lmdb = (args.train_lmdb_path is not None) or (args.val_lmdb_path is not None)
+        if not explicit_lmdb and not args.data_dir:
+            raise ValueError("DIV2K 模式下，未显式传 LMDB 路径时必须提供 --data_dir。")
+    else:
+        if not args.data_dir:
+            raise ValueError("CIFAR10 模式下必须提供 --data_dir。")
+
+    # ---- 设备 ----
+    if args.distributed:
+        device = torch.device(f"cuda:{local_rank}")
+    elif args.device:
+        device = torch.device(args.device)
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
+    # 种子
+    seed = args.seed + args.local_rank
+    torch.manual_seed(seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
+
+    # ---- 配置（损失参数全来自这里，不再命令行重复传）----
+    cfg = build_config(args.dataset)
+
+    # ---- 打印信息 ----
+    if args.is_main:
+        print("=" * 64)
+        print(f"  Stage 1: 语义编解码器训练  |  dataset={args.dataset}")
+        print("=" * 64)
+        print(f"  Device       : {device}")
+        if device.type == "cuda":
+            print(f"  GPU count    : {torch.cuda.device_count()}  "
+                  f"({torch.cuda.get_device_name(0)})")
+            print(f"  CUDA version  : {torch.version.cuda}")
+            print(f"  Total memory  : ~128 GB RAM (server)")
+            if args.distributed:
+                print(f"  DDP          : world_size={args.world_size}")
+        print(f"  Batch/GPU    : {args.batch_size}")
+        print(f"  Grad Accum   : {max(1, int(args.grad_accum_steps))}")
+        lfe = float(args.lr_first_epoch)
+        lr_main = float(args.lr)
+        if abs(lfe - lr_main) > 1e-12 and args.lr_scheduler in ("none", "cosine", "step"):
+            print(
+                f"  LR (两阶段)  : epoch1={lfe}  之后={lr_main}  |  epochs={args.epochs}"
+            )
+        else:
+            print(f"  LR           : {args.lr}  |  epochs={args.epochs}")
+        print(f"  LR scheduler : {args.lr_scheduler}")
+        print(f"  Workers      : {args.num_workers}  |  AMP={args.amp_dtype}"
+              f"  |  compile={args.compile}")
+        print(f"  Loss params  (from config.py SemanticConfig):")
+        print(f"    lambda_kl   = {cfg.semantic.lambda_kl}")
+        print(f"    lambda_l1   = 0.01  (semantic_codec_loss default)")
+        print(f"    lambda_perc = 0.01  (semantic_codec_loss default)")
+        print(f"    use_vae     = {cfg.semantic.use_vae}")
+
+    # ---- 构建 ----
+    train_loader, val_loader = build_dataloaders(args, device)
+    model, optimizer, scaler, amp_enabled, amp_dtype = \
+        build_model_and_optimizer(cfg, args, device)
+    scheduler, scheduler_mode = build_lr_scheduler(args, optimizer, len(train_loader))
+
+    # ---- 恢复 ----
+    start_epoch = 0
+    if args.resume and os.path.isfile(args.resume):
+        start_epoch = load_checkpoint(args.resume, model, optimizer, scheduler)
+    dist_barrier()
+
+    # ---- 训练循环 ----
+    save_dir = args.save_dir
+    prefix = f"sc_{args.dataset}"
+    os.makedirs(save_dir, exist_ok=True)
+    best_psnr = 0.0
+    best_global_batch = -1
+    all_metrics = {}
+    global_batch = 0
+
+    wall_start = time.time()
+
+    for epoch in range(start_epoch, args.epochs):
+        ep_t0 = time.time()
+        lfe = float(args.lr_first_epoch)
+        lr_main = float(args.lr)
+        # 仅「从头训 + epoch 级或无调度器」时才允许两阶段覆盖；
+        # 否则覆盖会废掉 step 级 / plateau 调度器。
+        allow_per_epoch_override = scheduler_mode in ("none", "epoch")
+        use_first_epoch_lr = (
+            allow_per_epoch_override
+            and (start_epoch == 0)
+            and (epoch == 0)
+            and abs(lfe - lr_main) > 1e-12
+        )
+        if allow_per_epoch_override:
+            lr_run = lfe if use_first_epoch_lr else lr_main
+            for g in optimizer.param_groups:
+                g["lr"] = lr_run
+        else:
+            lr_run = float(optimizer.param_groups[0]["lr"])
+
+        if args.distributed and hasattr(train_loader, "sampler") and hasattr(train_loader.sampler, "set_epoch"):
+            train_loader.sampler.set_epoch(epoch)
+        if args.is_main:
+            print(f"\n--- Epoch {epoch+1}/{args.epochs} ---")
+            if allow_per_epoch_override and abs(lfe - lr_main) > 1e-12:
+                print(f"  lr 已设为 {lr_run}  (两阶段: 第 1 轮={lfe}，之后={lr_main})")
+            else:
+                print(f"  lr 起始: {lr_run:.6g}  (scheduler={args.lr_scheduler}, mode={scheduler_mode})")
+
+        def _eval_and_maybe_save(cur_global_batch: int, cur_epoch: int, train_snapshot: dict):
+            nonlocal best_psnr, best_global_batch, all_metrics
+            dist_barrier()
+            val_metrics = validate(
+                model, val_loader, device, args, amp_enabled, amp_dtype, cfg,
+            )
+            if args.is_main:
+                all_metrics = {
+                    **train_snapshot,
+                    **{f"v_{k}": v for k, v in val_metrics.items()},
+                    "global_batch": cur_global_batch,
+                }
+                cur_psnr = float(val_metrics.get("psnr", 0.0))
+                images_seen = cur_global_batch * args.batch_size * max(1, args.world_size)
+                line = (
+                    f"  [Eval@batch={cur_global_batch}, images~{images_seen}] "
+                    f"Val L:{val_metrics['loss']:.4f}  PSNR:{cur_psnr:.2f}dB"
+                )
+                if cfg.semantic.use_vae and "kl_raw" in val_metrics:
+                    line += (
+                        f"  KL(raw):{val_metrics['kl_raw']:.5f}  "
+                        f"mu_m:{val_metrics['mu_mean']:.5f}  mu_v:{val_metrics['mu_var']:.5f}  "
+                        f"mu_chstd_m:{val_metrics['mu_ch_std_mean']:.5f}  "
+                        f"logvar_m:{val_metrics['logvar_mean']:.5f}"
+                    )
+                print(line)
+                if cur_psnr > best_psnr:
+                    best_psnr = cur_psnr
+                    best_global_batch = cur_global_batch
+                    save_checkpoint(
+                        os.path.join(save_dir, f"{prefix}_best.pth"),
+                        model, optimizer, scheduler, cur_epoch, all_metrics, args,
+                    )
+                    print(f"  *** New Best PSNR: {best_psnr:.4f} dB @ batch {cur_global_batch} ***")
+            # plateau：所有 rank 都需要同步 step（用同一指标，避免漂移）
+            if scheduler is not None and scheduler_mode == "plateau":
+                metric_t = torch.tensor(
+                    float(val_metrics.get("psnr", 0.0)),
+                    device=device,
+                    dtype=torch.float32,
+                )
+                if is_dist_ready():
+                    dist.broadcast(metric_t, src=0)
+                prev_lr = optimizer.param_groups[0]["lr"]
+                scheduler.step(metric_t.item())
+                new_lr = optimizer.param_groups[0]["lr"]
+                if args.is_main and abs(new_lr - prev_lr) > 1e-12:
+                    print(f"  [LR] plateau 触发：{prev_lr:.2e} -> {new_lr:.2e}")
+            dist_barrier()
+
+        train_metrics, global_batch = train_one_epoch(
+            model, train_loader, optimizer, scaler, device, epoch, args,
+            amp_enabled, amp_dtype, cfg,
+            global_batch_start=global_batch,
+            on_eval_interval=_eval_and_maybe_save,
+            scheduler=scheduler,
+            scheduler_mode=scheduler_mode,
+        )
+
+        # 仅 epoch 级调度（旧的 cosine / step）在这里触发；
+        # cosine_warmup 已在每个 optimizer.step() 之后触发；plateau 在 eval 时触发。
+        if scheduler is not None and scheduler_mode == "epoch":
+            scheduler.step()
+
+        ep_time = time.time() - ep_t0
+
+        msg = f"  Ep[{epoch+1}]  Train L:{train_metrics['loss']:.4f} P:{train_metrics['psnr']:.2f}"
+        msg += f"  t:{ep_time:.1f}s"
+        if args.is_main:
+            print(msg)
+    if best_global_batch < 0:
+        val_metrics = validate(model, val_loader, device, args, amp_enabled, amp_dtype, cfg)
+        if args.is_main:
+            all_metrics = {**train_metrics, **{f"v_{k}": v for k, v in val_metrics.items()}, "global_batch": global_batch}
+            best_psnr = float(val_metrics.get("psnr", 0.0))
+            best_global_batch = global_batch
+            save_checkpoint(
+                os.path.join(save_dir, f"{prefix}_best.pth"),
+                model, optimizer, scheduler, args.epochs - 1, all_metrics, args,
+            )
+            fline = f"  [Final Eval] L:{val_metrics['loss']:.4f}  PSNR:{best_psnr:.4f}dB @ batch {best_global_batch}"
+            if cfg.semantic.use_vae and "kl_raw" in val_metrics:
+                fline += (
+                    f"  KL(raw):{val_metrics['kl_raw']:.5f}  "
+                    f"mu_m:{val_metrics['mu_mean']:.5f}  mu_v:{val_metrics['mu_var']:.5f}  "
+                    f"mu_chstd_m:{val_metrics['mu_ch_std_mean']:.5f}  logvar_m:{val_metrics['logvar_mean']:.5f}"
+                )
+            print(fline)
+
+    if args.is_main:
+        total_min = (time.time() - wall_start) / 60
+        print(f"\n{'='*64}")
+        print(f"  Done!  {total_min:.1f}min  Best PSNR={best_psnr:.4f}dB @ batch {best_global_batch}")
+        print(f"  Best checkpoint: {os.path.join(save_dir, f'{prefix}_best.pth')}")
+        print("=" * 64)
+        log_f.close()
+    if args.distributed and is_dist_ready():
+        dist.destroy_process_group()
+
+
+if __name__ == "__main__":
+    main()

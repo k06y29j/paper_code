@@ -157,8 +157,7 @@ class SemanticCommSystem(nn.Module):
         """
         z_sem = self.semantic_encoder(x)
         z_ch = self.channel_encoder(z_sem)
-        z_rx, _, _ = self.mimo.forward(z_ch)
-        z_cd = self.channel_decoder(z_rx)
+        z_cd = self.channel_decoder(z_ch)
         x_hat = self.semantic_decoder(z_cd)
         return x_hat, z_sem, z_cd
 
