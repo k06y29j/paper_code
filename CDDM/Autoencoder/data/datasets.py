@@ -5,9 +5,43 @@ import sys
 import numpy as np
 import torch
 import torch.utils.data as data
+from PIL import Image
 from torchvision import transforms, datasets
 
-NUM_DATASET_WORKERS = 4
+_IMG_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff", ".webp"}
+
+
+class FlatImageFolder(data.Dataset):
+    """
+    目录下直接放若干图片（无类别子文件夹），与标准 DIV2K_train_HR / DIV2K_valid_HR 布局一致。
+    torchvision ImageFolder 要求 root/class_name/xxx.png，故单独实现。
+    """
+
+    def __init__(self, root, transform=None):
+        self.root = os.path.abspath(os.path.expanduser(root))
+        self.transform = transform
+        self.paths = []
+        if not os.path.isdir(self.root):
+            raise FileNotFoundError(self.root)
+        for name in sorted(os.listdir(self.root)):
+            p = os.path.join(self.root, name)
+            if os.path.isfile(p) and os.path.splitext(name)[1].lower() in _IMG_EXTS:
+                self.paths.append(p)
+        if not self.paths:
+            raise FileNotFoundError(
+                "目录中未找到图片（支持 {}）: {}".format(", ".join(sorted(_IMG_EXTS)), self.root)
+            )
+
+    def __len__(self):
+        return len(self.paths)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.paths[idx]).convert("RGB")
+        if self.transform is not None:
+            img = self.transform(img)
+        return img, 0
+
+NUM_DATASET_WORKERS = 16  # 未在 config 中指定 num_workers 时的默认
 SCALE_MIN = 0.75
 SCALE_MAX = 0.95
 
@@ -29,6 +63,7 @@ def worker_init_fn_seed(worker_id):
 
 
 def get_loader(config):
+    load_val = bool(getattr(config, "load_val_data", True))
     if config.dataset == "CIFAR10":
         transform_train = transforms.Compose([
             transforms.RandomHorizontalFlip(),
@@ -41,10 +76,14 @@ def get_loader(config):
                                          transform=transform_train,
                                          download=False)
 
-        test_dataset = datasets.CIFAR10(root=config.test_data_dir,
-                                        train=False,
-                                        transform=transform_test,
-                                        download=False)
+        test_dataset = None
+        if load_val:
+            test_dataset = datasets.CIFAR10(
+                root=config.test_data_dir,
+                train=False,
+                transform=transform_test,
+                download=False,
+            )
     elif config.dataset == "DIV2K":
         transform_train = transforms.Compose([
             transforms.RandomCrop((config.image_dims[1], config.image_dims[2])),
@@ -55,11 +94,16 @@ def get_loader(config):
             transforms.CenterCrop((config.image_dims[1], config.image_dims[2])),
             transforms.ToTensor()])
 
-        train_dataset = datasets.ImageFolder(root=config.train_data_dir,
-                                             transform=transform_train, )
-
-        test_dataset = datasets.ImageFolder(root=config.test_data_dir,
-                                            transform=transform_test)
+        train_dataset = FlatImageFolder(
+            root=config.train_data_dir,
+            transform=transform_train,
+        )
+        test_dataset = None
+        if load_val:
+            test_dataset = FlatImageFolder(
+                root=config.test_data_dir,
+                transform=transform_test,
+            )
     elif config.dataset == "CelebA":
         transform_train = transforms.Compose([
             transforms.RandomCrop((config.image_dims[1], config.image_dims[2])),
@@ -71,19 +115,43 @@ def get_loader(config):
         train_dataset = datasets.ImageFolder(root=config.train_data_dir,
                                              transform=transform_train)
 
-        test_dataset = datasets.ImageFolder(root=config.test_data_dir,
-                                            transform=transform_test)
+        test_dataset = None
+        if load_val:
+            test_dataset = datasets.ImageFolder(
+                root=config.test_data_dir,
+                transform=transform_test,
+            )
 
-    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                               num_workers=NUM_DATASET_WORKERS,
-                                               pin_memory=True,
-                                               batch_size=config.batch_size,
-                                               worker_init_fn=worker_init_fn_seed,
-                                               shuffle=True,
-                                               drop_last=True)
-    test_loader = data.DataLoader(dataset=test_dataset,
-                                  batch_size=config.test_batch,
-                                  shuffle=False)
+    nw = int(getattr(config, "num_workers", NUM_DATASET_WORKERS))
+    pin = bool(getattr(config, "pin_memory", True))
+    pw = bool(getattr(config, "persistent_workers", False)) and nw > 0
+    pf = 2 if nw > 0 else None
+    train_loader = torch.utils.data.DataLoader(
+        dataset=train_dataset,
+        num_workers=nw,
+        pin_memory=pin,
+        persistent_workers=pw,
+        prefetch_factor=pf,
+        batch_size=config.batch_size,
+        worker_init_fn=worker_init_fn_seed,
+        shuffle=True,
+        drop_last=True,
+    )
+    if test_dataset is not None:
+        vnw = int(getattr(config, "val_num_workers", max(1, nw // 2)))
+        vpw = bool(getattr(config, "persistent_workers", False)) and vnw > 0
+        vpf = 2 if vnw > 0 else None
+        test_loader = data.DataLoader(
+            dataset=test_dataset,
+            batch_size=config.test_batch,
+            shuffle=False,
+            num_workers=vnw,
+            pin_memory=pin,
+            persistent_workers=vpw,
+            prefetch_factor=vpf,
+        )
+    else:
+        test_loader = None
 
     return train_loader, test_loader
 

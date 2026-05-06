@@ -14,10 +14,14 @@
         --dataset cifar10 --data_dir /path/to/cifar10 \
         --batch_size 256 --epochs 200 --num_workers 16
 
-    # DIV2K（5 卡 DDP 并行，每卡 batch_size=4 → 总 batch_size=20）
+    # DIV2K（默认：PNG，data_dir 下 DIV2K_train_HR / DIV2K_valid_HR）
     torchrun --standalone --nproc_per_node=5 train/train_sc.py \
-        --dataset div2k --data_dir /path/to/DIV2K \
+        --dataset div2k --data_dir /workspace/yongjia/datasets/DIV2K \
         --batch_size 4 --epochs 600 --crop_size 256 --num_workers 12
+
+    # DIV2K（可选 LMDB：同时指定两条路径并加 --use_lmdb）
+    python train/train_sc.py --dataset div2k --use_lmdb \
+        --train_lmdb_path /path/train-256.lmdb --val_lmdb_path /path/valid-256.lmdb
 
     # 单卡调试
     CUDA_VISIBLE_DEVICES=0 python train/train_sc.py --dataset cifar10 \
@@ -25,6 +29,9 @@
 
     # 恢复训练
     python train/train_sc.py --resume checkpoints/sc_cifar10_best.pth
+
+    # 最优时刻额外拆分保存语义编/解码器权重（文件名含 sc_encoder / sc_decoder、数据集、c{n}）
+    python train/train_sc.py --dataset cifar10 --data_dir /path/to/cifar10 --save_sc_split_weights
 """
 
 from __future__ import annotations
@@ -32,6 +39,7 @@ from __future__ import annotations
 import argparse
 import builtins
 import contextlib
+import math
 import os
 import sys
 import time
@@ -76,23 +84,67 @@ def parse_args() -> argparse.Namespace:
     # ---- 数据集 ----
     parser.add_argument("--dataset", type=str, default="div2k",
                         choices=["cifar10", "div2k"], help="数据集")
-    parser.add_argument("--data_dir", type=str, required=False, default=None, help="数据集根目录")
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        required=False,
+        default=None,
+        help=(
+            "数据集根目录。DIV2K 省略时默认为 "
+            "/workspace/yongjia/datasets/DIV2K（其下须有 DIV2K_train_HR / DIV2K_valid_HR）；"
+            "CIFAR10 必须指定。"
+        ),
+    )
     parser.add_argument("--crop_size", type=int, default=256, help="DIV2K 裁剪尺寸")
+    parser.add_argument(
+        "--use_lmdb",
+        action="store_true",
+        help=(
+            "DIV2K：启用 LMDB（若 data_dir 下存在 train-{crop}.lmdb / valid-{crop}.lmdb）。"
+            "默认关闭，直接使用 DIV2K_train_HR / DIV2K_valid_HR 下的 PNG。"
+        ),
+    )
     parser.add_argument(
         "--train_lmdb_path",
         type=str,
-        default="/data/small-datasets-1/DF2K/train-256.lmdb",
-        help="可选：显式指定训练集 LMDB 路径（如 DF2K train-256.lmdb）",
+        default=None,
+        help=(
+            "可选：显式指定训练集 LMDB 路径；必须与 --val_lmdb_path 同时给出。"
+            "给出后强制走 LMDB，无需再加 --use_lmdb。"
+        ),
     )
     parser.add_argument(
         "--val_lmdb_path",
         type=str,
-        default="/data/small-datasets-1/DIV2K/DIV2K_valid_HR/valid-256.lmdb",
-        help="可选：显式指定验证集 LMDB 路径（如 DIV2K valid-256.lmdb）",
+        default=None,
+        help="可选：显式指定验证集 LMDB 路径；必须与 --train_lmdb_path 同时给出。",
+    )
+    parser.add_argument(
+        "--cache_decoded",
+        dest="cache_decoded",
+        action="store_true",
+        default=True,
+        help=(
+            "DIV2K PNG 模式：在 __init__ 中一次性把所有图像解码为 numpy 常驻内存，"
+            "训练时只做随机裁剪+ToTensor，避免每个 batch 都解码 PNG 导致 GPU 周期性掉 0。"
+            "DIV2K_train_HR 800 张约 8.6 GB；每个 DDP rank 各一份。默认开启。"
+        ),
+    )
+    parser.add_argument(
+        "--no_cache_decoded",
+        dest="cache_decoded",
+        action="store_false",
+        help="关闭 --cache_decoded（每次 __getitem__ 重新读盘并解码 PNG）。",
+    )
+    parser.add_argument(
+        "--cache_workers",
+        type=int,
+        default=None,
+        help="启动期解码并发线程数；不传则用 min(16, os.cpu_count())。",
     )
 
     # ---- 训练超参（核心）----
-    parser.add_argument("--epochs", type=int, default=5, help="总轮次")
+    parser.add_argument("--epochs", type=int, default=2400, help="总轮次")
     parser.add_argument("--batch_size", type=int, default=16,
                         help="每张 GPU 的批大小（总 batch_size = 此值 × GPU 数量）")
     parser.add_argument("--lr", type=float, default=1e-4, help="第 2 个 epoch 起的基础学习率（见 --lr_first_epoch）")
@@ -108,6 +160,12 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=1,
         help="梯度累积步数（>1 可在小 batch 下保持等效总 batch）",
+    )
+    parser.add_argument(
+        "--clip_grad_norm",
+        type=float,
+        default=0.0,
+        help="梯度范数裁剪上限（>0 启用 clip_grad_norm_，0 关闭）",
     )
     parser.add_argument(
         "--lr_scheduler",
@@ -135,8 +193,30 @@ def parse_args() -> argparse.Namespace:
                         help="plateau：每次降 lr 的乘数")
 
     # ---- 系统性能调优 ----
-    parser.add_argument("--num_workers", type=int, default=64,
-                        help="DataLoader 工作线程数（128GB RAM 建议设大）")
+    parser.add_argument(
+        "--num_workers", type=int, default=8,
+        help=(
+            "训练 DataLoader 工作进程数（每个 GPU 任务）。\n"
+            "经验：单卡 4-12 通常足够；多任务共用一台机器时务必降低，"
+            "避免 (任务数 × num_workers × 2) > CPU 物理核数。\n"
+            "示例：3 任务共用 144 核服务器 → 每任务 8-12 较合适。"
+        ),
+    )
+    parser.add_argument(
+        "--val_num_workers", type=int, default=None,
+        help=(
+            "验证 DataLoader 工作进程数。默认 max(2, num_workers // 4)。\n"
+            "评估只是间歇触发，无须与训练一样多 worker。"
+        ),
+    )
+    parser.add_argument(
+        "--prefetch_factor", type=int, default=2,
+        help="每个 worker 预取的 batch 数。多任务共用机器时建议 2，单任务可调到 4。",
+    )
+    parser.add_argument(
+        "--val_persistent_workers", action="store_true",
+        help="是否让验证 DataLoader 的 worker 常驻（默认 off，按需启停以释放 CPU）。",
+    )
     parser.add_argument("--compile", type=str, default="reduce-overheads",
                         choices=["on", "off", "default", "reduce-overheads"],
                         help="torch.compile 模式（'reduce-overheads' 推荐，'off' 关闭）")
@@ -149,14 +229,52 @@ def parse_args() -> argparse.Namespace:
 
     # ---- 日志 & 保存 ----
     parser.add_argument("--save_dir", type=str,
-                        default=os.path.join(PROJECT_ROOT, "checkpoints-v2"))
+                        default=os.path.join(PROJECT_ROOT, "checkpoints-val/val_12"))
     parser.add_argument("--log_file", type=str, default="log/sc-2.txt", help="终端日志保存路径")
     parser.add_argument("--log_freq", type=int, default=50, help="训练日志打印频率（按 batch）")
-    parser.add_argument("--eval_every_batches", type=int, default=400,
-                        help="每多少个 batch 在验证集上评估并尝试保存最优模型")
+    parser.add_argument(
+        "--eval_mode",
+        type=str,
+        default="epoch",
+        choices=["batch", "epoch"],
+        help=(
+            "验证并据此保存最优 checkpoint 的时机："
+            "batch=按全局 batch 计数，每隔 eval_every_batches 触发一次；"
+            "epoch=按 epoch，间隔由 --eval_every_epochs 决定（最后一轮 epoch 总会验证）。"
+            "二者互斥：epoch 模式下忽略 --eval_every_batches。"
+        ),
+    )
+    parser.add_argument(
+        "--eval_every_epochs",
+        type=int,
+        default=20,
+        help=(
+            "eval_mode=epoch 时：每隔多少个 epoch 做一次验证并尝试保存最优（默认 20；"
+            "训练最后一个 epoch 结束时总会验证）。batch 模式下无效。"
+        ),
+    )
+    parser.add_argument("--eval_every_batches", type=int, default=800,
+                        help="eval_mode=batch 时：每多少个全局 batch 验证并尝试保存最优（≤0 表示本轮训内不做间隔验证）")
     parser.add_argument("--resume", type=str, default=None, help="恢复检查点路径")
+    parser.add_argument(
+        "--save_sc_split_weights",
+        action="store_true",
+        help=(
+            "保存完整检查点的同时，将语义编码器/解码器各存一份独立权重；"
+            "文件名含 sc_encoder / sc_decoder、数据集名与输出通道数 c{n}。"
+        ),
+    )
+    parser.add_argument(
+        "--embed_dim",
+        type=int,
+        default=None,
+        help="若指定则覆盖 config 中的 semantic.embed_dim（潜空间瓶颈维）；不指定则用数据集预设。",
+    )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.eval_every_epochs < 1:
+        parser.error("--eval_every_epochs 必须 >= 1")
+    return args
 
 
 # ===========================================================================
@@ -243,7 +361,7 @@ def compute_psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
     mse_val = torch.mean((pred - target) ** 2).item()
     if mse_val < 1e-12:
         return float("inf")
-    return float(10.0 * torch.log10(torch.tensor(1.0 / mse_val)))
+    return 10.0 * math.log10(1.0 / mse_val)
 
 
 # ===========================================================================
@@ -263,18 +381,35 @@ def build_dataloaders(args: argparse.Namespace, device: torch.device):
     可确保 GPU 几乎不会因数据读取而等待。
     """
     nw = args.num_workers
+    val_nw = args.val_num_workers
+    pf = args.prefetch_factor
+    val_persist = bool(getattr(args, "val_persistent_workers", False))
     if args.dataset == "div2k":
         # 当显式指定 train/val LMDB 时，data_dir 可能为空；这里兜底为空字符串，
         # 以兼容 get_div2k_loaders 内部默认路径拼接逻辑。
         data_dir = args.data_dir or ""
+        train_lp = getattr(args, "train_lmdb_path", None)
+        val_lp = getattr(args, "val_lmdb_path", None)
+        if train_lp is not None and isinstance(train_lp, str) and not train_lp.strip():
+            train_lp = None
+        if val_lp is not None and isinstance(val_lp, str) and not val_lp.strip():
+            val_lp = None
+        explicit_lmdb_paths = train_lp is not None and val_lp is not None
+        use_lmdb = bool(getattr(args, "use_lmdb", False)) or explicit_lmdb_paths
         train_loader, val_loader, _ = get_div2k_loaders(
             data_dir=data_dir,
             batch_size=args.batch_size,
             crop_size=args.crop_size,
             num_workers=nw,
             distributed=args.distributed,
-            train_lmdb_path=args.train_lmdb_path,
-            val_lmdb_path=args.val_lmdb_path,
+            use_lmdb=use_lmdb,
+            train_lmdb_path=train_lp,
+            val_lmdb_path=val_lp,
+            val_num_workers=val_nw,
+            prefetch_factor=pf,
+            val_persistent_workers=val_persist,
+            cache_decoded=bool(getattr(args, "cache_decoded", True)),
+            cache_workers=getattr(args, "cache_workers", None),
         )
     else:
         train_loader, val_loader, _ = get_cifar10_loaders(
@@ -282,6 +417,9 @@ def build_dataloaders(args: argparse.Namespace, device: torch.device):
             batch_size=args.batch_size,
             num_workers=nw,
             distributed=args.distributed,
+            val_num_workers=val_nw,
+            prefetch_factor=pf,
+            val_persistent_workers=val_persist,
         )
 
     # DataLoader 初始化后不允许再直接修改 drop_last/prefetch_factor/pin_memory 等属性。
@@ -365,7 +503,6 @@ def build_lr_scheduler(args, optimizer, train_loader_len: int):
         warmup_steps = min(warmup_steps, max(1, total_steps - 1))
         start_ratio = max(1e-6, float(args.warmup_start_ratio))
         min_ratio = max(0.0, float(args.min_lr_ratio))
-        import math
 
         def lr_lambda(step: int) -> float:
             if step < warmup_steps:
@@ -437,12 +574,8 @@ def train_one_epoch(
     loss_meter = AverageMeter()
     psnr_meter = AverageMeter()
 
-    # 从 config.py 取损失参数（用户要求不重新设计 loss）
-    lam_l1 = 0.01
-    lam_perc = 0.01
-    lam_kl = cfg.semantic.lambda_kl      # config.py SemanticConfig.lambda_kl
-    use_vae = cfg.semantic.use_vae        # config.py SemanticConfig.use_vae
-    use_perc = False                      # 感知损失按需开启
+    lam_kl = cfg.semantic.lambda_kl
+    use_vae = cfg.semantic.use_vae
 
     autocast_kw = dict(enabled=amp_enabled, dtype=amp_dtype)
 
@@ -465,9 +598,7 @@ def train_one_epoch(
             loss = semantic_codec_loss(
                 x_hat=x_hat, x=images_non_blocking,
                 mu=mu, logvar=logvar,
-                lambda_l1=lam_l1, lambda_perc=lam_perc,
-                lambda_kl=lam_kl, use_perceptual=use_perc,
-                use_vae=use_vae,
+                lambda_kl=lam_kl, use_vae=use_vae,
             )
             loss_for_backward = loss / accum_steps
             if scaler.is_enabled():
@@ -475,6 +606,14 @@ def train_one_epoch(
             else:
                 loss_for_backward.backward()
         if should_step:
+            if scaler.is_enabled():
+                scaler.unscale_(optimizer)
+            clip_val = getattr(args, "clip_grad_norm", 0.0)
+            if clip_val > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    (p for p in model.parameters() if p.requires_grad),
+                    max_norm=clip_val,
+                )
             if scaler.is_enabled():
                 scaler.step(optimizer)
                 scaler.update()
@@ -505,6 +644,7 @@ def train_one_epoch(
         global_batch = global_batch_start + i + 1
         if (
             on_eval_interval is not None
+            and getattr(args, "eval_mode", "batch") == "batch"
             and args.eval_every_batches > 0
             and (global_batch % args.eval_every_batches == 0)
         ):
@@ -544,9 +684,7 @@ def validate(model, loader: DataLoader, device, args,
             x_hat, mu, logvar = model(images_d)
             loss = semantic_codec_loss(
                 x_hat=x_hat, x=images_d, mu=mu, logvar=logvar,
-                lambda_l1=0.01, lambda_perc=0.01,
-                lambda_kl=lam_kl, use_perceptual=False,
-                use_vae=cfg.semantic.use_vae,
+                lambda_kl=lam_kl, use_vae=cfg.semantic.use_vae,
             )
 
         bs = images.shape[0]
@@ -619,6 +757,24 @@ def validate(model, loader: DataLoader, device, args,
 # 检查点管理
 # ===========================================================================
 
+def save_sc_split_weights(model: nn.Module, save_dir: str, dataset: str, metrics: dict | None) -> None:
+    """将语义编解码器拆成两个权重文件（仅 state_dict 与少量元数据）。"""
+    w = unwrap_model(model)
+    system = w.system
+    out_c = int(system.cfg.semantic.embed_dim)
+    base = f"{dataset}_c{out_c}"
+    enc_path = os.path.join(save_dir, f"sc_encoder_{base}.pth")
+    dec_path = os.path.join(save_dir, f"sc_decoder_{base}.pth")
+    os.makedirs(save_dir, exist_ok=True)
+    common = {
+        "dataset": dataset,
+        "embed_dim": out_c,
+        "metrics": metrics,
+    }
+    torch.save({**common, "state_dict": system.semantic_encoder.state_dict()}, enc_path)
+    torch.save({**common, "state_dict": system.semantic_decoder.state_dict()}, dec_path)
+
+
 def save_checkpoint(path, model, optimizer, scheduler, epoch, metrics, args):
     core_model = unwrap_model(model)
     state = {
@@ -632,7 +788,8 @@ def save_checkpoint(path, model, optimizer, scheduler, epoch, metrics, args):
         state["scheduler_state_dict"] = scheduler.state_dict()
     os.makedirs(os.path.dirname(path), exist_ok=True)
     torch.save(state, path)
-    print(f"  >> Saved {path}")
+    if getattr(args, "save_sc_split_weights", False):
+        save_sc_split_weights(model, os.path.dirname(path), args.dataset, metrics)
 
 
 def load_checkpoint(path, model, optimizer=None, scheduler=None):
@@ -645,9 +802,10 @@ def load_checkpoint(path, model, optimizer=None, scheduler=None):
     if scheduler and "scheduler_state_dict" in state:
         scheduler.load_state_dict(state["scheduler_state_dict"])
     print(f"  >> Loaded {path}  resume epoch={start_epoch}")
-    if "metrics" in state:
-        print(f"     prev best: {state['metrics']}")
-    return start_epoch
+    metrics = state.get("metrics", {})
+    if metrics:
+        print(f"     prev best: {metrics}")
+    return start_epoch, metrics
 
 
 # ===========================================================================
@@ -672,10 +830,27 @@ def main():
         dist.init_process_group(backend="nccl", init_method="env://")
 
     log_f = setup_log_file(args.log_file) if args.is_main else None
+
+    div2k_default_root = "/workspace/yongjia/datasets/DIV2K"
     if args.dataset == "div2k":
-        explicit_lmdb = (args.train_lmdb_path is not None) or (args.val_lmdb_path is not None)
-        if not explicit_lmdb and not args.data_dir:
-            raise ValueError("DIV2K 模式下，未显式传 LMDB 路径时必须提供 --data_dir。")
+        if args.data_dir is None or (
+            isinstance(args.data_dir, str) and not args.data_dir.strip()
+        ):
+            args.data_dir = div2k_default_root
+    if args.dataset == "div2k":
+        t_lp = args.train_lmdb_path
+        v_lp = args.val_lmdb_path
+        if t_lp is not None and isinstance(t_lp, str) and not t_lp.strip():
+            t_lp = None
+        if v_lp is not None and isinstance(v_lp, str) and not v_lp.strip():
+            v_lp = None
+        if (t_lp is None) ^ (v_lp is None):
+            raise ValueError(
+                "DIV2K：--train_lmdb_path 与 --val_lmdb_path 必须同时指定或同时省略。"
+            )
+        explicit_lmdb = t_lp is not None and v_lp is not None
+        if not explicit_lmdb and not (args.data_dir and str(args.data_dir).strip()):
+            raise ValueError("DIV2K 模式下，未指定 LMDB 路径时必须提供非空 --data_dir。")
     else:
         if not args.data_dir:
             raise ValueError("CIFAR10 模式下必须提供 --data_dir。")
@@ -690,7 +865,11 @@ def main():
     else:
         device = torch.device("cpu")
 
-    # 种子
+    # CUDA 性能优化
+    if device.type == "cuda":
+        torch.backends.cudnn.benchmark = True
+        torch.set_float32_matmul_precision("high")
+
     seed = args.seed + args.local_rank
     torch.manual_seed(seed)
     if device.type == "cuda":
@@ -698,6 +877,8 @@ def main():
 
     # ---- 配置（损失参数全来自这里，不再命令行重复传）----
     cfg = build_config(args.dataset)
+    if args.embed_dim is not None:
+        cfg.semantic.embed_dim = int(args.embed_dim)
 
     # ---- 打印信息 ----
     if args.is_main:
@@ -723,13 +904,77 @@ def main():
         else:
             print(f"  LR           : {args.lr}  |  epochs={args.epochs}")
         print(f"  LR scheduler : {args.lr_scheduler}")
-        print(f"  Workers      : {args.num_workers}  |  AMP={args.amp_dtype}"
-              f"  |  compile={args.compile}")
+        eff_val_nw = (
+            args.val_num_workers
+            if args.val_num_workers is not None
+            else (max(2, args.num_workers // 4) if args.num_workers > 0 else 0)
+        )
+        print(
+            f"  Workers      : train={args.num_workers}  val={eff_val_nw}  "
+            f"prefetch={args.prefetch_factor}  val_persistent={bool(args.val_persistent_workers)}"
+            f"  |  AMP={args.amp_dtype}  |  compile={args.compile}"
+        )
+        try:
+            cpu_cnt = os.cpu_count() or 0
+            ws = max(1, args.world_size)
+            est_workers = ws * (args.num_workers + (eff_val_nw if args.val_persistent_workers else 0))
+            if cpu_cnt and est_workers > cpu_cnt:
+                print(
+                    f"  [HINT] 本任务常驻 worker ≈ {est_workers}，CPU 物理核数 = {cpu_cnt}。\n"
+                    f"         多任务共用机器时，请确保 (任务数 × num_workers) 不超过 CPU 核数，"
+                    f"否则 GPU 利用率会大幅掉 0。"
+                )
+        except Exception:
+            pass
+        print(f"  save_sc_split_weights : {args.save_sc_split_weights}")
+        clip_v = getattr(args, "clip_grad_norm", 0.0)
+        print(f"  clip_grad_norm: {clip_v if clip_v > 0 else 'off'}")
+        if args.eval_mode == "epoch":
+            _eee = max(1, int(args.eval_every_epochs))
+            print(
+                f"  Eval/best ckpt : eval_mode=epoch，每 {_eee} 个 epoch 验证一次"
+                "（最后一轮必定验证；忽略 --eval_every_batches）"
+            )
+        else:
+            _eb = args.eval_every_batches
+            print(
+                f"  Eval/best ckpt : eval_mode=batch，每隔 {_eb} 个全局 batch"
+                + ("（≤0 表示训练期内不做间隔验证）" if _eb <= 0 else "")
+            )
         print(f"  Loss params  (from config.py SemanticConfig):")
-        print(f"    lambda_kl   = {cfg.semantic.lambda_kl}")
-        print(f"    lambda_l1   = 0.01  (semantic_codec_loss default)")
-        print(f"    lambda_perc = 0.01  (semantic_codec_loss default)")
-        print(f"    use_vae     = {cfg.semantic.use_vae}")
+        print(f"    lambda_kl    = {cfg.semantic.lambda_kl}")
+        print(f"    use_vae      = {cfg.semantic.use_vae}")
+        print(f"    embed_dim    = {cfg.semantic.embed_dim}" + (
+            "" if args.embed_dim is None else "  (--embed_dim override)"
+        ))
+        if args.dataset == "div2k":
+            _t = args.train_lmdb_path
+            _v = args.val_lmdb_path
+            _t = None if (_t is None or (isinstance(_t, str) and not _t.strip())) else _t
+            _v = None if (_v is None or (isinstance(_v, str) and not _v.strip())) else _v
+            _explicit = _t is not None and _v is not None
+            print(f"  DIV2K data_dir : {args.data_dir}")
+            if _explicit:
+                print(f"  DIV2K loader   : LMDB（显式路径）")
+                print(f"    train_lmdb : {_t}")
+                print(f"    val_lmdb   : {_v}")
+            elif args.use_lmdb:
+                print(
+                    "  DIV2K loader   : LMDB（data_dir 下 train-{crop}.lmdb / valid-{crop}.lmdb，若存在）"
+                )
+            else:
+                print("  DIV2K loader   : PNG（不使用 LMDB）")
+                print(f"    train : {os.path.join(args.data_dir, 'DIV2K_train_HR')}")
+                print(f"    val   : {os.path.join(args.data_dir, 'DIV2K_valid_HR')}")
+                if bool(getattr(args, "cache_decoded", True)):
+                    print(
+                        "    cache : ON（启动时一次性解码，常驻内存；__getitem__ 仅做随机裁剪）"
+                    )
+                else:
+                    print(
+                        "    cache : OFF（每次 __getitem__ 重新读盘并解码 PNG，CPU 重，"
+                        "易导致 GPU 周期性掉 0；建议加 --cache_decoded）"
+                    )
 
     # ---- 构建 ----
     train_loader, val_loader = build_dataloaders(args, device)
@@ -739,18 +984,21 @@ def main():
 
     # ---- 恢复 ----
     start_epoch = 0
+    resumed_metrics: dict = {}
     if args.resume and os.path.isfile(args.resume):
-        start_epoch = load_checkpoint(args.resume, model, optimizer, scheduler)
+        start_epoch, resumed_metrics = load_checkpoint(args.resume, model, optimizer, scheduler)
     dist_barrier()
 
     # ---- 训练循环 ----
     save_dir = args.save_dir
     prefix = f"sc_{args.dataset}"
     os.makedirs(save_dir, exist_ok=True)
-    best_psnr = 0.0
+    best_psnr = float(resumed_metrics.get("v_psnr", 0.0))
     best_global_batch = -1
     all_metrics = {}
     global_batch = 0
+    if args.is_main and best_psnr > 0:
+        print(f"  Resumed best PSNR: {best_psnr:.4f} dB")
 
     wall_start = time.time()
 
@@ -783,7 +1031,13 @@ def main():
             else:
                 print(f"  lr 起始: {lr_run:.6g}  (scheduler={args.lr_scheduler}, mode={scheduler_mode})")
 
-        def _eval_and_maybe_save(cur_global_batch: int, cur_epoch: int, train_snapshot: dict):
+        def _eval_and_maybe_save(
+            cur_global_batch: int,
+            cur_epoch: int,
+            train_snapshot: dict,
+            *,
+            eval_tag: str = "interval",
+        ):
             nonlocal best_psnr, best_global_batch, all_metrics
             dist_barrier()
             val_metrics = validate(
@@ -794,13 +1048,22 @@ def main():
                     **train_snapshot,
                     **{f"v_{k}": v for k, v in val_metrics.items()},
                     "global_batch": cur_global_batch,
+                    "eval_tag": eval_tag,
+                    "eval_epoch": cur_epoch + 1,
                 }
                 cur_psnr = float(val_metrics.get("psnr", 0.0))
                 images_seen = cur_global_batch * args.batch_size * max(1, args.world_size)
-                line = (
-                    f"  [Eval@batch={cur_global_batch}, images~{images_seen}] "
-                    f"Val L:{val_metrics['loss']:.4f}  PSNR:{cur_psnr:.2f}dB"
-                )
+                if eval_tag == "epoch":
+                    line = (
+                        f"  [Eval@end_epoch={cur_epoch + 1}/{args.epochs}, batch={cur_global_batch}, "
+                        f"images~{images_seen}] "
+                        f"Val L:{val_metrics['loss']:.4f}  PSNR:{cur_psnr:.2f}dB"
+                    )
+                else:
+                    line = (
+                        f"  [Eval@batch={cur_global_batch}, images~{images_seen}] "
+                        f"Val L:{val_metrics['loss']:.4f}  PSNR:{cur_psnr:.2f}dB"
+                    )
                 if cfg.semantic.use_vae and "kl_raw" in val_metrics:
                     line += (
                         f"  KL(raw):{val_metrics['kl_raw']:.5f}  "
@@ -813,10 +1076,14 @@ def main():
                     best_psnr = cur_psnr
                     best_global_batch = cur_global_batch
                     save_checkpoint(
-                        os.path.join(save_dir, f"{prefix}_best.pth"),
+                        os.path.join(save_dir, f"{prefix}_c{int(cfg.semantic.embed_dim)}_best.pth"),
                         model, optimizer, scheduler, cur_epoch, all_metrics, args,
                     )
-                    print(f"  *** New Best PSNR: {best_psnr:.4f} dB @ batch {cur_global_batch} ***")
+                    where = (
+                        f"epoch {cur_epoch + 1}" if eval_tag == "epoch"
+                        else f"batch {cur_global_batch}"
+                    )
+                    print(f"  *** New Best PSNR: {best_psnr:.4f} dB @ {where} ***")
             # plateau：所有 rank 都需要同步 step（用同一指标，避免漂移）
             if scheduler is not None and scheduler_mode == "plateau":
                 metric_t = torch.tensor(
@@ -837,15 +1104,12 @@ def main():
             model, train_loader, optimizer, scaler, device, epoch, args,
             amp_enabled, amp_dtype, cfg,
             global_batch_start=global_batch,
-            on_eval_interval=_eval_and_maybe_save,
+            on_eval_interval=(
+                _eval_and_maybe_save if args.eval_mode == "batch" else None
+            ),
             scheduler=scheduler,
             scheduler_mode=scheduler_mode,
         )
-
-        # 仅 epoch 级调度（旧的 cosine / step）在这里触发；
-        # cosine_warmup 已在每个 optimizer.step() 之后触发；plateau 在 eval 时触发。
-        if scheduler is not None and scheduler_mode == "epoch":
-            scheduler.step()
 
         ep_time = time.time() - ep_t0
 
@@ -853,6 +1117,17 @@ def main():
         msg += f"  t:{ep_time:.1f}s"
         if args.is_main:
             print(msg)
+
+        if args.eval_mode == "epoch":
+            ep_done = epoch + 1
+            ee = int(args.eval_every_epochs)
+            if ep_done % ee == 0 or ep_done == args.epochs:
+                _eval_and_maybe_save(global_batch, epoch, train_metrics, eval_tag="epoch")
+
+        # 仅 epoch 级调度（旧的 cosine / step）在这里触发；
+        # cosine_warmup 已在每个 optimizer.step() 之后触发；plateau 在 eval 时触发。
+        if scheduler is not None and scheduler_mode == "epoch":
+            scheduler.step()
     if best_global_batch < 0:
         val_metrics = validate(model, val_loader, device, args, amp_enabled, amp_dtype, cfg)
         if args.is_main:
@@ -860,7 +1135,7 @@ def main():
             best_psnr = float(val_metrics.get("psnr", 0.0))
             best_global_batch = global_batch
             save_checkpoint(
-                os.path.join(save_dir, f"{prefix}_best.pth"),
+                os.path.join(save_dir, f"{prefix}_c{int(cfg.semantic.embed_dim)}_best.pth"),
                 model, optimizer, scheduler, args.epochs - 1, all_metrics, args,
             )
             fline = f"  [Final Eval] L:{val_metrics['loss']:.4f}  PSNR:{best_psnr:.4f}dB @ batch {best_global_batch}"
@@ -875,8 +1150,13 @@ def main():
     if args.is_main:
         total_min = (time.time() - wall_start) / 60
         print(f"\n{'='*64}")
-        print(f"  Done!  {total_min:.1f}min  Best PSNR={best_psnr:.4f}dB @ batch {best_global_batch}")
-        print(f"  Best checkpoint: {os.path.join(save_dir, f'{prefix}_best.pth')}")
+        best_where = (
+            f"epoch 结束触发保存（batch={best_global_batch}）"
+            if args.eval_mode == "epoch"
+            else f"batch {best_global_batch}"
+        )
+        print(f"  Done!  {total_min:.1f}min  Best PSNR={best_psnr:.4f}dB @ {best_where}")
+        print(f"  Best checkpoint: {os.path.join(save_dir, f'{prefix}_c{int(cfg.semantic.embed_dim)}_best.pth')}")
         print("=" * 64)
         log_f.close()
     if args.distributed and is_dist_ready():

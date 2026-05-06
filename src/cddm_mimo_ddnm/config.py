@@ -8,7 +8,7 @@ class SemanticConfig:
     # 注意：这里的 patch_size 表示编码器的“总下采样倍数”，
     # 用来对齐原项目中 patch stem + 多个 PatchMerging 后的最终空间分辨率。
     patch_size: int = 16
-    embed_dim: int = 64       # 本项目语义瓶颈维度（与原项目单段式 JSCC 的发送维度 C 不同）
+    embed_dim: int = 16       # 本项目语义瓶颈维度（与原项目单段式 JSCC 的发送维度 C 不同）
     num_heads: int = 4        # 多头注意力头数
     window_size: int = 4      # Swin 窗口大小
     num_swin_blocks: int = 2  # Swin Block 数量
@@ -19,7 +19,7 @@ class SemanticConfig:
     stem_stride: int | None = None
     stage_downsample: tuple[bool, ...] | None = None
     # VAE 潜空间正则化（为扩散模型提供规则的高斯潜空间）
-    use_vae: bool = False
+    use_vae: bool = True
     lambda_kl: float = 1e-4   # KL 散度权重
     # 解码器深度（PixelShuffle 后的 SwinBlock 数量）
     num_decoder_refine_blocks: int = 2
@@ -64,12 +64,22 @@ class DiffusionConfig:
 
 
 @dataclass
+class UNetUncondConfig:
+    T: int = 1000
+    ch: int = 256
+    ch_mult: tuple[int, ...] = (1, 2, 2)
+    attn: tuple[int, ...] = (1,)
+    num_res_blocks: int = 2
+    dropout: float = 0.1
+    input_channel: int = 16
+
+@dataclass
 class SystemConfig:
     semantic: SemanticConfig = field(default_factory=SemanticConfig)
     channel: ChannelConfig = field(default_factory=ChannelConfig)
     mimo: MIMOConfig = field(default_factory=MIMOConfig)
     diffusion: DiffusionConfig = field(default_factory=DiffusionConfig)
-
+    unet_uncond: UNetUncondConfig = field(default_factory=UNetUncondConfig)
 
 # ---------------------------------------------------------------------------
 # 预设配置工厂
@@ -144,7 +154,7 @@ def get_div2k_config() -> SystemConfig:
             #checkpoint 2 : 4 stage, use vae
             image_channels=3,
             patch_size=16,
-            embed_dim=72,
+            embed_dim=16,
             num_heads=8,
             window_size=8,
             num_swin_blocks=4,
@@ -165,9 +175,20 @@ def get_div2k_config() -> SystemConfig:
         mimo=MIMOConfig(n_tx=2, n_rx=2, snr_db=10.0, fading="rayleigh"),
         diffusion=DiffusionConfig(
             num_train_steps=1000,
-            num_sample_steps=10,
+            num_sample_steps=50,
             beta_start=1e-4,
             beta_end=2e-2,
             unet_hidden_dim=256,
+        ),
+        unet_uncond=UNetUncondConfig(
+            T=1000,
+            # 与 checkpoints-val/sc/sc_div2k_c{4,12,16}_best.pth 中 UNet 一致（非 Stage1 训练目标，但须能 load_state_dict）
+            ch=256,
+            ch_mult=(1, 2, 2),
+            attn=(1,),
+            num_res_blocks=2,
+            dropout=0.1,
+            # DIV2K 存盘权重里无条件 U 网入口通道固定为 16（与语义瓶颈 C=4/12/16 无强制一一对应）
+            input_channel=16,
         ),
     )

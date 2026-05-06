@@ -318,9 +318,22 @@ class DIV2KDataset(Dataset):
                     或直接包含图像文件）。
         crop_size:  裁剪尺寸，应为 32 的整数倍（满足 patch_size=4 且 U-Net 4× 下采样）。
         split:      "train" 或 "valid"。
+        cache_decoded: 若为 True（默认），在 __init__ 中把所有图像解码成
+                       numpy [H,W,3] uint8 一次性常驻内存；后续 __getitem__
+                       不再做 PNG 解码（用 fork 起来的 worker 通过 CoW 共享）。
+                       DIV2K_train_HR 800 张约 8.6 GB；DIV2K_valid_HR 100 张约 1 GB。
+        cache_workers: 启动期解码并发线程数，默认 min(16, os.cpu_count())。
     """
 
-    def __init__(self, data_dir: str, crop_size: int = 256, split: str = "train") -> None:
+    def __init__(
+        self,
+        data_dir: str,
+        crop_size: int = 256,
+        split: str = "train",
+        *,
+        cache_decoded: bool = True,
+        cache_workers: int | None = None,
+    ) -> None:
         super().__init__()
         hr_dir = os.path.join(data_dir, f"DIV2K_{split}_HR")
         if not os.path.isdir(hr_dir):
@@ -337,6 +350,8 @@ class DIV2KDataset(Dataset):
                 f"请确认路径包含 DIV2K_train_HR / DIV2K_valid_HR 子目录或直接含图像。"
             )
 
+        self.crop_size = int(crop_size)
+        self.split = split
         if split == "train":
             self.transform = T.Compose([
                 T.RandomCrop(crop_size),
@@ -349,10 +364,52 @@ class DIV2KDataset(Dataset):
                 T.ToTensor(),
             ])
 
+        self._cache: list[np.ndarray] | None = None
+        if cache_decoded:
+            self._cache = self._build_cache(cache_workers)
+
+    def _build_cache(self, cache_workers: int | None) -> list[np.ndarray]:
+        from concurrent.futures import ThreadPoolExecutor
+
+        n_workers = cache_workers
+        if n_workers is None:
+            n_workers = min(16, max(1, (os.cpu_count() or 1)))
+        else:
+            n_workers = max(1, int(n_workers))
+
+        def _decode(p: str) -> np.ndarray:
+            with Image.open(p) as im:
+                return np.asarray(im.convert("RGB"), dtype=np.uint8)
+
+        cache: list[np.ndarray | None] = [None] * len(self.image_paths)
+        with ThreadPoolExecutor(max_workers=n_workers) as ex:
+            for i, arr in enumerate(ex.map(_decode, self.image_paths)):
+                cache[i] = arr
+        return cache  # type: ignore[return-value]
+
     def __len__(self) -> int:
         return len(self.image_paths)
 
     def __getitem__(self, idx: int) -> torch.Tensor:
+        if self._cache is not None:
+            arr = self._cache[idx]
+            h, w = arr.shape[:2]
+            cs = self.crop_size
+            if h < cs or w < cs:
+                img = Image.fromarray(arr)
+                return self.transform(img)
+            if self.split == "train":
+                top = int(np.random.randint(0, h - cs + 1))
+                left = int(np.random.randint(0, w - cs + 1))
+            else:
+                top = (h - cs) // 2
+                left = (w - cs) // 2
+            patch = arr[top : top + cs, left : left + cs]
+            img = Image.fromarray(patch)
+            if self.split == "train":
+                img = T.RandomHorizontalFlip()(img)
+            return T.ToTensor()(img)
+
         img = Image.open(self.image_paths[idx]).convert("RGB")
         return self.transform(img)
 
@@ -367,13 +424,30 @@ def _make_loaders(
     batch_size: int,
     num_workers: int,
     distributed: bool,
+    *,
+    val_num_workers: int | None = None,
+    prefetch_factor: int = 2,
+    val_persistent_workers: bool = False,
 ) -> tuple[DataLoader, DataLoader, DistributedSampler | None]:
-    """内部：构造 train/val DataLoader，分布式时自动添加 DistributedSampler。"""
+    """内部：构造 train/val DataLoader，分布式时自动添加 DistributedSampler。
+
+    Args:
+        num_workers: 训练 DataLoader 的 worker 数。
+        val_num_workers: 验证 DataLoader 的 worker 数。
+            ``None`` 时取 ``max(2, num_workers // 4)``，避免常驻太多核。
+        prefetch_factor: 每个 worker 预取的 batch 数（仅 num_workers>0 生效）。
+            过大会加重 CPU/内存抖动；多任务共享一台机器时建议 2。
+        val_persistent_workers: 是否让验证集 worker 常驻。
+            评估只是间歇触发（如每 800 batch 一次），常驻会长期占核，
+            默认 False 在每次评估时按需启停。
+    """
     sampler: DistributedSampler | None = None
     if distributed:
         sampler = DistributedSampler(train_ds, shuffle=True)
 
-    # prefetch_factor：多 worker 时加大预取，减轻 GPU 等 LMDB/解码的等待（利用率低时常有效）
+    if val_num_workers is None:
+        val_num_workers = max(2, num_workers // 4) if num_workers > 0 else 0
+
     train_kw: dict = {
         "batch_size": batch_size,
         "shuffle": (sampler is None),
@@ -384,18 +458,18 @@ def _make_loaders(
         "persistent_workers": (num_workers > 0),
     }
     if num_workers > 0:
-        train_kw["prefetch_factor"] = 4
+        train_kw["prefetch_factor"] = max(2, int(prefetch_factor))
     train_loader = DataLoader(train_ds, **train_kw)
 
     val_kw: dict = {
         "batch_size": batch_size,
         "shuffle": False,
-        "num_workers": num_workers,
+        "num_workers": val_num_workers,
         "pin_memory": True,
-        "persistent_workers": (num_workers > 0),
+        "persistent_workers": bool(val_persistent_workers and val_num_workers > 0),
     }
-    if num_workers > 0:
-        val_kw["prefetch_factor"] = 4
+    if val_num_workers > 0:
+        val_kw["prefetch_factor"] = max(2, int(prefetch_factor))
     val_loader = DataLoader(val_ds, **val_kw)
     return train_loader, val_loader, sampler
 
@@ -452,6 +526,10 @@ def get_cifar10_loaders(
     batch_size: int,
     num_workers: int = 4,
     distributed: bool = False,
+    *,
+    val_num_workers: int | None = None,
+    prefetch_factor: int = 2,
+    val_persistent_workers: bool = False,
 ) -> tuple[DataLoader, DataLoader, DistributedSampler | None]:
     """CIFAR-10 DataLoader，自动识别两种数据格式。
 
@@ -488,7 +566,12 @@ def get_cifar10_loaders(
             f"请确认 --data-dir 参数，或在该目录下下载数据。"
         )
 
-    return _make_loaders(train_ds, val_ds, batch_size, num_workers, distributed)
+    return _make_loaders(
+        train_ds, val_ds, batch_size, num_workers, distributed,
+        val_num_workers=val_num_workers,
+        prefetch_factor=prefetch_factor,
+        val_persistent_workers=val_persistent_workers,
+    )
 
 
 def get_div2k_loaders(
@@ -501,6 +584,11 @@ def get_div2k_loaders(
     *,
     train_lmdb_path: str | None = None,
     val_lmdb_path: str | None = None,
+    val_num_workers: int | None = None,
+    prefetch_factor: int = 2,
+    val_persistent_workers: bool = False,
+    cache_decoded: bool = True,
+    cache_workers: int | None = None,
 ) -> tuple[DataLoader, DataLoader, DistributedSampler | None]:
     """DIV2K DataLoader（优先 LMDB，否则图像文件）。
 
@@ -567,15 +655,38 @@ def get_div2k_loaders(
             )
             # LMDB 样本数过少时回退到图像，避免 drop_last 导致 0 batch
             if len(train_ds) < batch_size:
-                train_ds = DIV2KDataset(data_dir, crop_size=crop_size, split="train")
-                val_ds = DIV2KDataset(data_dir, crop_size=crop_size, split="valid")
+                train_ds = DIV2KDataset(
+                    data_dir, crop_size=crop_size, split="train",
+                    cache_decoded=cache_decoded, cache_workers=cache_workers,
+                )
+                val_ds = DIV2KDataset(
+                    data_dir, crop_size=crop_size, split="valid",
+                    cache_decoded=cache_decoded, cache_workers=cache_workers,
+                )
         except (ValueError, OSError, ImportError) as e:
             import warnings
             warnings.warn(f"LMDB 加载失败 ({e})，回退到图像格式", stacklevel=2)
-            train_ds = DIV2KDataset(data_dir, crop_size=crop_size, split="train")
-            val_ds = DIV2KDataset(data_dir, crop_size=crop_size, split="valid")
+            train_ds = DIV2KDataset(
+                data_dir, crop_size=crop_size, split="train",
+                cache_decoded=cache_decoded, cache_workers=cache_workers,
+            )
+            val_ds = DIV2KDataset(
+                data_dir, crop_size=crop_size, split="valid",
+                cache_decoded=cache_decoded, cache_workers=cache_workers,
+            )
     else:
-        train_ds = DIV2KDataset(data_dir, crop_size=crop_size, split="train")
-        val_ds = DIV2KDataset(data_dir, crop_size=crop_size, split="valid")
+        train_ds = DIV2KDataset(
+            data_dir, crop_size=crop_size, split="train",
+            cache_decoded=cache_decoded, cache_workers=cache_workers,
+        )
+        val_ds = DIV2KDataset(
+            data_dir, crop_size=crop_size, split="valid",
+            cache_decoded=cache_decoded, cache_workers=cache_workers,
+        )
 
-    return _make_loaders(train_ds, val_ds, batch_size, num_workers, distributed)
+    return _make_loaders(
+        train_ds, val_ds, batch_size, num_workers, distributed,
+        val_num_workers=val_num_workers,
+        prefetch_factor=prefetch_factor,
+        val_persistent_workers=val_persistent_workers,
+    )

@@ -310,7 +310,7 @@ def semantic_codec_loss(
     logvar: torch.Tensor | None = None,
     lambda_l1: float = 0.01,
     lambda_perc: float = 0.01,
-    lambda_kl: float = 1e-3,
+    lambda_kl: float = 1e-4,
     use_perceptual: bool = False,
     use_vae: bool = False,
 ) -> torch.Tensor:
@@ -363,6 +363,32 @@ def ddnm_diffusion_loss(
         eps_target: 真实噪声 [B, C, H', W']
     """
     return F.mse_loss(eps_pred, eps_target)
+
+
+def min_snr_weighted_eps_loss(
+    eps_pred: torch.Tensor,
+    eps_target: torch.Tensor,
+    alpha_bars: torch.Tensor,
+    t_idx: torch.Tensor,
+    gamma: float = 5.0,
+) -> torch.Tensor:
+    """min-SNR-γ 加权噪声预测损失（Hang et al. 2023, "Efficient Diffusion Training via Min-SNR Weighting Strategy"）。
+
+    对于 ε-prediction 模型，权重为 w_t = min(SNR_t, γ) / SNR_t，其中 SNR_t = ᾱ_t / (1 - ᾱ_t)。
+    相当于对低 SNR（高 t）放大、对高 SNR（低 t）压制，平衡不同时间步的梯度贡献。
+
+    Args:
+        eps_pred:   预测噪声 [B, C, H', W']
+        eps_target: 真噪声 [B, C, H', W']
+        alpha_bars: [T] 累积 ᾱ
+        t_idx:      [B] 当前 batch 的整型时间步索引
+        gamma:      截断阈值（推荐 5.0）
+    """
+    ab = alpha_bars[t_idx].to(dtype=eps_pred.dtype, device=eps_pred.device)
+    snr = ab / (1.0 - ab).clamp(min=1e-8)
+    w = torch.minimum(snr, torch.full_like(snr, float(gamma))) / snr.clamp(min=1e-8)
+    per_sample = ((eps_pred - eps_target) ** 2).mean(dim=(1, 2, 3))
+    return (w * per_sample).mean()
 
 
 def ddnm_reconstruction_loss(

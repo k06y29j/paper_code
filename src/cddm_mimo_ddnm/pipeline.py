@@ -17,6 +17,7 @@ from .modules.channel_codec import ChannelDecoder, ChannelEncoder, composed_1x1_
 from .modules.ddnm import UNetDenoiser
 from .modules.mimo_channel import MIMOChannelMMSE
 from .modules.semantic_codec import SemanticDecoder, SemanticEncoder
+from CDDM.Diffusion.Model import UNetUncond
 
 
 class SemanticCommSystem(nn.Module):
@@ -33,6 +34,7 @@ class SemanticCommSystem(nn.Module):
         self.cfg = cfg
         sc = cfg.semantic
         cc = cfg.channel
+        unet_uncond= cfg.unet_uncond
 
         # 语义编解码器
         self.semantic_encoder = SemanticEncoder(
@@ -90,14 +92,24 @@ class SemanticCommSystem(nn.Module):
         )
 
         # 无条件 U-Net 先验（DDNM 理论：条件仅经线性修正，不拼接进网络）
-        self.unet_denoiser = UNetDenoiser(
-            channels=sem_latent_c,
-            hidden_dim=cfg.diffusion.unet_hidden_dim,
-            use_cond=False,
+        self.unet_denoiser = UNetUncond(
+            T=cfg.unet_uncond.T,
+            ch=cfg.unet_uncond.ch,
+            ch_mult=cfg.unet_uncond.ch_mult,
+            attn=cfg.unet_uncond.attn,
+            num_res_blocks=cfg.unet_uncond.num_res_blocks,
+            dropout=cfg.unet_uncond.dropout,
+            input_channel=cfg.unet_uncond.input_channel,
         )
 
         # 扩散调度参数（仅 Stage 3 使用）
+        # 必须满足 cfg.diffusion.num_train_steps == cfg.unet_uncond.T，
+        # 否则 UNetUncond 内 nn.Embedding 的索引范围与 alpha_bars 长度不一致，会越界。
         num_steps = cfg.diffusion.num_train_steps
+        if num_steps != cfg.unet_uncond.T:
+            raise ValueError(
+                f"diffusion.num_train_steps={num_steps} 必须与 unet_uncond.T={cfg.unet_uncond.T} 相等。"
+            )
         betas = torch.linspace(cfg.diffusion.beta_start, cfg.diffusion.beta_end, num_steps)
         alphas = 1.0 - betas
         alpha_bars = torch.cumprod(alphas, dim=0)
@@ -169,12 +181,14 @@ class SemanticCommSystem(nn.Module):
         """Stage 3：在冻结语义潜空间上训练无条件 ε 预测（U-Net 不见 z_cd / 不经信道）。"""
         z_sem = self.semantic_encoder(x)
         bsz = z_sem.shape[0]
-        t_idx = torch.randint(0, self.alpha_bars.shape[0], (bsz,), device=x.device)
-        t_norm = t_idx.float() / (self.alpha_bars.shape[0] - 1)
+        t_idx = torch.randint(
+            0, self.alpha_bars.shape[0], (bsz,), device=x.device, dtype=torch.long
+        )
         eps = torch.randn_like(z_sem)
         alpha_bar = self.alpha_bars[t_idx].view(-1, 1, 1, 1)
         z_t = torch.sqrt(alpha_bar) * z_sem + torch.sqrt(1 - alpha_bar) * eps
-        eps_pred = self.unet_denoiser(z_t, t_norm)
+        # UNetUncond 使用 nn.Embedding 离散时间步，需传 [0, T-1] 的整型索引
+        eps_pred = self.unet_denoiser(z_t, t_idx)
         return torch.mean((eps_pred - eps) ** 2)
 
     # ------------------------------------------------------------------
@@ -237,14 +251,13 @@ class SemanticCommSystem(nn.Module):
         z = torch.randn_like(z_cond)
         b, c, h, w = z.shape
         n_total = self.alpha_bars.shape[0]
-        denom = max(n_total - 1, 1)
         step_indices = torch.linspace(n_total - 1, 0, num_steps, device=z.device).long()
 
         a0 = self._semantic_linear_chain_matrix().to(device=z.device, dtype=z.dtype)
 
         for i, idx in enumerate(step_indices):
-            t_norm = torch.full((b,), float(idx.item()) / denom, device=z.device, dtype=z.dtype)
-            eps_pred = self.unet_denoiser(z, t_norm)
+            t_emb = torch.full((b,), idx.item(), device=z.device, dtype=torch.long)
+            eps_pred = self.unet_denoiser(z, t_emb)
 
             alpha_bar = self.alpha_bars[idx]
             if i + 1 < len(step_indices):
@@ -287,11 +300,10 @@ class SemanticCommSystem(nn.Module):
             num_steps = int(self.cfg.diffusion.num_sample_steps)
         z = torch.randn(batch_size, *latent_shape, device=dev, dtype=self.alpha_bars.dtype)
         n_total = int(self.alpha_bars.shape[0])
-        denom = max(n_total - 1, 1)
         step_indices = torch.linspace(n_total - 1, 0, num_steps, device=dev).long()
         for i, idx in enumerate(step_indices):
-            t_norm = torch.full((batch_size,), float(idx.item()) / denom, device=dev)
-            eps_pred = self.unet_denoiser(z, t_norm)
+            t_emb = torch.full((batch_size,), idx.item(), device=dev, dtype=torch.long)
+            eps_pred = self.unet_denoiser(z, t_emb)
             alpha_bar = self.alpha_bars[idx]
             if i + 1 < len(step_indices):
                 alpha_bar_prev = self.alpha_bars[step_indices[i + 1]]
