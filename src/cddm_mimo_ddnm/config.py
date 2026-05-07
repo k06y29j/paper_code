@@ -48,6 +48,10 @@ class ChannelConfig:
 
 @dataclass
 class MIMOConfig:
+    # 信道模式开关：
+    #   "mimo" → MIMOChannelMMSE  使用 n_tx, n_rx, snr_db, fading
+    #   "siso" → SISOChannel       仅使用 snr_db, fading（n_tx / n_rx 忽略）
+    mode: str = "siso"
     n_tx: int = 2
     n_rx: int = 2
     snr_db: float = 10.0

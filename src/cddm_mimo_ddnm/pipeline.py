@@ -17,6 +17,7 @@ from .modules.channel_codec import ChannelDecoder, ChannelEncoder, composed_1x1_
 from .modules.ddnm import UNetDenoiser
 from .modules.mimo_channel import MIMOChannelMMSE
 from .modules.semantic_codec import SemanticDecoder, SemanticEncoder
+from .modules.siso_channel import SISOChannel
 from CDDM.Diffusion.Model import UNetUncond
 
 
@@ -83,13 +84,26 @@ class SemanticCommSystem(nn.Module):
             bottleneck_dim=cc.channel_bottleneck_dim,
         )
 
-        # MIMO 信道（模拟 JSCC）
-        self.mimo = MIMOChannelMMSE(
-            n_tx=cfg.mimo.n_tx,
-            n_rx=cfg.mimo.n_rx,
-            snr_db=cfg.mimo.snr_db,
-            fading=cfg.mimo.fading,
-        )
+        # 信道模型（模拟 JSCC）：按 cfg.mimo.mode 选择 SISO / MIMO
+        # 两者 forward 接口一致：(z) -> (z_rx, sigma_y, beta_mean)，
+        # 因此下游 DDNM+ 修正逻辑无需任何修改。
+        mode = cfg.mimo.mode.lower()
+        if mode == "mimo":
+            self.mimo = MIMOChannelMMSE(
+                n_tx=cfg.mimo.n_tx,
+                n_rx=cfg.mimo.n_rx,
+                snr_db=cfg.mimo.snr_db,
+                fading=cfg.mimo.fading,
+            )
+        elif mode == "siso":
+            self.mimo = SISOChannel(
+                snr_db=cfg.mimo.snr_db,
+                fading=cfg.mimo.fading,
+            )
+        else:
+            raise ValueError(
+                f"cfg.mimo.mode={cfg.mimo.mode!r} 非法，应为 'siso' 或 'mimo'。"
+            )
 
         # 无条件 U-Net 先验（DDNM 理论：条件仅经线性修正，不拼接进网络）
         self.unet_denoiser = UNetUncond(

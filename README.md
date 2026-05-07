@@ -28,3 +28,30 @@ CUDA_VISIBLE_DEVICES=1 python test/eval_dm_mse.py \
   --sc_decoder_ckpt checkpoints-val/sc/sc_decoder_div2k_c16.pth \
   --unet_ckpt checkpoints-val/unet_un/unet_un_div2k_c16_best.pth \
   --batch_size 8 --max_batches 20 --recon_steps 50
+
+
+  CUDA_VISIBLE_DEVICES=1 python train/train_cc.py --mode random_random --out_channels 12
+  CUDA_VISIBLE_DEVICES=1 python train/train_cc.py --mode random_random --out_channels 4
+
+CUDA_VISIBLE_DEVICES=1 python train/train_cc.py --mode random_pinv --out_channels 12
+CUDA_VISIBLE_DEVICES=1 python train/train_cc.py --mode random_pinv --out_channels 4
+
+CUDA_VISIBLE_DEVICES=3 nohup python train/train_cc.py \
+    --mode trained --out_channels 12 \
+    --batch_size 16 --epochs 200 --lr 1e-3 \
+    --log_file log/cc/trained_c16to12.txt \
+    > /dev/null 2>&1 &
+CUDA_VISIBLE_DEVICES=4 nohup python train/train_cc.py \
+    --mode trained --out_channels 4 \
+    --batch_size 16 --epochs 200 --lr 1e-3 \
+    --log_file log/cc/trained_c16to4.txt \
+    > /dev/null 2>&1 &
+
+
+CUDA_VISIBLE_DEVICES=4 python test/eval_all.py \
+    --compression_ratios 0.25 0.75 \
+    --fadings awgn rayleigh \
+    --snrs 0 3 6 9 12 15 \
+    --num_sample_steps 20 \
+    --ddnm_t_start 100 \
+    --batch_size 8 --max_batches 0
