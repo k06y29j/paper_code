@@ -19,7 +19,7 @@ class Channel(nn.Module):
 
 
     def gaussian_noise_layer(self, input_layer, std, name=None):
-        device = input_layer.get_device()
+        device = input_layer.device
 
         # print(np.shape(input_layer))
         noise_real = torch.normal(mean=0.0, std=std, size=np.shape(input_layer), device=device)
@@ -79,7 +79,11 @@ class Channel(nn.Module):
             #noise = (channel_output - channel_tx).detach()
             #noise.requires_grad = False
             #channel_tx = channel_tx + noise
-            return channel_output, pwr,torch.ones(channel_output.shape).cuda()
+            return (
+                channel_output,
+                pwr,
+                torch.ones(channel_output.shape, device=channel_output.device),
+            )
             # if avg_pwr:
             #     return channel_tx * torch.sqrt(avg_pwr * 2)
             # else:

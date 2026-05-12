@@ -229,8 +229,8 @@ def parse_args() -> argparse.Namespace:
 
     # ---- 日志 & 保存 ----
     parser.add_argument("--save_dir", type=str,
-                        default=os.path.join(PROJECT_ROOT, "checkpoints-val/val_12"))
-    parser.add_argument("--log_file", type=str, default="log/sc-2.txt", help="终端日志保存路径")
+                        default=os.path.join(PROJECT_ROOT, "checkpoints-val/sc/no_vae"))
+    parser.add_argument("--log_file", type=str, default="log/sc-no_vae.txt", help="终端日志保存路径")
     parser.add_argument("--log_freq", type=int, default=50, help="训练日志打印频率（按 batch）")
     parser.add_argument(
         "--eval_mode",

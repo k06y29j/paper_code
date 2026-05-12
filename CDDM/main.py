@@ -1,9 +1,11 @@
+import os
+
 import dataplot
 from Diffusion.Train import *
 
 from train import *
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def seed_torch(seed=1024):
 	random.seed(seed)
@@ -21,14 +23,19 @@ class experiment():
     loss_function = ["MSE"]
     channel_type = ["awgn"]
     dataset = ["DIV2K"]
-    SNRs = [10]
-    train_snr = [13]
+    SNRs = []
+    train_snr = [12]
     C_confirm = [36]
+    # True：从零跑 train_JSCC_seqeratly（会覆盖 encoder/decoder）。False：使用已有 checkpoints/JSCC/.../encoder_* / decoder_* 继续后面阶段。
+    jscc_stage1_train = False
+    # True：只训 JSCC，不执行 train_CHDDIM / train_JSCC_with_CDDM（需同时 jscc_stage1_train=True 才有完整意义）
+    jscc_train_only = False
     C_CIFAR = [24,16, 12, 8]
     C_DIV2K = [36,24, 12]
     #C_CelebA = [48, 24, 16, 8]
     C=[C_DIV2K]
     CBR_snr=15
+    # 与 train_JSCC_with_CDDM / eval 里 redecoder_snr{S - large_snr}_ 对齐；必须与下方路径拼接里 SNR - 所用数值一致。
     large_snr=3
     noise_schedule=[1]
     Tmax=[10]
@@ -86,8 +93,8 @@ class config():
             self.CDDM_batch=16
             
             self.image_dims = (3, 256, 256)
-            self.train_data_dir = r"/mnt/wutong/datasets/DIV2K/DIV2K_train_HR"
-            self.test_data_dir = r"/mnt/wutong/datasets/DIV2K/DIV2K_valid_HR"
+            self.train_data_dir = r"/workspace/yongjia/datasets/DIV2K/DIV2K_train_HR"
+            self.test_data_dir = r"/workspace/yongjia/datasets/DIV2K/DIV2K_valid_HR"
             self.encoder_kwargs = dict(
                 img_size=(self.image_dims[1], self.image_dims[2]), patch_size=2, in_chans=3,
                 embed_dims=[128, 192, 256, 320], depths=[2, 2, 6, 2], num_heads=[4, 6, 8, 10],
@@ -167,7 +174,7 @@ if __name__ == '__main__':
                 for SNR in SNRs:
                     for noise_schedule in experiment.noise_schedule:
                         for t_max in experiment.Tmax:
-                            basepath = r'/mnt/wutong/CDDMcheckpoints/checkpoints' # r'/home/wutong/semdif_revise/checkpoints'
+                            basepath = r'/workspace/yongjia/paper_code/CDDM/checkpoints'
                             if noise_schedule==1:
 
                                 encoder_path = basepath + r'/JSCC/{}/{}/SNRs/encoder_snr{}_channel_{}_C{}.pt'.format(dataset, loss,
@@ -183,7 +190,7 @@ if __name__ == '__main__':
                                 if experiment.test=="CDDM":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index])
@@ -194,7 +201,7 @@ if __name__ == '__main__':
                                 elif experiment.test=="small":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_small.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index])
@@ -205,7 +212,7 @@ if __name__ == '__main__':
                                 elif experiment.test=="lessT":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_lessT.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index])
@@ -216,7 +223,7 @@ if __name__ == '__main__':
                                 elif experiment.test=="re-weight":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_noweight.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index])
@@ -227,7 +234,7 @@ if __name__ == '__main__':
                                 elif experiment.test=="Tmax":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_tmax{}.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index],t_max)
@@ -238,7 +245,7 @@ if __name__ == '__main__':
                                 elif experiment.test=="DnCNN":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_DnCNN.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index])
@@ -249,7 +256,7 @@ if __name__ == '__main__':
                                 elif experiment.test=="GAN":
                                     re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_GAN.pt'.format(dataset,
                                                                                                                             loss,
-                                                                                                                            SNR - 3,
+                                                                                                                            int(SNR - experiment.large_snr),
                                                                                                                             channel_type,
                                                                                                                             experiment.C_confirm[
                                                                                                                                 index])
@@ -274,7 +281,7 @@ if __name__ == '__main__':
                                                                                                                         index])
                                 re_decoder_path = basepath + r'/JSCC/{}/{}/SNRs/redecoder_snr{}_channel_{}_C{}_ns{}.pt'.format(dataset,
                                                                                                                         loss,
-                                                                                                                        SNR - 3,
+                                                                                                                        int(SNR - experiment.large_snr),
                                                                                                                         channel_type,
                                                                                                                         experiment.C_confirm[
                                                                                                                             index],noise_schedule)
@@ -288,14 +295,17 @@ if __name__ == '__main__':
                                                 decoder_path=decoder_path, re_decoder_path=re_decoder_path)
                             CDDM_config = CHDDIM_config(C=experiment.C_confirm[index], path=CDDM_path,large_snr=experiment.large_snr,noise_schedule=noise_schedule,t_max=t_max)
                             seed_torch()
-                            # train_JSCC_seqeratly(JSCC_config)
-                            eval_only_JSCC(JSCC_config)
+                            os.makedirs(os.path.dirname(encoder_path), exist_ok=True)
+                            os.makedirs(os.path.dirname(CDDM_path), exist_ok=True)
+                            if getattr(experiment, "jscc_stage1_train", True):
+                                train_JSCC_seqeratly(JSCC_config)
+                            # eval_only_JSCC(JSCC_config)
                             # if SNR == max(experiment.SNRs):
                             #     eval_JSCC_SNRs(JSCC_config)
                             # if channel_type == 'rayleigh':
                             #     #eval_only_JSCC_delte_h(JSCC_config)
                             #     pass
-                            if SNR in experiment.train_snr:
+                            if SNR in experiment.train_snr and not getattr(experiment, "jscc_train_only", False):
                                 print(experiment.test)
                                 if experiment.test=="DnCNN":
                                     seed_torch()
@@ -312,13 +322,14 @@ if __name__ == '__main__':
                                     seed_torch()
                                     eval_JSCC_with_GAN(JSCC_config,CDDM_config)
                                 else:
-                                
                                     seed_torch()
-                                    #train_CHDDIM(JSCC_config, CDDM_config)
+                                    train_CHDDIM(JSCC_config, CDDM_config)
                                     seed_torch()
-                                    #train_JSCC_with_CDDM(JSCC_config, CDDM_config)
-                                    seed_torch()
-                                    eval_JSCC_with_CDDM(JSCC_config, CDDM_config)
+                                    train_JSCC_with_CDDM(JSCC_config, CDDM_config)
+                                    # eval_JSCC_with_CDDM 会写 MongoDB；测 PSNR 请用：
+                                    # python test/eval_jscc_cddm_psnr.py --train-snr 12 --C 36 --channel-type awgn
+                                    # seed_torch()
+                                    # eval_JSCC_with_CDDM(JSCC_config, CDDM_config)
 
                                     
 

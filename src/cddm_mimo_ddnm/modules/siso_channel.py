@@ -85,8 +85,12 @@ class SISOChannel:
         B, C, _Hp, _Wp = z.shape
         assert C % 2 == 0, "通道数 C 必须为偶数以配对复数符号"
 
+        orig_dtype = z.dtype
+        # torch.complex 仅支持 float16/float32/float64 的实部/虚部；AMP 下常为 bfloat16
+        z_use = z.float() if orig_dtype == torch.bfloat16 else z
+
         # 实 → 复：偶数通道作实部、奇数通道作虚部
-        z_complex = torch.complex(z[:, 0::2, :, :], z[:, 1::2, :, :])
+        z_complex = torch.complex(z_use[:, 0::2, :, :], z_use[:, 1::2, :, :])
 
         # ---- 1. 功率归一化（功率 → 1，除以归一化系数） ----
         x_norm, scale = self._power_normalize(z_complex)
@@ -102,7 +106,7 @@ class SISOChannel:
         if self.fading == "awgn":
             y = x_norm + noise
             x_hat = y                                                   # AWGN 无需均衡
-            beta = torch.ones(B, device=z.device, dtype=z.dtype)
+            beta = torch.ones(B, device=z.device, dtype=z_use.dtype)
             mean_sinr = snr_linear                                      # 单位功率 + 高斯噪声
         else:  # rayleigh：h ~ CN(0, 1) 逐符号独立
             h_r = torch.randn_like(x_norm.real) / math.sqrt(2.0)
@@ -120,7 +124,7 @@ class SISOChannel:
             sinr_map = beta_map / (1.0 - beta_map)
             beta = beta_map.mean(
                 dim=tuple(range(1, beta_map.ndim))
-            ).to(dtype=z.dtype)
+            ).to(dtype=z_use.dtype)
             mean_sinr = float(sinr_map.mean().item())
 
         # ---- 3. 反归一化（乘以归一化系数 √pwr，回到输入功率尺度） ----
@@ -128,9 +132,13 @@ class SISOChannel:
         x_hat = x_hat * scale_b
 
         # 复 → 实：还原为 [B, C, H', W']
-        out = torch.empty_like(z)
+        out = torch.empty_like(z_use)
         out[:, 0::2, :, :] = x_hat.real
         out[:, 1::2, :, :] = x_hat.imag
+
+        if orig_dtype == torch.bfloat16:
+            out = out.to(orig_dtype)
+            beta = beta.to(orig_dtype)
 
         sigma_y = 1.0 / math.sqrt(mean_sinr + 1e-8)
         return out, sigma_y, beta

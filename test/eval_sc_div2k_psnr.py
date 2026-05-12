@@ -6,9 +6,13 @@
   在整份验证集上对所有 z 的元素聚合 **均值、方差**（总体统计：σ² = E[z²] − E[z]²，双精度累计）。
 
 用法（在 paper_code 根目录）:
-  python test/eval_sc_div2k_psnr.py \\
-      --checkpoint checkpoints-v3/sc_div2k_best.pth \\
-      --valid-dir /data/small-datasets-1/DIV2K/DIV2K_valid_HR/
+  python test/eval_sc_div2k_psnr.py \
+      --checkpoint /workspace/yongjia/paper_code/checkpoints-val/sc/sc_div2k_c4_best.pth \
+      --embed-dim 4 \
+      --use-vae
+
+``--embed-dim`` / ``--embed_dim``、``--use-vae`` / ``--no-use-vae`` 均为可选；
+不设时 ``embed_dim`` 从权重推断，``use_vae`` 由权重是否含 ``vae_proj`` 推断。
 """
 
 from __future__ import annotations
@@ -40,6 +44,14 @@ def _infer_embed_dim_from_state_dict(sd: dict) -> int | None:
         if w is not None and w.ndim >= 2:
             return int(w.shape[0])
     return None
+
+
+def _infer_use_vae_from_state_dict(sd: dict) -> bool:
+    """若 state_dict 含语义编码器 vae_proj，则与训练时 use_vae=True 一致。"""
+    for k in sd:
+        if "semantic_encoder" in k and "vae_proj" in k:
+            return True
+    return False
 
 
 def _parse_amp(s: str) -> tuple[bool, torch.dtype]:
@@ -138,16 +150,27 @@ def _checkpoint_default() -> str:
 
 
 def main() -> None:
-    vd = "/data/small-datasets-1/DIV2K/DIV2K_valid_HR/"
+    vd = "/workspace/yongjia/datasets/DIV2K/DIV2K_valid_HR/"
     p = argparse.ArgumentParser(description="DIV2K 验证：PSNR(按图均值) + 语义编码输出 z 的均值/方差")
     p.add_argument("--checkpoint", type=str, default=_checkpoint_default())
     p.add_argument(
         "--embed-dim",
+        "--embed_dim",
         type=int,
         default=None,
+        dest="embed_dim",
         help=(
             "覆盖 config 的 semantic.embed_dim，须与 checkpoint 一致；"
             "不设则从权重里自动推断（与数据集预设不同时会打印）。"
+        ),
+    )
+    p.add_argument(
+        "--use-vae",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "是否构建带 VAE 的语义编码器（须与训练一致）。"
+            "不设则根据 checkpoint 是否含 semantic_encoder.vae_proj 自动推断。"
         ),
     )
     p.add_argument("--valid-dir", type=str, default=vd)
@@ -180,7 +203,8 @@ def main() -> None:
         print(f"ckpt.metrics: {ckpt['metrics']}")
 
     cfg = get_div2k_config()
-    inferred = _infer_embed_dim_from_state_dict(ckpt["model_state_dict"])
+    sd = ckpt["model_state_dict"]
+    inferred = _infer_embed_dim_from_state_dict(sd)
     cfg_base_embed = cfg.semantic.embed_dim
     if args.embed_dim is not None:
         cfg.semantic.embed_dim = int(args.embed_dim)
@@ -191,8 +215,23 @@ def main() -> None:
     else:
         print(
             "警告：无法从 state_dict 推断 embed_dim，使用 config.py 默认值 "
-            f"{cfg.semantic.embed_dim}；若不匹配请加 --embed-dim"
+            f"{cfg.semantic.embed_dim}；若不匹配请加 --embed-dim / --embed_dim"
         )
+
+    inferred_vae = _infer_use_vae_from_state_dict(sd)
+    cfg_base_vae = cfg.semantic.use_vae
+    if args.use_vae is not None:
+        cfg.semantic.use_vae = bool(args.use_vae)
+        if cfg.semantic.use_vae != cfg_base_vae:
+            print(
+                f"按命令行 semantic.use_vae={cfg.semantic.use_vae}（config 预设为 {cfg_base_vae}）"
+            )
+    else:
+        cfg.semantic.use_vae = inferred_vae
+        if inferred_vae != cfg_base_vae:
+            print(
+                f"已从 checkpoint 推断 semantic.use_vae={inferred_vae}（config 预设为 {cfg_base_vae}）"
+            )
 
     n_img, imgs_psnr, mean_z, var_z, n_z, z_shape = evaluate(
         cfg=cfg,
@@ -211,6 +250,7 @@ def main() -> None:
     std_z = math.sqrt(max(var_z, 0.0))
 
     print(f"checkpoint: {ckpt_path}")
+    print(f"semantic: embed_dim={cfg.semantic.embed_dim}  use_vae={cfg.semantic.use_vae}")
     print(f"valid-dir: {os.path.abspath(args.valid_dir.rstrip(os.sep))}")
     print(f"crop_size: {args.crop_size}")
     print(f"图像数量: {n_img}")

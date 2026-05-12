@@ -54,8 +54,8 @@ class MIMOConfig:
     mode: str = "siso"
     n_tx: int = 2
     n_rx: int = 2
-    snr_db: float = 10.0
-    fading: str = "rayleigh"
+    snr_db: float = 12.0
+    fading: str = "awgn"
 
 
 @dataclass
@@ -167,7 +167,7 @@ def get_div2k_config() -> SystemConfig:
             stage_num_heads=(4, 6, 8, 10),
             stem_stride=2,
             stage_downsample=(False, True, True, True),
-            use_vae=True,
+            use_vae=False,
             lambda_kl=1e-4,
             num_decoder_refine_blocks=2,
         ),

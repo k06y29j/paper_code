@@ -157,6 +157,45 @@ class SemanticCommSystem(nn.Module):
     # Stage 1：仅语义编解码器（无信道噪声）
     # ------------------------------------------------------------------
 
+    def forward_sc_siso(
+        self,
+        x: torch.Tensor,
+        *,
+        snr_db: float | None = None,
+        fading: str | None = None,
+    ) -> torch.Tensor:
+        """语义编码 → SISO 信道（AWGN / 瑞利，可调 SNR）→ 语义解码。
+
+        不经信道编解码（ChannelEncoder/Decoder）与 DDNM+；用于在语义瓶颈上单独评估物理信道影响。
+        ``snr_db`` / ``fading`` 缺省时沿用 ``cfg.mimo``。
+
+        Args:
+            x: 输入图像 ``[B, C_img, H, W]``。
+            snr_db: 信噪比（dB）。
+            fading: ``awgn`` 或 ``rayleigh``。
+
+        Returns:
+            重建图像 ``[B, C_img, H, W]``。
+
+        Raises:
+            ValueError: 语义瓶颈通道数为奇数时无法配对复数符号。
+        """
+        snr = float(self.cfg.mimo.snr_db if snr_db is None else snr_db)
+        fad = (self.cfg.mimo.fading if fading is None else fading).lower()
+        if fad not in ("awgn", "rayleigh"):
+            raise ValueError(f"fading 须为 'awgn' 或 'rayleigh'，收到 {fad!r}")
+
+        z_sem = self.semantic_encoder(x)
+        if z_sem.shape[1] % 2 != 0:
+            raise ValueError(
+                f"语义瓶颈通道数 {z_sem.shape[1]} 须为偶数才能走 SISO 复数符号信道；"
+                "请调整 SemanticConfig.embed_dim 等为偶数。"
+            )
+
+        ch = SISOChannel(snr_db=snr, fading=fad)
+        z_rx, _sigma_y, _beta = ch.forward(z_sem)
+        return self.semantic_decoder(z_rx)
+
     def forward_stage1(
         self, x: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
@@ -204,6 +243,7 @@ class SemanticCommSystem(nn.Module):
         # UNetUncond 使用 nn.Embedding 离散时间步，需传 [0, T-1] 的整型索引
         eps_pred = self.unet_denoiser(z_t, t_idx)
         return torch.mean((eps_pred - eps) ** 2)
+
 
     # ------------------------------------------------------------------
     # 推理（采样）：全链路 + 线性伪逆 DDNM+ 修正
