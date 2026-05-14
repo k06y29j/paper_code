@@ -1,0 +1,258 @@
+
+=== Stage2 ChannelCodec session @ 2026-05-14 19:09:27 ===
+Log file: /workspace/yongjia/paper_code/log/cc/aware_awgn_snr12_c12_L1.txt
+================================================================================
+  mode               : channel-aware trained
+  dataset            : div2k
+  device             : cuda
+  train_fading       : awgn
+  train_snr_mode     : fixed
+  train_snr_db       : 12.0
+  eval_snr_grid      : [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 20.0, 25.0]
+  out_channels       : 12  (CBR=0.750)
+  linear_depth       : 2
+  linear_hidden_ch   : 16
+  save_dir           : /workspace/yongjia/paper_code/checkpoints-val/cc/aware_awgn_snr12_L2
+================================================================================
+  载入 semantic_encoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_encoder_div2k_c16.pth
+  载入 semantic_decoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_decoder_div2k_c16.pth
+  codec init: deep-linear friendly, L=2, in=16  hidden=16  out=12  CBR=0.750
+  train batches/epoch: 50
+  val   batches/epoch: 7
+  trainable codec params: 896
+  total steps: 10000  warmup: 200
+  channel: fading=awgn  mode=fixed  snr_db=12.0
+  [1/200][50/50]  loss=0.8782  PSNR=7.22dB  snr_used~[12.0,12.0]  LR=2.50e-04  step=50  0.37s/it  ETA=0s
+  [2/200][50/50]  loss=0.6397  PSNR=9.64dB  snr_used~[12.0,12.0]  LR=5.00e-04  step=100  0.31s/it  ETA=0s
+Traceback (most recent call last):
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 632, in <module>
+    main()
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 624, in main
+    summary = train_loop(system, train_loader, val_loader, device, args, amp_enabled, amp_dtype)
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 434, in train_loop
+    loss_meter.update(loss.item(), bs)
+KeyboardInterrupt
+
+=== Stage2 ChannelCodec session @ 2026-05-14 19:10:43 ===
+Log file: /workspace/yongjia/paper_code/log/cc/aware_awgn_snr12_c12_L1.txt
+================================================================================
+  mode               : channel-aware trained
+  dataset            : div2k
+  device             : cuda
+  train_fading       : awgn
+  train_snr_mode     : fixed
+  train_snr_db       : 12.0
+  eval_snr_grid      : [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 20.0, 25.0]
+  out_channels       : 12  (CBR=0.750)
+  linear_depth       : 3
+  linear_hidden_ch   : 16
+  save_dir           : /workspace/yongjia/paper_code/checkpoints-val/cc/aware_awgn_snr12_L3
+================================================================================
+  载入 semantic_encoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_encoder_div2k_c16.pth
+  载入 semantic_decoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_decoder_div2k_c16.pth
+  codec init: deep-linear friendly, L=3, in=16  hidden=16  out=12  CBR=0.750
+  train batches/epoch: 50
+  val   batches/epoch: 7
+  trainable codec params: 1,408
+  total steps: 10000  warmup: 200
+  channel: fading=awgn  mode=fixed  snr_db=12.0
+  [1/200][50/50]  loss=0.8603  PSNR=7.38dB  snr_used~[12.0,12.0]  LR=2.50e-04  step=50  0.29s/it  ETA=0s
+  [2/200][50/50]  loss=0.5364  PSNR=11.14dB  snr_used~[12.0,12.0]  LR=5.00e-04  step=100  0.24s/it  ETA=0s
+  [3/200][50/50]  loss=0.2751  PSNR=15.97dB  snr_used~[12.0,12.0]  LR=7.50e-04  step=150  0.24s/it  ETA=0s
+  [4/200][50/50]  loss=0.1745  PSNR=18.40dB  snr_used~[12.0,12.0]  LR=1.00e-03  step=200  0.24s/it  ETA=0s
+Traceback (most recent call last):
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 632, in <module>
+    main()
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 624, in main
+    summary = train_loop(system, train_loader, val_loader, device, args, amp_enabled, amp_dtype)
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 434, in train_loop
+    loss_meter.update(loss.item(), bs)
+KeyboardInterrupt
+
+=== Stage2 ChannelCodec session @ 2026-05-14 19:14:14 ===
+Log file: /workspace/yongjia/paper_code/log/cc/aware_awgn_snr12_c12_L2.txt
+================================================================================
+  mode               : channel-aware trained
+  dataset            : div2k
+  device             : cuda
+  train_fading       : awgn
+  train_snr_mode     : fixed
+  train_snr_db       : 12.0
+  eval_snr_grid      : [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 20.0, 25.0]
+  out_channels       : 12  (CBR=0.750)
+  linear_depth       : 2
+  linear_hidden_ch   : 16
+  save_dir           : /workspace/yongjia/paper_code/checkpoints-val/cc/aware_awgn_snr12_L2
+================================================================================
+  载入 semantic_encoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_encoder_div2k_c16.pth
+  载入 semantic_decoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_decoder_div2k_c16.pth
+  codec init: deep-linear friendly, L=2, in=16  hidden=16  out=12  CBR=0.750
+  train batches/epoch: 50
+  val   batches/epoch: 7
+  trainable codec params: 896
+  total steps: 10000  warmup: 200
+  channel: fading=awgn  mode=fixed  snr_db=12.0
+  [1/200][50/50]  loss=0.8782  PSNR=7.22dB  snr_used~[12.0,12.0]  LR=2.50e-04  step=50  0.38s/it  ETA=0s
+  [2/200][50/50]  loss=0.6397  PSNR=9.64dB  snr_used~[12.0,12.0]  LR=5.00e-04  step=100  0.30s/it  ETA=0s
+  [3/200][50/50]  loss=0.3841  PSNR=13.75dB  snr_used~[12.0,12.0]  LR=7.50e-04  step=150  0.35s/it  ETA=0s
+  [4/200][50/50]  loss=0.2406  PSNR=16.79dB  snr_used~[12.0,12.0]  LR=1.00e-03  step=200  0.29s/it  ETA=0s
+
+=== Stage2 ChannelCodec session @ 2026-05-14 19:15:54 ===
+Log file: /workspace/yongjia/paper_code/log/cc/aware_awgn_snr12_c12_L3.txt
+================================================================================
+  mode               : channel-aware trained
+  dataset            : div2k
+  device             : cuda
+  train_fading       : awgn
+  train_snr_mode     : fixed
+  train_snr_db       : 12.0
+  eval_snr_grid      : [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 20.0, 25.0]
+  out_channels       : 12  (CBR=0.750)
+  linear_depth       : 3
+  linear_hidden_ch   : 16
+  save_dir           : /workspace/yongjia/paper_code/checkpoints-val/cc/aware_awgn_snr12_L3
+================================================================================
+  载入 semantic_encoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_encoder_div2k_c16.pth
+  载入 semantic_decoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_decoder_div2k_c16.pth
+  codec init: deep-linear friendly, L=3, in=16  hidden=16  out=12  CBR=0.750
+  [5/200][50/50]  loss=0.1790  PSNR=18.12dB  snr_used~[12.0,12.0]  LR=1.00e-03  step=250  0.31s/it  ETA=0s
+  train batches/epoch: 50
+  val   batches/epoch: 7
+  trainable codec params: 1,408
+  total steps: 10000  warmup: 200
+  channel: fading=awgn  mode=fixed  snr_db=12.0
+  [6/200][50/50]  loss=0.1435  PSNR=19.09dB  snr_used~[12.0,12.0]  LR=1.00e-03  step=300  0.31s/it  ETA=0s
+  [1/200][50/50]  loss=0.8603  PSNR=7.38dB  snr_used~[12.0,12.0]  LR=2.50e-04  step=50  0.30s/it  ETA=0s
+  [7/200][50/50]  loss=0.1219  PSNR=19.84dB  snr_used~[12.0,12.0]  LR=9.99e-04  step=350  0.31s/it  ETA=0s
+  [2/200][50/50]  loss=0.5364  PSNR=11.14dB  snr_used~[12.0,12.0]  LR=5.00e-04  step=100  0.24s/it  ETA=0s
+  [8/200][50/50]  loss=0.1090  PSNR=20.18dB  snr_used~[12.0,12.0]  LR=9.99e-04  step=400  0.31s/it  ETA=0s
+  [3/200][50/50]  loss=0.2751  PSNR=15.97dB  snr_used~[12.0,12.0]  LR=7.50e-04  step=150  0.24s/it  ETA=0s
+  [9/200][50/50]  loss=0.0976  PSNR=20.59dB  snr_used~[12.0,12.0]  LR=9.98e-04  step=450  0.36s/it  ETA=0s
+  [4/200][50/50]  loss=0.1745  PSNR=18.40dB  snr_used~[12.0,12.0]  LR=1.00e-03  step=200  0.24s/it  ETA=0s
+Traceback (most recent call last):
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 632, in <module>
+    main()
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 624, in main
+    summary = train_loop(system, train_loader, val_loader, device, args, amp_enabled, amp_dtype)
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 412, in train_loop
+    x_hat, z_sem, z_cd, snr_used = system(images)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 202, in forward
+    x_hat = self.sc_dec(z_cd)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 649, in forward
+    x = layer(x)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 415, in forward
+    x = blk(x)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 252, in forward
+    attn_out = self.attn(x_windows, attn_mask)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 180, in forward
+    return self.proj(x)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/linear.py", line 117, in forward
+    return F.linear(input, self.weight, self.bias)
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 632, in <module>
+    main()
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 624, in main
+    summary = train_loop(system, train_loader, val_loader, device, args, amp_enabled, amp_dtype)
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 412, in train_loop
+    x_hat, z_sem, z_cd, snr_used = system(images)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 202, in forward
+    x_hat = self.sc_dec(z_cd)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 649, in forward
+    x = layer(x)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 415, in forward
+    x = blk(x)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 252, in forward
+    attn_out = self.attn(x_windows, attn_mask)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1562, in _call_impl
+    return forward_call(*args, **kwargs)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/modules/semantic_codec.py", line 162, in forward
+    self.qkv(x)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1553, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1556, in _call_impl
+    forward_call = (self._slow_forward if torch._C._get_tracing_state() else self.forward)
+KeyboardInterrupt
+
+=== Stage2 ChannelCodec session @ 2026-05-14 19:17:44 ===
+Log file: /workspace/yongjia/paper_code/log/cc/aware_awgn_snr12_c12_L2.txt
+================================================================================
+  mode               : channel-aware trained
+  dataset            : div2k
+  device             : cuda
+  train_fading       : awgn
+  train_snr_mode     : fixed
+  train_snr_db       : 12.0
+  eval_snr_grid      : [0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 20.0, 25.0]
+  out_channels       : 12  (CBR=0.750)
+  linear_depth       : 2
+  linear_hidden_ch   : 16
+  save_dir           : /workspace/yongjia/paper_code/checkpoints-val/cc/aware_awgn_snr12_L2
+================================================================================
+  载入 semantic_encoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_encoder_div2k_c16.pth
+  载入 semantic_decoder: /workspace/yongjia/paper_code/checkpoints-val/sc/sc_decoder_div2k_c16.pth
+  codec init: deep-linear friendly, L=2, in=16  hidden=16  out=12  CBR=0.750
+Traceback (most recent call last):
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 632, in <module>
+    main()
+  File "/workspace/yongjia/paper_code/train/train_cc_aware.py", line 617, in main
+    train_loader, val_loader = build_dataloaders(args)
+  File "/workspace/yongjia/paper_code/train/train_cc.py", line 278, in build_dataloaders
+    train_loader, val_loader, _ = get_div2k_loaders(
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/datasets.py", line 678, in get_div2k_loaders
+    train_ds = DIV2KDataset(
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/datasets.py", line 369, in __init__
+    self._cache = self._build_cache(cache_workers)
+  File "/workspace/yongjia/paper_code/src/cddm_mimo_ddnm/datasets.py", line 386, in _build_cache
+    for i, arr in enumerate(ex.map(_decode, self.image_paths)):
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/concurrent/futures/_base.py", line 621, in result_iterator
+    yield _result_or_cancel(fs.pop())
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/concurrent/futures/_base.py", line 319, in _result_or_cancel
+    return fut.result(timeout)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/concurrent/futures/_base.py", line 453, in result
+    self._condition.wait(timeout)
+  File "/home/yongjia/.conda/envs/cddm_ddnm/lib/python3.10/threading.py", line 320, in wait
+    waiter.acquire()
+KeyboardInterrupt

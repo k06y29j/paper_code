@@ -37,10 +37,21 @@ CUDA_VISIBLE_DEVICES=4 nohup python train/train_cc.py \
     > /dev/null 2>&1 &
 
 
-CUDA_VISIBLE_DEVICES=4 python test/eval_all.py \
-    --compression_ratios 0.25 0.75 \
-    --fadings awgn rayleigh \
-    --snrs 0 3 6 9 12 15 \
-    --num_sample_steps 20 \
-    --ddnm_t_start 100 \
-    --batch_size 8 --max_batches 0
+CUDA_VISIBLE_DEVICES=0 nohup python train/train_cc_aware.py \
+  --out_channels 12 --linear_depth 2 --linear_hidden_channels 16 \
+  --train_snr_mode fixed --train_snr_db 12 --train_fading awgn \
+  --eval_snr_grid 0 3 6 9 12 15 20 25 \
+  --batch_size 16 --epochs 200 --lr 1e-3 \
+  --log_file log/cc/aware_awgn_snr12_c12_L2.txt \
+  > log/cc/aware_awgn_snr12_c12_L2.stdout 2>&1 &
+CUDA_VISIBLE_DEVICES=1 nohup python train/train_cc_aware.py \
+  --out_channels 12 --linear_depth 3 --linear_hidden_channels 16 \
+  --train_snr_mode fixed --train_snr_db 12 --train_fading awgn \
+  --eval_snr_grid 0 3 6 9 12 15 20 25 \
+  --batch_size 16 --epochs 200 --lr 1e-3 \
+  --log_file log/cc/aware_awgn_snr12_c12_L3.txt \
+  > log/cc/aware_awgn_snr12_c12_L3.stdout 2>&1 &
+
+
+
+  

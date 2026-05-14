@@ -9,26 +9,25 @@
        → ChannelDecoder → SemanticDecoder(冻结) → image
 
 SNR 训练策略（``--train_snr_mode``）：
-  fixed   : 每个 batch 用同一固定 SNR=train_snr_db（用于复现 CDDM 的「snr_X 专用模型」曲线）
-  uniform : 每个样本独立从 [low, high] 均匀采样 SNR（一个鲁棒模型横扫全 SNR 范围，**默认**）
+  fixed   : 每个 batch 用同一固定 SNR=train_snr_db（**默认 12 dB AWGN**，噪声方差恒定）
+  uniform : 每个样本独立从 [low, high] 均匀采样 SNR（鲁棒全 SNR 范围；需显式指定）
 
-保存目录：``checkpoints-val/cc/aware_<fading>_<snr_tag>``，文件名同 train_cc.py：
+保存目录：``checkpoints-val/cc/aware_<fading>_<snr_tag>_L<depth>``，文件名同 train_cc.py：
   cc_encoder_div2k_c16to{4,12}.pth
   cc_decoder_div2k_c16to{4,12}.pth
 
 用法示例（在 paper_code 根目录）::
-  # 单卡 / AWGN / 随机 SNR ∈ [0, 15] dB / C=4
+  # 单卡 / AWGN / 默认固定 SNR=12 dB（无需再传 train_snr_*）
+  CUDA_VISIBLE_DEVICES=2 python train/train_cc_aware.py \
+      --mode trained --out_channels 4 --batch_size 16 --epochs 200 --lr 1e-3 \
+      --log_file log/cc/aware_awgn_snr12_c4.txt
+
+  # 随机 SNR ∈ [0, 15] dB（鲁棒模型）
   CUDA_VISIBLE_DEVICES=0 python train/train_cc_aware.py \
       --mode trained --out_channels 4 --train_snr_mode uniform \
       --train_snr_db_low 0 --train_snr_db_high 15 --train_fading awgn \
       --batch_size 16 --epochs 200 --lr 1e-3 \
       --log_file log/cc/aware_awgn_u0_15_c4.txt
-
-  # 固定 SNR=6（对标 CDDM 的 snr_6 曲线）
-  CUDA_VISIBLE_DEVICES=0 python train/train_cc_aware.py \
-      --mode trained --out_channels 4 --train_snr_mode fixed \
-      --train_snr_db 6 --train_fading awgn \
-      --batch_size 16 --epochs 150 --log_file log/cc/aware_awgn_snr6_c4.txt
 
 训练完成后，用 ``test/eval_all.py --cc_dir checkpoints-val/cc/aware_<...>`` 评估。
 """
@@ -216,6 +215,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--mode", type=str, default="trained", choices=["trained"],
                    help="（保留旧字段；本脚本只支持 trained 模式）")
     p.add_argument("--out_channels", type=int, default=12, choices=[4, 12])
+    p.add_argument("--linear_depth", type=int, default=1, choices=[1, 2, 3],
+                   help="纯线性 1x1 Conv 层数：L=1/2/3；不加激活，可折叠为有效矩阵")
+    p.add_argument("--linear_hidden_channels", type=int, default=16,
+                   help="L>1 时的中间通道数；C=12 实验建议保持 16")
 
     p.add_argument("--dataset", type=str, default="div2k", choices=["cifar10", "div2k"])
     p.add_argument("--data_dir", type=str, default=None)
@@ -237,10 +240,10 @@ def parse_args() -> argparse.Namespace:
     )
 
     # 信道训练超参
-    p.add_argument("--train_snr_mode", type=str, default="uniform", choices=["fixed", "uniform"],
-                   help="fixed: 训练时固定 SNR=train_snr_db；uniform: 每样本随机 ∈[low, high]")
-    p.add_argument("--train_snr_db", type=float, default=6.0,
-                   help="snr_mode=fixed 时的训练 SNR (dB)")
+    p.add_argument("--train_snr_mode", type=str, default="fixed", choices=["fixed", "uniform"],
+                   help="fixed: 训练时固定 SNR=train_snr_db（默认 12 dB AWGN）；uniform: 每样本随机 ∈[low, high]")
+    p.add_argument("--train_snr_db", type=float, default=12.0,
+                   help="snr_mode=fixed 时的训练 SNR (dB)，默认 12（AWGN 下噪声功率恒定）")
     p.add_argument("--train_snr_db_low", type=float, default=0.0,
                    help="snr_mode=uniform 时的下界 (dB)")
     p.add_argument("--train_snr_db_high", type=float, default=15.0,
@@ -278,7 +281,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device", type=str, default=None)
     p.add_argument("--log_file", type=str, default=None)
     p.add_argument("--save_dir", type=str, default=None,
-                   help="保存目录；缺省 checkpoints-val/cc/aware_<fading>_<snr_tag>/")
+                   help="保存目录；缺省 checkpoints-val/cc/aware_awgn_snr/aware_<fading>_<snr_tag>_L<depth>/")
     p.add_argument("--eval_max_batches", type=int, default=0)
 
     args = p.parse_args()
@@ -292,7 +295,7 @@ def parse_args() -> argparse.Namespace:
             snr_tag = f"u{int(round(args.train_snr_db_low))}_{int(round(args.train_snr_db_high))}"
         args.save_dir = os.path.join(
             PROJECT_ROOT, "checkpoints-val/cc",
-            f"aware_{args.train_fading}_{snr_tag}",
+            f"aware_{args.train_fading}_{snr_tag}_L{args.linear_depth}",
         )
     return args
 
@@ -484,10 +487,16 @@ def save_codec_pair(
     metrics: dict | None = None,
     epoch: int | None = None,
 ) -> None:
-    """分别保存 encoder/decoder 的 1x1 Conv 权重，键名 'weight'（与 model3 一致）。"""
+    """分别保存 encoder/decoder 的 1x1 Conv 权重。
+
+    L=1 仍保存为 ``{'weight': ...}``，兼容旧 checkpoint；L>1 保存 Sequential 的
+    ``{'0.weight', '1.weight', ...}``，eval_all.py 会按 metadata 重建网络。
+    """
     common = dict(
         in_channels=codec.in_channels,
         out_channels=codec.out_channels,
+        linear_depth=codec.linear_depth,
+        linear_hidden_channels=codec.hidden_channels,
         mode="trained",
         dataset=args.dataset,
         compression_ratio=codec.out_channels / codec.in_channels,
@@ -502,8 +511,8 @@ def save_codec_pair(
     )
     os.makedirs(os.path.dirname(enc_path), exist_ok=True)
 
-    enc_state = {"weight": codec.encoder.weight.detach().cpu()}
-    dec_state = {"weight": codec.decoder.weight.detach().cpu()}
+    enc_state = {k: v.detach().cpu() for k, v in codec.encoder.state_dict().items()}
+    dec_state = {k: v.detach().cpu() for k, v in codec.decoder.state_dict().items()}
     torch.save({**common, "part": "encoder", "state_dict": enc_state}, enc_path)
     torch.save({**common, "part": "decoder", "state_dict": dec_state}, dec_path)
 
@@ -537,6 +546,8 @@ def main() -> None:
         print(f"  train_snr_db_range : [{args.train_snr_db_low}, {args.train_snr_db_high}]")
     print(f"  eval_snr_grid      : {args.eval_snr_grid}")
     print(f"  out_channels       : {args.out_channels}  (CBR={args.out_channels/16:.3f})")
+    print(f"  linear_depth       : {args.linear_depth}")
+    print(f"  linear_hidden_ch   : {args.linear_hidden_channels}")
     print(f"  save_dir           : {args.save_dir}")
     print("=" * 80)
 
@@ -582,9 +593,17 @@ def main() -> None:
 
     in_c = int(sc.embed_dim)
     out_c = int(args.out_channels)
-    codec = LinearChannelCodec(in_channels=in_c, out_channels=out_c).to(device)
+    codec = LinearChannelCodec(
+        in_channels=in_c,
+        out_channels=out_c,
+        linear_depth=args.linear_depth,
+        hidden_channels=args.linear_hidden_channels,
+    ).to(device)
     init_random_random(codec)
-    print(f"  codec init: orthogonal random, in={in_c}  out={out_c}  CBR={out_c/in_c:.3f}")
+    print(
+        f"  codec init: deep-linear friendly, L={args.linear_depth}, "
+        f"in={in_c}  hidden={args.linear_hidden_channels}  out={out_c}  CBR={out_c/in_c:.3f}"
+    )
 
     system = CCSystemAware(
         sc_enc, sc_dec, codec,

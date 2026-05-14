@@ -1,36 +1,14 @@
 #!/usr/bin/env python
-"""全链路推理评估（DIV2K valid）：
+"""全链路推理评估（DIV2K valid）：PSNR over (compression_ratio, fading, SNR)。
 
-  语义编码 → 信道编码 → SISO 信道 → 信道解码 → DDNM+（无条件 U-Net + 线性修正）→ 语义解码
+链路：语义编码 → 信道编码 → SISO 信道 → 信道解码 → DDNM+（无条件 U-Net + 线性修正）→ 语义解码
 
-支持：
-  - 两种压缩率（compression_ratio = out_channels / in_channels）：
-      * 0.25 → cc_*_div2k_c16to4.pth
-      * 0.75 → cc_*_div2k_c16to12.pth
-  - 两种衰落（``src/cddm_mimo_ddnm/modules/siso_channel.py``）：``awgn``、``rayleigh``
-  - 多个 SNR(dB) 同时扫
-  - 评估指标：PSNR（[0,1] 动态范围；逐图计算后求均值）
+DDNM+ 采样算法实现见 ``SemanticCommSystem.ddnm_sample_normalized``（``src/cddm_mimo_ddnm/
+pipeline.py``）；本脚本只负责装配权重 / 跑数据 / 汇总 PSNR。
 
-实现要点（默认配置可严格胜过无-DDNM 基线，所有 (压缩率, 衰落, SNR) 上均提升 0.16~3.84 dB）：
-
-  1. **训练对齐** —— 无条件 U-Net 在 ``z / latent_std`` 归一化空间上以 min-SNR-γ 加权训练
-     （见 ``train/train_unet_un.py``）。DDNM 迭代必须在归一化空间进行：
-       z_cond_norm = z_cd / latent_std；迭代结束后再乘回 latent_std 送给语义解码器。
-  2. **Warm-start anchor=zcd（默认）** —— 关键优化。直接用信道解码 ``z_cd_norm`` 作为锚点：
-       z_{t_start} = √α̅_{t_start} · z_cd_norm + √(1-α̅_{t_start}) · ε,    ε~N(0,I)
-     - 这保证 ``t_start=0`` 时退化为「无-DDNM 直接送 SC 解码器」基线；
-     - 而 ``t_start>0`` 时让 U-Net 在小 t 域（按用户测得 t=100 处 PSNR≈22.4dB 的有效区间）
-       做小幅扩散精修，并配合每步 DDNM 线性一致性修正。
-     替代锚点 ``pinv``（A_lin⁺ · z_cond_norm）丢掉了 cc 解码器在正交补里学到的有用信息；
-     ``zero`` 则趋近经典 DDNM+ 在 t_start=T-1 的 ε~N(0,I)，但本 ckpt 上数值发散。
-  3. **每步谐和重复（time-travel, 默认 r=3）** —— 在每个 t 重复 (U-Net + 线性修正) 多次，
-     第 r 次后将 z 重新加噪到该 t（``z = √α̅ · z0_corr + √(1-α̅) · ε_new``），让 U-Net 在
-     一致性约束下做多次去噪迭代。实测 r=2 在大多数设置下能胜过 baseline，r=3 在全部 12 组
-     (ratio×fading×SNR) 上均胜过 baseline，且高压缩+低 SNR 下提升尤为显著（+3.8 dB）。
-  4. **DDNM+ 自适应 λ_t** —— 沿用经典公式：σ_t ≥ a_t·σ_y 时 λ_t=1.0（充分一致性修正），
-     否则 λ_t = σ_t / (a_t·σ_y)（小 t 时弱化修正，避免放大观测噪声）。σ_y 用归一化空间值。
-  5. ``latent_std`` 优先取自 ``unet_ckpt['latent_std']``，否则用 ``--latent_std`` 手动指定；
-     U-Net 权重默认使用 EMA shadow（与 ``eval_dm_mse.py`` 一致）。
+默认配置（``--ddnm_t_start 100 --ddnm_anchor zcd --ddnm_repeat_per_step 3
+--num_sample_steps 30``）在所有 (压缩率, 衰落, SNR) 组合上均**严格**优于无-DDNM 基线
+（实测提升 0.16~3.84 dB）。如需对比无-DDNM 基线：``--ddnm_t_start 0 --ddnm_anchor zcd``。
 
 用法（在 paper_code 根目录）::
 
@@ -40,14 +18,11 @@
       --sc_decoder_ckpt checkpoints-val/sc/sc_decoder_div2k_c16.pth \
       --cc_dir         checkpoints-val/cc/model3 \
       --unet_ckpt      checkpoints-val/unet_un/unet_un_div2k_c16_best.pth \
-      --compression_ratios 0.25 0.75 \
-      --fadings awgn rayleigh \
+      --compression_ratios 0.25 0.75 --fadings awgn rayleigh \
       --snrs 0 3 6 9 12 15 \
       --num_sample_steps 30 --ddnm_t_start 100 \
       --ddnm_anchor zcd --ddnm_repeat_per_step 3 \
       --batch_size 4 --max_batches 0
-
-如需对比退化为「无-DDNM 基线」: ``--ddnm_t_start 0 --ddnm_anchor zcd``。
 """
 
 from __future__ import annotations
@@ -187,9 +162,10 @@ def load_sc_state_dict(module: nn.Module, ckpt_path: str, name: str) -> None:
 
 
 def load_cc_weight(net: nn.Module, ckpt_path: str, name: str) -> dict:
-    """加载 cc_encoder / cc_decoder：仅 1×1 Conv 单层，``state_dict={'weight': ...}``。
+    """加载 cc_encoder / cc_decoder：支持单层或多层线性 1×1 Conv。
 
-    将其装入 ``ChannelEncoder.net`` / ``ChannelDecoder.net``（即 ``nn.Conv2d``）。
+    将 checkpoint 中的 ``weight`` 或 ``0.weight`` 等键装入
+    ``ChannelEncoder.net`` / ``ChannelDecoder.net``。
     """
     if not os.path.isfile(ckpt_path):
         raise FileNotFoundError(f"{name} 权重不存在：{ckpt_path}")
@@ -202,13 +178,26 @@ def load_cc_weight(net: nn.Module, ckpt_path: str, name: str) -> dict:
     print(f"  [{name}] 载入 {ckpt_path}")
     if isinstance(obj, dict):
         meta = {k: obj[k] for k in (
-            "in_channels", "out_channels", "compression_ratio", "epoch", "metrics"
+            "in_channels", "out_channels", "compression_ratio",
+            "linear_depth", "linear_hidden_channels", "epoch", "metrics"
         ) if k in obj}
         if meta:
             print(f"    meta: {meta}")
     if missing or unexpected:
         print(f"    missing={len(missing)}, unexpected={len(unexpected)}")
     return obj
+
+
+def peek_cc_arch(ckpt_path: str) -> tuple[int, int]:
+    """从 CC checkpoint 读取深线性结构；旧权重缺省为 L=1, hidden=16。"""
+    if not os.path.isfile(ckpt_path):
+        return 1, 16
+    obj = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    if not isinstance(obj, dict):
+        return 1, 16
+    depth = int(obj.get("linear_depth", 1))
+    hidden = int(obj.get("linear_hidden_channels", 16))
+    return depth, hidden
 
 
 def load_unet(unet: nn.Module, ckpt_path: str, use_ema: bool) -> dict:
@@ -225,129 +214,6 @@ def load_unet(unet: nn.Module, ckpt_path: str, use_ema: bool) -> dict:
         unet.load_state_dict(obj["unet_state_dict"], strict=True)
         print(f"  [unet] 载入 unet_state_dict（未使用 EMA）")
     return obj
-
-
-# ---------------------------------------------------------------------------
-# DDNM+：在 latent_std 归一化空间内做无条件 U-Net 反演 + 线性伪逆修正
-# ---------------------------------------------------------------------------
-
-@torch.no_grad()
-def ddnm_sample_normalized(
-    system: SemanticCommSystem,
-    z_cond: torch.Tensor,
-    beta: torch.Tensor,
-    sigma_y: float,
-    latent_std: float,
-    num_steps: int,
-    t_start: int,
-    anchor: str = "zcd",
-    blend: float = 1.0,
-    repeat_per_step: int = 1,
-) -> torch.Tensor:
-    """潜空间 DDNM+（warm-start + 一致性修正 + 锚点融合）。
-
-    所有迭代在 ``z / latent_std`` 归一化空间内进行；起始 ``z_{t_start}`` 由 ``anchor``
-    选定的「锚点估计」前向加噪得到，随后从 ``t_start`` 反向 DDIM 至 0，每步插入
-    DDNM 线性一致性修正；最后用 ``blend`` 与 ``z_cd_norm`` 融合，保证最差不低于无-DDNM。
-
-    锚点选择（anchor 参数）：
-      - ``"zcd"``  : 用信道解码 ``z_cd_norm``。z_cd 已是 cc 训练目标 ≈ z_sem 的最佳估计，
-                     ``t_start=0`` 时退化为「无-DDNM 直接送 SC 解码器」基线，``t_start>0``
-                     时让 U-Net 在低 t 域做小幅扩散精修，理论上单调 ≥ 无-DDNM 基线。
-      - ``"pinv"`` : 用最小二乘 ``A⁺ z_cd_norm`` (X 维行空间，X' 维=0)；倾向丢掉 cc 解码器
-                     在正交补里学到的有用信息，仅在压缩率很低时有微弱优势。
-      - ``"zero"`` : 用 0 张量；趋近经典 DDNM+ 在 ``t_start=T-1`` 的 ε~N(0,I)。
-
-    其它：
-      - ``blend`` ∈[0,1]：最终 = blend·z_DDNM + (1-blend)·z_cd_norm；blend=1 全用 DDNM。
-      - ``repeat_per_step``：每个 t 重复 (U-Net + 线性修正) 多次（time-travel/RePaint 风格的
-        谐和迭代）；>1 可加强一致性，2-3 通常是显著改善的拐点。
-
-    Args:
-        z_cond:     [B, C, H, W] 信道解码观测（未归一化）。
-        beta:       [B] MMSE 等效增益均值。
-        sigma_y:    信道符号空间等效噪声 std。
-        latent_std: U-Net 训练 LDM scaling。
-        num_steps:  反向 DDIM 步数。
-        t_start:    反向起始 t ∈ [0, T-1]；=0 时直接返回 anchor*latent_std。
-        anchor/blend/repeat_per_step: 见上。
-
-    Returns:
-        z_refined:  [B, C, H, W]，**已乘回 latent_std**。
-    """
-    device = z_cond.device
-    z_cond_norm = z_cond / latent_std
-    b, c, h, w = z_cond_norm.shape
-
-    a0 = system._semantic_linear_chain_matrix().to(device=device, dtype=z_cond_norm.dtype)
-    a_lin = beta.to(device=device, dtype=a0.dtype).clamp(min=1e-6).view(b, 1, 1) * a0.unsqueeze(0)
-    a_pinv = torch.linalg.pinv(a_lin)
-
-    z_cond_flat = z_cond_norm.view(b, c, -1).permute(0, 2, 1).contiguous()
-
-    if anchor == "pinv":
-        u_anchor_flat = torch.bmm(z_cond_flat, a_pinv.transpose(-2, -1))
-        u_anchor = u_anchor_flat.permute(0, 2, 1).reshape(b, c, h, w)
-    elif anchor == "zcd":
-        u_anchor = z_cond_norm
-    elif anchor == "zero":
-        u_anchor = torch.zeros_like(z_cond_norm)
-    else:
-        raise ValueError(f"非法 anchor={anchor!r}（仅支持 zcd/pinv/zero）")
-
-    if t_start <= 0:
-        z_final_norm = u_anchor
-    else:
-        alpha_bars = system.alpha_bars.to(device=device, dtype=z_cond_norm.dtype)
-        n_total = int(alpha_bars.shape[0])
-        t_start = max(0, min(int(t_start), n_total - 1))
-
-        eps_init = torch.randn_like(u_anchor)
-        ab_t0 = alpha_bars[t_start]
-        z = ab_t0.sqrt() * u_anchor + (1.0 - ab_t0).sqrt() * eps_init
-
-        step_indices = torch.linspace(t_start, 0, num_steps, device=device).long()
-        sigma_y_norm = float(sigma_y) / max(float(latent_std), 1e-8)
-
-        for i, idx in enumerate(step_indices):
-            alpha_bar = alpha_bars[idx]
-            alpha_bar_prev = (
-                alpha_bars[step_indices[i + 1]]
-                if i + 1 < len(step_indices)
-                else torch.tensor(1.0, device=device, dtype=z.dtype)
-            )
-            a_t = alpha_bar.sqrt()
-            sigma_t = (1.0 - alpha_bar).sqrt()
-            threshold = float((a_t * sigma_y_norm).item())
-            if float(sigma_t.item()) >= threshold:
-                lambda_t = 1.0
-            else:
-                lambda_t = float(sigma_t.item()) / (threshold + 1e-8)
-
-            for _r in range(max(1, int(repeat_per_step))):
-                t_emb = torch.full((b,), int(idx.item()), device=device, dtype=torch.long)
-                eps_pred = system.unet_denoiser(z, t_emb)
-                z0_pred = (z - torch.sqrt(1.0 - alpha_bar) * eps_pred) / torch.sqrt(alpha_bar + 1e-8)
-
-                u_flat = z0_pred.view(b, c, -1).permute(0, 2, 1).contiguous()
-                u_flat = system._linear_ddnm_correct_batch(
-                    u_flat, z_cond_flat, beta.to(device=device, dtype=z.dtype), a0, lambda_t
-                )
-                z0_corr = u_flat.permute(0, 2, 1).reshape(b, c, h, w)
-
-                z = torch.sqrt(alpha_bar_prev) * z0_corr + torch.sqrt(1.0 - alpha_bar_prev) * eps_pred
-
-                # time-travel: 若仍需在同 t 重复，将 z 重新加噪到 t（保留 z0_corr 的"骨架"）
-                if _r + 1 < max(1, int(repeat_per_step)):
-                    eps_new = torch.randn_like(z)
-                    z = a_t * z0_corr + sigma_t * eps_new
-
-        z_final_norm = z
-
-    if blend < 1.0:
-        z_final_norm = float(blend) * z_final_norm + (1.0 - float(blend)) * z_cond_norm
-
-    return z_final_norm * latent_std
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +255,10 @@ def build_system_for_ratio(
     load_sc_state_dict(system.semantic_encoder, sc_encoder_ckpt, "sc_encoder")
     load_sc_state_dict(system.semantic_decoder, sc_decoder_ckpt, "sc_decoder")
 
+    cc_enc_path = os.path.join(cc_dir, f"cc_encoder_div2k_{tag}.pth")
+    cc_dec_path = os.path.join(cc_dir, f"cc_decoder_div2k_{tag}.pth")
+    linear_depth, linear_hidden_channels = peek_cc_arch(cc_enc_path)
+
     # 用户提供的 cc 权重操作的是 sc encoder.head 投影后的 16 通道 latent（与 sc embed_dim 对齐），
     # 而 SemanticCommSystem 默认按 ``semantic_encoder.latent_dim``（最后一级 stage dim，例如 320）
     # 构造 channel_encoder。这里显式重建为 in_channels = sc embed_dim。
@@ -396,15 +266,18 @@ def build_system_for_ratio(
         in_channels=in_ch,
         out_channels=out_ch,
         bottleneck_dim=None,
+        linear_depth=linear_depth,
+        hidden_channels=linear_hidden_channels,
     ).to(device)
     system.channel_decoder = ChannelDecoder(
         in_channels=out_ch,
         out_channels=in_ch,
         bottleneck_dim=None,
+        linear_depth=linear_depth,
+        hidden_channels=linear_hidden_channels,
     ).to(device)
+    print(f"  [cc arch] linear_depth={linear_depth}, hidden={linear_hidden_channels}")
 
-    cc_enc_path = os.path.join(cc_dir, f"cc_encoder_div2k_{tag}.pth")
-    cc_dec_path = os.path.join(cc_dir, f"cc_decoder_div2k_{tag}.pth")
     load_cc_weight(system.channel_encoder, cc_enc_path, f"cc_encoder({tag})")
     load_cc_weight(system.channel_decoder, cc_dec_path, f"cc_decoder({tag})")
 
@@ -473,8 +346,7 @@ def evaluate_one_setting(
             z_cd = system.channel_decoder(z_rx.to(z_ch.dtype))
 
         z_cd_f = z_cd.float()
-        z_refined = ddnm_sample_normalized(
-            system,
+        z_refined = system.ddnm_sample_normalized(
             z_cond=z_cd_f,
             beta=beta.float(),
             sigma_y=sigma_y,

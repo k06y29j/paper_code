@@ -305,14 +305,45 @@ def build_dataloaders(args: argparse.Namespace):
 # ===========================================================================
 
 class LinearChannelCodec(nn.Module):
-    """以 1×1 卷积实现的线性信道编/解码器对，便于做 SVD/伪逆等线性分析。"""
+    """以 1×1 卷积实现的线性信道编/解码器对，便于做 SVD/伪逆等线性分析。
 
-    def __init__(self, in_channels: int, out_channels: int) -> None:
+    ``linear_depth`` 不引入激活；多层链路仍等价于一个有效线性矩阵。
+    """
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        *,
+        linear_depth: int = 1,
+        hidden_channels: int | None = None,
+    ) -> None:
         super().__init__()
+        if linear_depth < 1:
+            raise ValueError(f"linear_depth 必须 >= 1，收到 {linear_depth}")
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.encoder = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self.decoder = nn.Conv2d(out_channels, in_channels, kernel_size=1, bias=False)
+        self.linear_depth = int(linear_depth)
+        self.hidden_channels = int(hidden_channels or in_channels)
+        self.encoder = self._make_stack(in_channels, out_channels, self.hidden_channels)
+        self.decoder = self._make_stack(out_channels, in_channels, self.hidden_channels)
+
+    def _make_stack(
+        self,
+        in_channels: int,
+        out_channels: int,
+        hidden_channels: int,
+    ) -> nn.Conv2d | nn.Sequential:
+        if self.linear_depth == 1:
+            return nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+
+        layers: list[nn.Module] = [
+            nn.Conv2d(in_channels, hidden_channels, kernel_size=1, bias=False)
+        ]
+        for _ in range(self.linear_depth - 2):
+            layers.append(nn.Conv2d(hidden_channels, hidden_channels, kernel_size=1, bias=False))
+        layers.append(nn.Conv2d(hidden_channels, out_channels, kernel_size=1, bias=False))
+        return nn.Sequential(*layers)
 
     def forward(self, z_sem: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         z_ch = self.encoder(z_sem)
@@ -329,10 +360,37 @@ def _orthogonal_init_(conv: nn.Conv2d) -> None:
     nn.init.orthogonal_(conv.weight)
 
 
+def _iter_conv1x1(module: nn.Conv2d | nn.Sequential) -> list[nn.Conv2d]:
+    if isinstance(module, nn.Conv2d):
+        return [module]
+    return [m for m in module if isinstance(m, nn.Conv2d)]
+
+
+def _identity_init_(conv: nn.Conv2d) -> None:
+    if conv.in_channels != conv.out_channels:
+        _orthogonal_init_(conv)
+        return
+    with torch.no_grad():
+        conv.weight.zero_()
+        eye = torch.eye(conv.in_channels, dtype=conv.weight.dtype, device=conv.weight.device)
+        conv.weight.copy_(eye.view(conv.in_channels, conv.in_channels, 1, 1))
+
+
 def init_random_random(codec: LinearChannelCodec) -> None:
-    """模式 1：encoder/decoder 各自独立做正交随机初始化。"""
-    _orthogonal_init_(codec.encoder)
-    _orthogonal_init_(codec.decoder)
+    """模式 1：encoder/decoder 做深线性友好的初始化。
+
+    对 L>1，隐藏层初始化为 identity，首/尾投影用正交初始化，避免层数实验被
+    过大的随机矩阵乘积主导。
+    """
+    enc_convs = _iter_conv1x1(codec.encoder)
+    dec_convs = _iter_conv1x1(codec.decoder)
+    for conv in enc_convs[:-1]:
+        _identity_init_(conv)
+    _orthogonal_init_(enc_convs[-1])
+
+    _orthogonal_init_(dec_convs[0])
+    for conv in dec_convs[1:]:
+        _identity_init_(conv)
 
 
 @torch.no_grad()
