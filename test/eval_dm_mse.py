@@ -36,6 +36,7 @@ _spec.loader.exec_module(_tun)
 
 encode_latent = _tun.encode_latent
 estimate_latent_std = _tun.estimate_latent_std
+LatentNormalizer = _tun.LatentNormalizer
 load_state_dict_from_ckpt = _tun.load_state_dict_from_ckpt
 
 from src.cddm_mimo_ddnm import SemanticCommSystem, SystemConfig, get_div2k_config, get_cifar10_config
@@ -167,6 +168,8 @@ def main_eval():
     ckpt = torch.load(args.unet_ckpt, map_location="cpu")
     if "unet_state_dict" not in ckpt:
         raise KeyError(f"{args.unet_ckpt} 缺少 unet_state_dict")
+    system.cfg.apply_unet_checkpoint_metadata(ckpt)
+    system.refresh_diffusion_schedule()
     system.unet_denoiser.load_state_dict(ckpt["unet_state_dict"], strict=True)
     backup_weights = {k: v.detach().clone() for k, v in system.unet_denoiser.state_dict().items()}
     used_ema = bool(
@@ -186,11 +189,20 @@ def main_eval():
             raise ValueError(f"时间步 {t} 超出 [0, {T - 1}]")
 
     if args.latent_std > 0:
-        latent_std = float(args.latent_std)
-        print(f"  latent_std (manual) = {latent_std:.6f}")
+        normalizer = LatentNormalizer("global", 0.0, float(args.latent_std))
+        print(f"  latent_normalizer (manual) = {normalizer.summary()}")
     else:
-        latent_std = float(ckpt.get("latent_std", 0.0))
-        if latent_std <= 0:
+        ckpt_has_norm = (
+            isinstance(ckpt.get("latent_norm"), dict)
+            or ckpt.get("latent_channel_std") is not None
+            or float(ckpt.get("latent_std", 0.0)) > 0
+        )
+        if ckpt_has_norm:
+            normalizer = LatentNormalizer.from_checkpoint(
+                ckpt, fallback=LatentNormalizer("global", 0.0, 1.0),
+            )
+            print(f"  latent_normalizer (from ckpt) = {normalizer.summary()}")
+        else:
             train_loader, _, _ = (
                 get_div2k_loaders(
                     data_dir=args.data_dir or "",
@@ -217,13 +229,12 @@ def main_eval():
             )
             loader_for_std = train_loader
             latent_std = estimate_latent_std(system, loader_for_std, device, max_batches=args.latent_std_batches)
-            print(f"  latent_std (dry-run) = {latent_std:.6f}")
-        else:
-            print(f"  latent_std (from ckpt) = {latent_std:.6f}")
+            normalizer = LatentNormalizer("global", 0.0, latent_std)
+            print(f"  latent_normalizer (dry-run) = {normalizer.summary()}")
 
     val_loader = build_val_loader(args)
     amp_enabled = args.amp_dtype != "none"
-    amp_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16}[args.amp_dtype]
+    amp_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16}.get(args.amp_dtype, torch.bfloat16)
 
     # ε MSE 按 t 累计
     eps_mse_sum = {t: 0.0 for t in fixed_ts}
@@ -238,7 +249,7 @@ def main_eval():
         images = batch[0] if isinstance(batch, (tuple, list)) else batch
         images = images.to(device, non_blocking=True)
         z0_raw = encode_latent(system, images)
-        z0 = z0_raw / latent_std
+        z0 = normalizer.normalize(z0_raw)
         bsz = z0.shape[0]
 
         for t in fixed_ts:
@@ -263,7 +274,7 @@ def main_eval():
                 amp_enabled,
                 amp_dtype,
             )
-            z_decode = z_clean * latent_std
+            z_decode = normalizer.denormalize(z_clean)
             with torch.autocast(device.type, enabled=amp_enabled and device.type == "cuda", dtype=amp_dtype):
                 x_hat = system.semantic_decoder(z_decode).float().clamp(0, 1)
             mse_img = F.mse_loss(x_hat, images.float()).item()

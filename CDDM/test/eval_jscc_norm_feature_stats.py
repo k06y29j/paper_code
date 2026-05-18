@@ -7,7 +7,7 @@
   在整份验证集上做元素均值 / 总体方差统计（与 Train.py / train_jscc 一致）。
 
 用法（在 CDDM 目录下）:
-  python test/eval_jscc_norm_feature_stats.py --train-snr 12 --channel-type awgn --C 12
+  CUDA_VISIBLE_DEVICES=2 python test/eval_jscc_norm_feature_stats.py --train-snr 12 --channel-type awgn --C 12
   python test/eval_jscc_norm_feature_stats.py --train-snr 0 --channel-type awgn --C 4 --norm-stats-only
   python test/eval_jscc_norm_feature_stats.py --norm-stats-only --encoder /path/encoder.pt --C 12
       --channel-type awgn --train-snr 0

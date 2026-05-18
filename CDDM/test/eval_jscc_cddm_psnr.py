@@ -11,7 +11,7 @@ JSCC + 条件扩散（CHDDIM）验证集 PSNR，流程对齐 ``Diffusion/Train.e
 
 用法（在 CODM 根目录）::
 
-  python test/eval_jscc_cddm_psnr.py --channel-type awgn --train-snr 12 --C 12 --eval-snrs 50
+  python test/eval_jscc_cddm_psnr.py --channel-type awgn --train-snr 12 --C 36 --eval-snrs 12
   python test/eval_jscc_cddm_psnr.py --eval-snrs 0,3,15,50             # 任意多个、逗号分隔 SNR(dB)
   python test/eval_jscc_cddm_psnr.py --sweep  # 训练 SNR {0,6,12} × C {4,12} × 当前 channel-type
 

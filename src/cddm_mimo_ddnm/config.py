@@ -77,6 +77,7 @@ class MIMOConfig:
 @dataclass
 class DiffusionConfig:
     num_train_steps: int = 1000
+    noise_schedule: str = "linear"
     num_sample_steps: int = 30
     beta_start: float = 1e-4
     beta_end: float = 2e-2
@@ -84,6 +85,9 @@ class DiffusionConfig:
     # U-Net 训练/推理的 latent 标准化系数。训练脚本会把该值写入 checkpoint；
     # 推理时应从 checkpoint metadata 覆盖此字段。
     latent_std: float = 1.0
+    # 逐通道 whitening metadata；为 None 时使用旧版 scalar latent_std。
+    latent_mean: tuple[float, ...] | list[float] | None = None
+    latent_std_channels: tuple[float, ...] | list[float] | None = None
     # DDNM+ 推理默认参数，与 eval_all.py 的实测稳定配置对齐。
     ddnm_t_start: int = 100
     ddnm_anchor: str = "zcd"
@@ -156,6 +160,10 @@ class SystemConfig:
                 f"diffusion.num_train_steps={self.diffusion.num_train_steps} 必须与 "
                 f"unet_uncond.T={self.unet_uncond.T} 相等。"
             )
+        if self.diffusion.noise_schedule not in ("linear", "cosine"):
+            raise ValueError(
+                f"diffusion.noise_schedule={self.diffusion.noise_schedule!r} 非法，应为 'linear' 或 'cosine'。"
+            )
         if self.unet_uncond.input_channel != self.semantic_dim:
             raise ValueError(
                 f"unet_uncond.input_channel={self.unet_uncond.input_channel} 必须等于 "
@@ -163,6 +171,21 @@ class SystemConfig:
             )
         if self.diffusion.latent_std <= 0:
             raise ValueError(f"diffusion.latent_std 必须为正数，收到 {self.diffusion.latent_std}")
+        if self.diffusion.latent_std_channels is not None:
+            if len(self.diffusion.latent_std_channels) != self.semantic_dim:
+                raise ValueError(
+                    "diffusion.latent_std_channels 长度必须等于 semantic.embed_dim："
+                    f"{len(self.diffusion.latent_std_channels)} != {self.semantic_dim}"
+                )
+            if any(float(v) <= 0 for v in self.diffusion.latent_std_channels):
+                raise ValueError("diffusion.latent_std_channels 中所有 std 必须为正数。")
+            if self.diffusion.latent_mean is None:
+                self.diffusion.latent_mean = tuple(0.0 for _ in range(self.semantic_dim))
+            if len(self.diffusion.latent_mean) != self.semantic_dim:
+                raise ValueError(
+                    "diffusion.latent_mean 长度必须等于 semantic.embed_dim："
+                    f"{len(self.diffusion.latent_mean)} != {self.semantic_dim}"
+                )
         if self.diffusion.ddnm_anchor not in ("zcd", "pinv", "zero"):
             raise ValueError(
                 f"diffusion.ddnm_anchor={self.diffusion.ddnm_anchor!r} 非法，应为 'zcd'/'pinv'/'zero'。"
@@ -180,11 +203,51 @@ class SystemConfig:
         目前最关键的是 latent_std。训练脚本保存的 cfg_diffusion 若存在，也会同步非结构性
         推理参数；结构参数（T、输入通道等）仍由当前配置与权重加载共同校验。
         """
+        def _to_float_tuple(value) -> tuple[float, ...] | None:
+            if value is None:
+                return None
+            if hasattr(value, "detach"):
+                value = value.detach().cpu().view(-1).tolist()
+            elif hasattr(value, "tolist"):
+                value = value.tolist()
+            if isinstance(value, (float, int)):
+                return (float(value),)
+            flat = []
+            for item in value:
+                if isinstance(item, (list, tuple)):
+                    flat.extend(float(x) for x in item)
+                else:
+                    flat.append(float(item))
+            return tuple(flat)
+
         cfg_diff = checkpoint.get("cfg_diffusion")
         if isinstance(cfg_diff, Mapping):
-            for key in ("num_sample_steps", "latent_std", "ddnm_t_start", "ddnm_anchor", "ddnm_blend", "ddnm_repeat_per_step"):
+            for key in (
+                "noise_schedule", "num_sample_steps", "latent_std", "latent_mean", "latent_std_channels",
+                "ddnm_t_start", "ddnm_anchor", "ddnm_blend", "ddnm_repeat_per_step",
+            ):
                 if key in cfg_diff:
                     setattr(self.diffusion, key, cfg_diff[key])
+        latent_norm = checkpoint.get("latent_norm")
+        if isinstance(latent_norm, Mapping):
+            mode = str(latent_norm.get("mode", "global"))
+            std = _to_float_tuple(latent_norm.get("std"))
+            mean = _to_float_tuple(latent_norm.get("mean"))
+            if mode == "channel" and std is not None and len(std) > 1:
+                self.diffusion.latent_std_channels = std
+                self.diffusion.latent_mean = mean or tuple(0.0 for _ in std)
+                self.diffusion.latent_std = float(sum(std) / len(std))
+            elif std is not None and len(std) >= 1:
+                self.diffusion.latent_std = float(std[0])
+                self.diffusion.latent_std_channels = None
+                self.diffusion.latent_mean = None
+        elif "latent_channel_std" in checkpoint:
+            std = _to_float_tuple(checkpoint.get("latent_channel_std"))
+            mean = _to_float_tuple(checkpoint.get("latent_channel_mean"))
+            if std is not None and len(std) > 1:
+                self.diffusion.latent_std_channels = std
+                self.diffusion.latent_mean = mean or tuple(0.0 for _ in std)
+                self.diffusion.latent_std = float(sum(std) / len(std))
         if "latent_std" in checkpoint:
             self.diffusion.latent_std = float(checkpoint["latent_std"])
         self.validate()

@@ -254,10 +254,10 @@ class AverageMeter:
 
 
 def compute_psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
-    mse_val = torch.mean((pred - target) ** 2).item()
-    if mse_val < 1e-12:
-        return float("inf")
-    return 10.0 * math.log10(1.0 / mse_val)
+    """逐图 PSNR 后取平均，保持与最终 eval 脚本一致。"""
+    mse = torch.mean((pred - target) ** 2, dim=(1, 2, 3)).clamp_min(1e-12)
+    psnr = 10.0 * torch.log10(1.0 / mse)
+    return float(psnr.mean().item())
 
 
 def load_state_dict_from_ckpt(model: nn.Module, ckpt_path: str, name: str) -> None:

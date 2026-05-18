@@ -16,11 +16,11 @@ pipeline.py``）；本脚本只负责装配权重 / 跑数据 / 汇总 PSNR。
       --data_dir /workspace/yongjia/datasets/DIV2K \
       --sc_encoder_ckpt checkpoints-val/sc/sc_encoder_div2k_c16.pth \
       --sc_decoder_ckpt checkpoints-val/sc/sc_decoder_div2k_c16.pth \
-      --cc_dir         checkpoints-val/cc/model3 \
+      --cc_dir         /workspace/yongjia/paper_code/checkpoints-val/cc/aware_awgn_snr12_L1\
       --unet_ckpt      checkpoints-val/unet_un/unet_un_div2k_c16_best.pth \
-      --compression_ratios 0.25 0.75 --fadings awgn rayleigh \
+      --compression_ratios 0.75 --fadings awgn  \
       --snrs 0 3 6 9 12 15 \
-      --num_sample_steps 30 --ddnm_t_start 100 \
+      --num_sample_steps 30 --ddnm_t_start 0 \
       --ddnm_anchor zcd --ddnm_repeat_per_step 3 \
       --batch_size 4 --max_batches 0
 """
@@ -53,6 +53,13 @@ from src.cddm_mimo_ddnm.modules.channel_codec import (  # noqa: E402
 from src.cddm_mimo_ddnm.modules.siso_channel import SISOChannel  # noqa: E402
 
 
+UNET_MODEL_PRESETS = {
+    "A1_channel_vanilla": "checkpoints-val/unet_un/A1_channel_vanilla/unet_un_div2k_c16_best.pth",
+    "A2_channel_minsnr5": "checkpoints-val/unet_un/A2_channel_minsnr5/unet_un_div2k_c16_best.pth",
+    "A2_channel_minsnr5_cosine": "checkpoints-val/unet_un/A2_channel_minsnr5_cosine/unet_un_div2k_c16_best.pth",
+}
+
+
 # ---------------------------------------------------------------------------
 # 工具函数
 # ---------------------------------------------------------------------------
@@ -81,6 +88,9 @@ def parse_args() -> argparse.Namespace:
                    help="信道编/解码器目录，文件名形如 cc_{encoder,decoder}_div2k_c16to{4,12}.pth")
     p.add_argument("--unet_ckpt", type=str,
                    default=os.path.join(PROJECT_ROOT, "checkpoints-val/unet_un/unet_un_div2k_c16_best.pth"))
+    p.add_argument("--unet_model", type=str, default=None,
+                   choices=sorted(UNET_MODEL_PRESETS.keys()),
+                   help="快捷选择 checkpoints-val/unet_un 下的三个通道归一化扩散模型；设置后覆盖 --unet_ckpt")
     p.add_argument("--no_ema", action="store_true",
                    help="加载 unet_state_dict 而非 EMA shadow（默认用 EMA）")
 
@@ -103,9 +113,9 @@ def parse_args() -> argparse.Namespace:
                    help="每个 t 重复 (U-Net + 线性修正) 的次数（time-travel/谐和迭代）；"
                         "实测 r3 在所有 (压缩率, 衰落, SNR) 下均胜过 no-DDNM 基线")
 
-    # latent_std
+    # latent normalization
     p.add_argument("--latent_std", type=float, default=0.0,
-                   help=">0 则强制使用此值；=0 则从 unet_ckpt['latent_std'] 读取")
+                   help="仅用于旧版 scalar latent scaling；通道归一化 checkpoint 会优先使用自身 mean/std metadata")
 
     # 其它
     p.add_argument("--device", type=str, default=None)
@@ -132,6 +142,17 @@ def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     np.random.seed(seed)
+
+
+def resolve_unet_ckpt(args: argparse.Namespace) -> str:
+    """Resolve --unet_model / --unet_ckpt; allow passing a checkpoint directory."""
+    if args.unet_model:
+        rel = UNET_MODEL_PRESETS[args.unet_model]
+        return os.path.join(PROJECT_ROOT, rel)
+    ckpt = args.unet_ckpt
+    if os.path.isdir(ckpt):
+        ckpt = os.path.join(ckpt, "unet_un_div2k_c16_best.pth")
+    return ckpt
 
 
 def ratio_to_out_channels(ratio: float, in_channels: int = 16) -> tuple[int, str]:
@@ -179,7 +200,8 @@ def load_cc_weight(net: nn.Module, ckpt_path: str, name: str) -> dict:
     if isinstance(obj, dict):
         meta = {k: obj[k] for k in (
             "in_channels", "out_channels", "compression_ratio",
-            "linear_depth", "linear_hidden_channels", "epoch", "metrics"
+            "linear_depth", "linear_hidden_channels", "codec_init",
+            "lambda_enc_orth", "cov_max_batches", "epoch", "metrics"
         ) if k in obj}
         if meta:
             print(f"    meta: {meta}")
@@ -282,6 +304,8 @@ def build_system_for_ratio(
     load_cc_weight(system.channel_decoder, cc_dec_path, f"cc_decoder({tag})")
 
     unet_obj = load_unet(system.unet_denoiser, unet_ckpt, use_ema=use_ema)
+    system.cfg.apply_unet_checkpoint_metadata(unet_obj)
+    system.refresh_diffusion_schedule()
 
     return system, unet_obj, tag
 
@@ -308,6 +332,8 @@ def evaluate_one_setting(
     fading: str,
     snr_db: float,
     latent_std: float,
+    latent_mean,
+    latent_channel_std,
     num_sample_steps: int,
     ddnm_t_start: int,
     ddnm_anchor: str,
@@ -351,6 +377,8 @@ def evaluate_one_setting(
             beta=beta.float(),
             sigma_y=sigma_y,
             latent_std=latent_std,
+            latent_mean=latent_mean,
+            latent_channel_std=latent_channel_std,
             num_steps=num_sample_steps,
             t_start=ddnm_t_start,
             anchor=ddnm_anchor,
@@ -373,6 +401,7 @@ def evaluate_one_setting(
 
 def main() -> None:
     args = parse_args()
+    args.unet_ckpt = resolve_unet_ckpt(args)
     seed_everything(args.seed)
 
     if args.device:
@@ -401,6 +430,9 @@ def main() -> None:
     print(f"DIV2K valid: {len(ds)} 图（root={valid_root}）")
 
     print(f"device={device}, amp={amp_dtype if amp_enabled else 'fp32'}")
+    if args.unet_model:
+        print(f"unet_model={args.unet_model}")
+    print(f"unet_ckpt={args.unet_ckpt}")
     print(f"compression_ratios={args.compression_ratios}, fadings={args.fadings}, "
           f"SNRs(dB)={args.snrs}, ddim_steps={args.num_sample_steps}, "
           f"ddnm_t_start={args.ddnm_t_start}, anchor={args.ddnm_anchor}, "
@@ -420,16 +452,29 @@ def main() -> None:
             device=device,
         )
 
-        if args.latent_std > 0:
+        latent_mean = system.cfg.diffusion.latent_mean
+        latent_channel_std = system.cfg.diffusion.latent_std_channels
+        if latent_channel_std is not None:
+            latent_std = float(system.cfg.diffusion.latent_std)
+            mean = latent_mean or [0.0 for _ in latent_channel_std]
+            std = latent_channel_std
+            print(
+                "  latent_norm (from ckpt) = channel  "
+                f"mean_range=[{min(mean):.6f},{max(mean):.6f}]  "
+                f"std_range=[{min(std):.6f},{max(std):.6f}]  "
+                f"legacy_std={latent_std:.6f}"
+            )
+        elif args.latent_std > 0:
             latent_std = float(args.latent_std)
-            print(f"  latent_std (manual) = {latent_std:.6f}")
+            print(f"  latent_norm (manual) = scalar  std={latent_std:.6f}")
         else:
-            latent_std = float(unet_obj.get("latent_std", 0.0))
+            latent_std = float(unet_obj.get("latent_std", system.cfg.diffusion.latent_std))
             if latent_std <= 0:
                 raise ValueError(
-                    "unet_ckpt 中没有有效的 latent_std；请通过 --latent_std 显式指定。"
+                    "unet_ckpt 中没有有效的 scalar latent_std；请通过 --latent_std 显式指定。"
                 )
-            print(f"  latent_std (from ckpt) = {latent_std:.6f}")
+            print(f"  latent_norm (from ckpt) = scalar  std={latent_std:.6f}")
+        print(f"  diffusion.noise_schedule = {system.cfg.diffusion.noise_schedule}")
 
         results[ratio] = {}
         print(f"  --- 扫描设置（ratio={ratio}, tag={tag}） ---")
@@ -441,6 +486,8 @@ def main() -> None:
                     fading=fading,
                     snr_db=snr,
                     latent_std=latent_std,
+                    latent_mean=latent_mean,
+                    latent_channel_std=latent_channel_std,
                     num_sample_steps=args.num_sample_steps,
                     ddnm_t_start=args.ddnm_t_start,
                     ddnm_anchor=args.ddnm_anchor,

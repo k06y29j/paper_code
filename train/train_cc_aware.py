@@ -64,6 +64,7 @@ from src.cddm_mimo_ddnm.modules.semantic_codec import (
     SemanticDecoder,
     SemanticEncoder,
 )
+from src.cddm_mimo_ddnm.modules.channel_codec import composed_1x1_weight
 from src.cddm_mimo_ddnm.modules.siso_channel import SISOChannel
 
 # 直接复用 train_cc.py 的工具与 codec 定义
@@ -219,6 +220,17 @@ def parse_args() -> argparse.Namespace:
                    help="纯线性 1x1 Conv 层数：L=1/2/3；不加激活，可折叠为有效矩阵")
     p.add_argument("--linear_hidden_channels", type=int, default=16,
                    help="L>1 时的中间通道数；C=12 实验建议保持 16")
+    p.add_argument(
+        "--codec_init",
+        type=str,
+        default="random",
+        choices=["random", "pinv", "lmmse", "pca_lmmse"],
+        help="L1 线性 codec 初始化：random / random encoder + pinv decoder / random encoder + LMMSE decoder / PCA(KLT) encoder + LMMSE decoder",
+    )
+    p.add_argument("--lambda_enc_orth", type=float, default=0.0,
+                   help="encoder 行正交正则权重：||W_enc W_enc^T - I||_F^2")
+    p.add_argument("--cov_max_batches", type=int, default=0,
+                   help="估计语义 latent 协方差使用的 train batch 数；0 表示全量")
 
     p.add_argument("--dataset", type=str, default="div2k", choices=["cifar10", "div2k"])
     p.add_argument("--data_dir", type=str, default=None)
@@ -281,23 +293,162 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--device", type=str, default=None)
     p.add_argument("--log_file", type=str, default=None)
     p.add_argument("--save_dir", type=str, default=None,
-                   help="保存目录；缺省 checkpoints-val/cc/aware_awgn_snr/aware_<fading>_<snr_tag>_L<depth>/")
+                   help="保存目录；缺省 checkpoints-val/cc/aware_<fading>_<snr_tag>_L<depth>[_init][_orth]/")
     p.add_argument("--eval_max_batches", type=int, default=0)
 
     args = p.parse_args()
     if args.dataset == "div2k" and args.data_dir is None:
         args.data_dir = "/workspace/yongjia/datasets/DIV2K"
+    if args.codec_init in ("pinv", "lmmse", "pca_lmmse") and args.linear_depth != 1:
+        raise SystemExit("--codec_init pinv/lmmse/pca_lmmse 仅用于 L1 线性 codec，请设置 --linear_depth 1。")
 
     if args.save_dir is None:
         if args.train_snr_mode == "fixed":
             snr_tag = f"snr{int(round(args.train_snr_db))}"
         else:
             snr_tag = f"u{int(round(args.train_snr_db_low))}_{int(round(args.train_snr_db_high))}"
+        extra_tags: list[str] = []
+        if args.codec_init != "random":
+            extra_tags.append(args.codec_init)
+        if args.lambda_enc_orth > 0:
+            extra_tags.append(f"orth{args.lambda_enc_orth:g}")
+        extra = "" if not extra_tags else "_" + "_".join(extra_tags)
         args.save_dir = os.path.join(
             PROJECT_ROOT, "checkpoints-val/cc",
-            f"aware_{args.train_fading}_{snr_tag}_L{args.linear_depth}",
+            f"aware_{args.train_fading}_{snr_tag}_L{args.linear_depth}{extra}",
         )
     return args
+
+
+# ===========================================================================
+# 线性 codec 初始化 / 正则
+# ===========================================================================
+
+def _single_conv(module: nn.Module, name: str) -> nn.Conv2d:
+    if isinstance(module, nn.Conv2d):
+        return module
+    raise TypeError(f"{name} 必须是单层 Conv2d；当前仅 L1 支持该初始化，收到 {type(module)}")
+
+
+def _copy_matrix_to_conv(conv: nn.Conv2d, weight: torch.Tensor) -> None:
+    expected = (conv.out_channels, conv.in_channels)
+    if tuple(weight.shape) != expected:
+        raise ValueError(f"权重形状应为 {expected}，收到 {tuple(weight.shape)}")
+    with torch.no_grad():
+        conv.weight.copy_(weight.to(device=conv.weight.device, dtype=conv.weight.dtype).view(*expected, 1, 1))
+
+
+@torch.no_grad()
+def estimate_semantic_covariance(
+    sc_enc: SemanticEncoder,
+    train_loader: DataLoader,
+    device: torch.device,
+    amp_enabled: bool,
+    amp_dtype: torch.dtype,
+    max_batches: int,
+) -> torch.Tensor:
+    """估计冻结 semantic latent 的通道协方差 Σ_z ∈ R^{C×C}。"""
+    sc_enc.eval()
+    sum_z: torch.Tensor | None = None
+    sum_zz: torch.Tensor | None = None
+    n_total = 0
+    autocast_kw = dict(enabled=amp_enabled, dtype=amp_dtype)
+
+    for i, batch in enumerate(train_loader):
+        if max_batches > 0 and i >= max_batches:
+            break
+        images = batch[0] if isinstance(batch, (tuple, list)) else batch
+        images = images.to(device, non_blocking=True)
+        with torch.autocast("cuda", **autocast_kw):
+            z_sem, _, _ = sc_enc.encode(images, sample=False)
+        z = z_sem.float().permute(1, 0, 2, 3).reshape(z_sem.shape[1], -1).to(torch.float64)
+        if sum_z is None:
+            sum_z = torch.zeros(z.shape[0], device=device, dtype=torch.float64)
+            sum_zz = torch.zeros(z.shape[0], z.shape[0], device=device, dtype=torch.float64)
+        sum_z += z.sum(dim=1)
+        sum_zz += z @ z.t()
+        n_total += z.shape[1]
+
+    if sum_z is None or sum_zz is None or n_total <= 1:
+        raise RuntimeError("无法估计语义 latent 协方差：train_loader 为空。")
+    mean = sum_z / float(n_total)
+    cov = sum_zz / float(n_total) - torch.outer(mean, mean)
+    cov = 0.5 * (cov + cov.t())
+    eps = 1e-6 * torch.trace(cov).clamp_min(1e-8) / cov.shape[0]
+    return cov + eps * torch.eye(cov.shape[0], device=device, dtype=cov.dtype)
+
+
+def _lmmse_decoder_matrix(
+    w_enc: torch.Tensor,
+    cov: torch.Tensor,
+    snr_db: float,
+) -> torch.Tensor:
+    """给定 encoder W 和 Σ_z，返回 AWGN 近似下的 LMMSE decoder 矩阵。"""
+    cov = cov.to(dtype=torch.float64)
+    w = w_enc.to(device=cov.device, dtype=torch.float64)
+    sigma2_real = 1.0 / (2.0 * (10.0 ** (float(snr_db) / 10.0)))
+    middle = w @ cov @ w.t()
+    eye = torch.eye(middle.shape[0], device=cov.device, dtype=torch.float64)
+    gram = middle + sigma2_real * eye
+    right = cov @ w.t()
+    dec_t = torch.linalg.solve(gram, right.t())
+    return dec_t.t()
+
+
+def _pinv_decoder_matrix(w_enc: torch.Tensor) -> torch.Tensor:
+    """给定 encoder W，返回 Moore-Penrose pinv decoder 矩阵。"""
+    return torch.linalg.pinv(w_enc.to(torch.float64))
+
+
+@torch.no_grad()
+def initialize_codec_for_experiment(
+    codec: LinearChannelCodec,
+    *,
+    init_name: str,
+    cov: torch.Tensor | None,
+    snr_db: float,
+) -> None:
+    """初始化 C=12/L1 线性 codec 的实验变体。"""
+    init_random_random(codec)
+    if init_name == "random":
+        return
+    if init_name in ("lmmse", "pca_lmmse") and cov is None:
+        raise ValueError(f"{init_name} 初始化需要先估计 latent 协方差。")
+    enc = _single_conv(codec.encoder, "codec.encoder")
+    dec = _single_conv(codec.decoder, "codec.decoder")
+
+    if init_name == "pinv":
+        w_enc = enc.weight.detach().squeeze(-1).squeeze(-1).to(torch.float64)
+        w_dec = _pinv_decoder_matrix(w_enc)
+        _copy_matrix_to_conv(dec, w_dec)
+        print("  codec init: pinv decoder from random orthogonal encoder")
+        return
+
+    if init_name == "pca_lmmse":
+        eigvals, eigvecs = torch.linalg.eigh(cov)
+        order = torch.argsort(eigvals, descending=True)
+        basis = eigvecs[:, order[: codec.out_channels]]
+        w_enc = basis.t()
+        _copy_matrix_to_conv(enc, w_enc)
+        print(
+            "  [pca] top eigenvalues: "
+            + ", ".join(f"{float(v):.4g}" for v in eigvals[order[: min(6, codec.out_channels)]])
+        )
+    elif init_name == "lmmse":
+        w_enc = enc.weight.detach().squeeze(-1).squeeze(-1).to(device=cov.device, dtype=torch.float64)
+    else:
+        raise ValueError(f"未知 codec_init={init_name!r}")
+
+    w_dec = _lmmse_decoder_matrix(w_enc, cov, snr_db=snr_db)
+    _copy_matrix_to_conv(dec, w_dec)
+    print(f"  codec init: {init_name}, LMMSE decoder at SNR={snr_db:g} dB")
+
+
+def encoder_row_orth_loss(codec: LinearChannelCodec) -> torch.Tensor:
+    """有效 encoder 矩阵行正交正则，兼容 L1/L2/L3 线性链。"""
+    w = composed_1x1_weight(codec.encoder).float()
+    eye = torch.eye(w.shape[0], device=w.device, dtype=w.dtype)
+    return torch.mean((w @ w.t() - eye) ** 2)
 
 
 # ===========================================================================
@@ -412,7 +563,9 @@ def train_loop(
                 x_hat, z_sem, z_cd, snr_used = system(images)
                 loss_img = F.smooth_l1_loss(x_hat, images, beta=0.1)
                 loss_feat = F.mse_loss(z_cd, z_sem)
+                loss_orth = encoder_row_orth_loss(system.codec) if args.lambda_enc_orth > 0 else x_hat.new_tensor(0.0)
                 loss = args.lambda_img * loss_img + args.lambda_feat * loss_feat
+                loss = loss + args.lambda_enc_orth * loss_orth
 
             optimizer.zero_grad(set_to_none=True)
             if scaler.is_enabled():
@@ -444,6 +597,7 @@ def train_loop(
                 print(
                     f"  [{epoch+1}/{args.epochs}][{i+1}/{len(train_loader)}]  "
                     f"loss={loss_meter.avg:.4f}  PSNR={psnr_meter.avg:.2f}dB  "
+                    f"orth={float(loss_orth.detach().item()):.3e}  "
                     f"snr_used~[{snr_used.min().item():.1f},{snr_used.max().item():.1f}]  "
                     f"LR={lr_now:.2e}  step={global_step}  "
                     f"{it_s:.2f}s/it  ETA={eta:.0f}s"
@@ -497,6 +651,9 @@ def save_codec_pair(
         out_channels=codec.out_channels,
         linear_depth=codec.linear_depth,
         linear_hidden_channels=codec.hidden_channels,
+        codec_init=args.codec_init,
+        lambda_enc_orth=args.lambda_enc_orth,
+        cov_max_batches=args.cov_max_batches,
         mode="trained",
         dataset=args.dataset,
         compression_ratio=codec.out_channels / codec.in_channels,
@@ -533,6 +690,8 @@ def main() -> None:
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
         torch.set_float32_matmul_precision("high")
+    amp_enabled = args.amp_dtype != "none"
+    amp_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16}.get(args.amp_dtype, torch.bfloat16)
 
     print("=" * 80)
     print(f"  mode               : channel-aware trained")
@@ -548,6 +707,9 @@ def main() -> None:
     print(f"  out_channels       : {args.out_channels}  (CBR={args.out_channels/16:.3f})")
     print(f"  linear_depth       : {args.linear_depth}")
     print(f"  linear_hidden_ch   : {args.linear_hidden_channels}")
+    print(f"  codec_init         : {args.codec_init}")
+    print(f"  lambda_enc_orth    : {args.lambda_enc_orth}")
+    print(f"  cov_max_batches    : {args.cov_max_batches}")
     print(f"  save_dir           : {args.save_dir}")
     print("=" * 80)
 
@@ -591,6 +753,10 @@ def main() -> None:
     sc_enc.eval()
     sc_dec.eval()
 
+    train_loader, val_loader = build_dataloaders(args)
+    print(f"  train batches/epoch: {len(train_loader)}")
+    print(f"  val   batches/epoch: {len(val_loader)}")
+
     in_c = int(sc.embed_dim)
     out_c = int(args.out_channels)
     codec = LinearChannelCodec(
@@ -599,9 +765,26 @@ def main() -> None:
         linear_depth=args.linear_depth,
         hidden_channels=args.linear_hidden_channels,
     ).to(device)
-    init_random_random(codec)
+    cov = None
+    if args.codec_init in ("lmmse", "pca_lmmse"):
+        print("  estimating semantic latent covariance for LMMSE/PCA init ...")
+        cov = estimate_semantic_covariance(
+            sc_enc=sc_enc,
+            train_loader=train_loader,
+            device=device,
+            amp_enabled=amp_enabled,
+            amp_dtype=amp_dtype,
+            max_batches=args.cov_max_batches,
+        )
+        print(f"  cov trace={float(torch.trace(cov).item()):.6g}")
+    initialize_codec_for_experiment(
+        codec,
+        init_name=args.codec_init,
+        cov=cov,
+        snr_db=args.train_snr_db,
+    )
     print(
-        f"  codec init: deep-linear friendly, L={args.linear_depth}, "
+        f"  codec: L={args.linear_depth}, "
         f"in={in_c}  hidden={args.linear_hidden_channels}  out={out_c}  CBR={out_c/in_c:.3f}"
     )
 
@@ -613,13 +796,6 @@ def main() -> None:
         snr_high=args.train_snr_db_high,
         fading=args.train_fading,
     ).to(device)
-
-    train_loader, val_loader = build_dataloaders(args)
-    print(f"  train batches/epoch: {len(train_loader)}")
-    print(f"  val   batches/epoch: {len(val_loader)}")
-
-    amp_enabled = args.amp_dtype != "none"
-    amp_dtype = {"bfloat16": torch.bfloat16, "float16": torch.float16}.get(args.amp_dtype, torch.bfloat16)
 
     summary = train_loop(system, train_loader, val_loader, device, args, amp_enabled, amp_dtype)
     print("=" * 80)

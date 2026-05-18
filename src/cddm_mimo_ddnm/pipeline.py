@@ -116,13 +116,84 @@ class SemanticCommSystem(nn.Module):
         # 扩散调度参数（仅 Stage 3 使用）
         # 必须满足 cfg.diffusion.num_train_steps == cfg.unet_uncond.T，
         # 否则 UNetUncond 内 nn.Embedding 的索引范围与 alpha_bars 长度不一致，会越界。
-        num_steps = cfg.diffusion.num_train_steps
-        betas = torch.linspace(cfg.diffusion.beta_start, cfg.diffusion.beta_end, num_steps)
-        alphas = 1.0 - betas
-        alpha_bars = torch.cumprod(alphas, dim=0)
+        betas, alphas, alpha_bars = self._make_diffusion_schedule(cfg.diffusion)
         self.register_buffer("betas", betas)
         self.register_buffer("alphas", alphas)
         self.register_buffer("alpha_bars", alpha_bars)
+
+    @staticmethod
+    def _make_diffusion_schedule(diffusion_cfg) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        num_steps = int(diffusion_cfg.num_train_steps)
+        schedule = getattr(diffusion_cfg, "noise_schedule", "linear")
+        if schedule == "linear":
+            betas = torch.linspace(diffusion_cfg.beta_start, diffusion_cfg.beta_end, num_steps)
+            alphas = 1.0 - betas
+            alpha_bars = torch.cumprod(alphas, dim=0)
+            return betas, alphas, alpha_bars
+        if schedule == "cosine":
+            s = 0.008
+            steps = torch.arange(num_steps + 1, dtype=torch.float32)
+            x = steps / float(num_steps)
+            alpha_bars_all = torch.cos(((x + s) / (1.0 + s)) * torch.pi * 0.5).pow(2)
+            alpha_bars_all = alpha_bars_all / alpha_bars_all[0].clamp(min=1e-12)
+            betas = 1.0 - alpha_bars_all[1:] / alpha_bars_all[:-1].clamp(min=1e-12)
+            betas = betas.clamp(min=1e-8, max=0.999)
+            alphas = 1.0 - betas
+            alpha_bars = torch.cumprod(alphas, dim=0)
+            return betas, alphas, alpha_bars
+        raise ValueError(f"未知 diffusion noise_schedule={schedule!r}")
+
+    def refresh_diffusion_schedule(self) -> None:
+        """按当前 cfg.diffusion 重建 betas/alphas/alpha_bars。"""
+        betas, alphas, alpha_bars = self._make_diffusion_schedule(self.cfg.diffusion)
+        self.betas = betas.to(device=self.betas.device, dtype=self.betas.dtype)
+        self.alphas = alphas.to(device=self.alphas.device, dtype=self.alphas.dtype)
+        self.alpha_bars = alpha_bars.to(device=self.alpha_bars.device, dtype=self.alpha_bars.dtype)
+
+    def _latent_norm_params(
+        self,
+        ref: torch.Tensor,
+        latent_std: float | torch.Tensor | None = None,
+        latent_mean=None,
+        latent_channel_std=None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """返回可广播到 ref 的 latent mean/std；支持旧 scalar 与逐通道 whitening。"""
+        device = ref.device
+        dtype = ref.dtype
+        channels = ref.shape[1]
+        if latent_channel_std is None:
+            latent_channel_std = getattr(self.cfg.diffusion, "latent_std_channels", None)
+        if latent_mean is None:
+            latent_mean = getattr(self.cfg.diffusion, "latent_mean", None)
+
+        if latent_channel_std is not None:
+            std = torch.as_tensor(latent_channel_std, device=device, dtype=dtype).view(-1)
+            if std.numel() != channels:
+                raise ValueError(
+                    f"latent_channel_std 长度 {std.numel()} 与 latent 通道数 {channels} 不一致。"
+                )
+            if latent_mean is None:
+                mean = torch.zeros_like(std)
+            else:
+                mean = torch.as_tensor(latent_mean, device=device, dtype=dtype).view(-1)
+                if mean.numel() != channels:
+                    raise ValueError(
+                        f"latent_mean 长度 {mean.numel()} 与 latent 通道数 {channels} 不一致。"
+                    )
+            return mean.view(1, channels, 1, 1), std.clamp_min(1e-8).view(1, channels, 1, 1)
+
+        std_value = self.cfg.diffusion.latent_std if latent_std is None else latent_std
+        std = torch.as_tensor(float(std_value), device=device, dtype=dtype).view(1, 1, 1, 1)
+        mean = torch.zeros(1, 1, 1, 1, device=device, dtype=dtype)
+        return mean, std.clamp_min(1e-8)
+
+    def _normalize_latent(self, z: torch.Tensor) -> torch.Tensor:
+        mean, std = self._latent_norm_params(z)
+        return (z - mean) / std
+
+    def _denormalize_latent(self, z_norm: torch.Tensor) -> torch.Tensor:
+        mean, std = self._latent_norm_params(z_norm)
+        return z_norm * std + mean
 
     # ------------------------------------------------------------------
     # 阶段控制：冻结/解冻参数
@@ -225,7 +296,7 @@ class SemanticCommSystem(nn.Module):
 
     def diffusion_loss(self, x: torch.Tensor) -> torch.Tensor:
         """Stage 3：在冻结语义潜空间上训练无条件 ε 预测（U-Net 不见 z_cd / 不经信道）。"""
-        z_sem = self.semantic_encoder(x) / float(self.cfg.diffusion.latent_std)
+        z_sem = self._normalize_latent(self.semantic_encoder(x))
         bsz = z_sem.shape[0]
         t_idx = torch.randint(
             0, self.alpha_bars.shape[0], (bsz,), device=x.device, dtype=torch.long
@@ -279,6 +350,8 @@ class SemanticCommSystem(nn.Module):
             beta=beta,
             sigma_y=sigma_y,
             latent_std=float(self.cfg.diffusion.latent_std),
+            latent_mean=getattr(self.cfg.diffusion, "latent_mean", None),
+            latent_channel_std=getattr(self.cfg.diffusion, "latent_std_channels", None),
             num_steps=self.cfg.diffusion.num_sample_steps,
             t_start=self.cfg.diffusion.ddnm_t_start,
             anchor=self.cfg.diffusion.ddnm_anchor,
@@ -350,15 +423,16 @@ class SemanticCommSystem(nn.Module):
         anchor: str = "zcd",
         blend: float = 1.0,
         repeat_per_step: int = 1,
+        latent_mean=None,
+        latent_channel_std=None,
     ) -> torch.Tensor:
         """潜空间 DDNM+（warm-start + 一致性修正 + 锚点融合，归一化空间迭代）。
 
         与 ``_ddnm_sample`` 的区别（也是经实测可严格胜过无-DDNM 基线的关键三点）：
 
-          1. **归一化空间迭代** —— 无条件 U-Net 在 ``z / latent_std`` 空间以 min-SNR-γ 加权
-             训练（见 ``train/train_unet_un.py``）。DDNM 迭代必须在归一化空间进行：
-             先 ``z_cond_norm = z_cond / latent_std``，反向迭代结束后再乘回 ``latent_std``
-             送给语义解码器。
+          1. **归一化空间迭代** —— 无条件 U-Net 在 scalar scaling 或逐通道 whitening 后的
+             latent 空间训练（见 ``train/train_unet_un.py``）。DDNM 迭代必须在相同归一化
+             空间进行，反向迭代结束后再还原到语义解码器使用的原 latent 尺度。
           2. **Warm-start anchor**（``anchor`` 参数） —— 起始 ``z_{t_start}`` 由「锚点估计」
              前向加噪得到：``z = √α̅_{t_start} · u_anchor + √(1-α̅_{t_start}) · ε``。
 
@@ -381,13 +455,15 @@ class SemanticCommSystem(nn.Module):
             「无-DDNM」基线融合做保险。
           - 自适应 ``λ_t``：σ_t ≥ a_t·σ_y_norm 时 λ_t=1.0（充分一致性）；否则
             λ_t = σ_t / (a_t · σ_y_norm)（小 t 时弱化修正，避免放大观测噪声）。
-            ``σ_y_norm = sigma_y / latent_std``。
+            scalar scaling 下 ``σ_y_norm = sigma_y / latent_std``；逐通道 whitening 下使用
+            通道 std 的均值作为该标量启发式的尺度。
 
         Args:
             z_cond:     [B, C, H, W] 信道解码观测（未归一化，按 cfg 的 sem 潜空间尺度）。
             beta:       [B] MIMO MMSE 等效增益均值（AWGN 时恒为 1）。
             sigma_y:    信道符号空间等效噪声 std（``SISOChannel.forward`` 的第二返回值）。
-            latent_std: U-Net 训练时所用的 LDM scaling（一般来自 ``unet_ckpt['latent_std']``）。
+            latent_std: U-Net 训练时所用的旧版 LDM scaling（一般来自 ``unet_ckpt['latent_std']``）。
+            latent_mean/latent_channel_std: 逐通道 whitening metadata；为空时回退到 cfg。
             num_steps:  反向 DDIM 步数（仅作用于 ``[t_start, 0]`` 区间）。
             t_start:    反向起始时间步 ``∈ [0, T-1]``；=0 时直接返回 ``anchor*latent_std``。
             anchor:     ``"zcd"`` / ``"pinv"`` / ``"zero"``，默认 ``"zcd"``。
@@ -395,20 +471,37 @@ class SemanticCommSystem(nn.Module):
             repeat_per_step: 每个 t 重复次数，默认 1（不重复）；推荐 3。
 
         Returns:
-            z_refined:  [B, C, H, W]，**已乘回 latent_std**，可直接送 ``semantic_decoder``。
+            z_refined:  [B, C, H, W]，**已还原到原 latent 尺度**，可直接送 ``semantic_decoder``。
         """
         device = z_cond.device
-        z_cond_norm = z_cond / latent_std
+        mean, std = self._latent_norm_params(
+            z_cond,
+            latent_std=latent_std,
+            latent_mean=latent_mean,
+            latent_channel_std=latent_channel_std,
+        )
+        z_cond_norm = (z_cond - mean) / std
         b, c, h, w = z_cond_norm.shape
 
         a0 = self._semantic_linear_chain_matrix().to(device=device, dtype=z_cond_norm.dtype)
         a_lin = beta.to(device=device, dtype=a0.dtype).clamp(min=1e-6).view(b, 1, 1) * a0.unsqueeze(0)
-        a_pinv = torch.linalg.pinv(a_lin)
+        std_vec = std.view(-1).to(device=device, dtype=a0.dtype)
+        mean_vec = mean.view(-1).to(device=device, dtype=a0.dtype)
+        if std_vec.numel() == 1:
+            std_vec = std_vec.expand(c)
+        if mean_vec.numel() == 1:
+            mean_vec = mean_vec.expand(c)
+        a_norm = a_lin * std_vec.view(1, 1, c)
+        a_pinv = torch.linalg.pinv(a_norm)
+        offset = torch.bmm(
+            mean_vec.view(1, 1, c).expand(b, 1, c),
+            a_lin.transpose(-2, -1),
+        ).squeeze(1)
 
-        z_cond_flat = z_cond_norm.view(b, c, -1).permute(0, 2, 1).contiguous()
+        z_cond_flat = z_cond.view(b, c, -1).permute(0, 2, 1).contiguous()
 
         if anchor == "pinv":
-            u_anchor_flat = torch.bmm(z_cond_flat, a_pinv.transpose(-2, -1))
+            u_anchor_flat = torch.bmm((z_cond_flat - offset[:, None, :]), a_pinv.transpose(-2, -1))
             u_anchor = u_anchor_flat.permute(0, 2, 1).reshape(b, c, h, w)
         elif anchor == "zcd":
             u_anchor = z_cond_norm
@@ -429,7 +522,7 @@ class SemanticCommSystem(nn.Module):
             z = ab_t0.sqrt() * u_anchor + (1.0 - ab_t0).sqrt() * eps_init
 
             step_indices = torch.linspace(t_start, 0, num_steps, device=device).long()
-            sigma_y_norm = float(sigma_y) / max(float(latent_std), 1e-8)
+            sigma_y_norm = float(sigma_y) / max(float(std_vec.mean().item()), 1e-8)
 
             for i, idx in enumerate(step_indices):
                 alpha_bar = alpha_bars[idx]
@@ -452,9 +545,9 @@ class SemanticCommSystem(nn.Module):
                     z0_pred = (z - torch.sqrt(1.0 - alpha_bar) * eps_pred) / torch.sqrt(alpha_bar + 1e-8)
 
                     u_flat = z0_pred.view(b, c, -1).permute(0, 2, 1).contiguous()
-                    u_flat = self._linear_ddnm_correct_batch(
-                        u_flat, z_cond_flat, beta.to(device=device, dtype=z.dtype), a0, lambda_t
-                    )
+                    pred = torch.bmm(u_flat, a_norm.transpose(-2, -1)) + offset[:, None, :]
+                    resid = z_cond_flat - pred
+                    u_flat = u_flat + float(lambda_t) * torch.bmm(resid, a_pinv.transpose(-2, -1))
                     z0_corr = u_flat.permute(0, 2, 1).reshape(b, c, h, w)
 
                     z = torch.sqrt(alpha_bar_prev) * z0_corr + torch.sqrt(1.0 - alpha_bar_prev) * eps_pred
@@ -468,7 +561,7 @@ class SemanticCommSystem(nn.Module):
         if blend < 1.0:
             z_final_norm = float(blend) * z_final_norm + (1.0 - float(blend)) * z_cond_norm
 
-        return z_final_norm * latent_std
+        return z_final_norm * std + mean
 
     @torch.no_grad()
     def _ddim_sample_unconditional(
@@ -521,5 +614,5 @@ class SemanticCommSystem(nn.Module):
         z = self._ddim_sample_unconditional(
             batch_size, (c, h, w), num_steps=num_steps, device=device
         )
-        z = z * float(self.cfg.diffusion.latent_std)
+        z = self._denormalize_latent(z)
         return self.semantic_decoder(z).clamp(0, 1)

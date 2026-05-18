@@ -7,8 +7,8 @@
 设计要点（针对 `pipeline.py` / `loss.py` 的不合理之处）：
   1) 强制 `semantic_encoder.eval()` + `sample=False`：用 mu 作为 z_0，避免 VAE 抽样
      与 dropout/norm 的训练态噪声污染扩散目标分布。
-  2) Latent 标准化：训练前 dry-run 估计 latent 全局 std（参考 LDM 的 scaling factor），
-     使 z_0 → z_0/std 后近似单位方差，匹配 DDPM 线性 β 调度的 SNR 假设。
+  2) Latent 标准化：支持全局 std scaling factor（旧 baseline）与逐通道 whitening。
+     逐通道模式使用 z_norm=(z-mean_c)/std_c，解码前再还原到原 latent 尺度。
   3) Loss：默认 ε-prediction MSE；可选 `--min_snr_gamma` 启用 min-SNR-γ 加权
      （Hang et al. 2023），平衡不同 t 的梯度贡献，加快收敛。
   4) EMA：扩散模型采样质量对 EMA 极敏感，默认 decay=0.9999。
@@ -110,10 +110,22 @@ def parse_args() -> argparse.Namespace:
     # 扩散损失
     p.add_argument("--min_snr_gamma", type=float, default=5.0,
                    help=">0 时启用 min-SNR-γ 加权噪声损失；<=0 退回普通 MSE。")
+    p.add_argument("--noise_schedule", type=str, default=None,
+                   choices=["linear", "cosine"],
+                   help="扩散 beta/alpha_bar 调度；默认沿用 config（当前为 linear）。")
+    p.add_argument("--latent_norm", type=str, default="global",
+                   choices=["global", "channel", "none"],
+                   help="latent 标准化方式：global=旧版 z/std；channel=逐通道 whitening；none=不标准化。")
     p.add_argument("--latent_std", type=float, default=0.0,
-                   help=">0 时直接使用该值作为 latent 标准化系数；=0 则在训练前 dry-run 估计。")
+                   help="latent_norm=global 时，>0 直接使用该全局 std；=0 训练前 dry-run 估计。")
+    p.add_argument("--latent_channel_mean", type=str, default=None,
+                   help="latent_norm=channel 时可手动传 16 个逗号分隔 mean；为空则 dry-run 估计。")
+    p.add_argument("--latent_channel_std", type=str, default=None,
+                   help="latent_norm=channel 时可手动传 16 个逗号分隔 std；为空则 dry-run 估计。")
     p.add_argument("--latent_std_batches", type=int, default=20,
-                   help="dry-run 估计 latent_std 用的 batch 数。")
+                   help="dry-run 估计 latent 统计用的 batch 数；<=0 表示扫完整训练集。")
+    p.add_argument("--unet_attn", type=str, default=None,
+                   help="可选：覆盖 cfg.unet_uncond.attn，例如 '0,1,2'。")
 
     # EMA
     p.add_argument("--ema_decay", type=float, default=0.9999)
@@ -127,12 +139,14 @@ def parse_args() -> argparse.Namespace:
                    help=">0 时每隔 N 个 optimizer step 也评估（额外开销）；0 表示仅用 eval_every_epochs。")
     p.add_argument("--eval_max_batches", type=int, default=20,
                    help="每次评估用 val_loader 的前 N 个 batch；DIV2K val=100 张可覆盖全集。")
-    p.add_argument("--eval_recon_t_starts", type=str, default="500",
-                   help="逗号分隔的反向 DDIM 起点 t（步索引），用于评估 decoded_psnr。")
     p.add_argument("--eval_recon_steps", type=int, default=50,
                    help="评估时反向 DDIM 步数。")
-    p.add_argument("--eval_z0_t_list", type=str, default="250,500,750",
+    p.add_argument("--eval_eps_t_list", type=str, default="0,100,500,999",
+                   help="逗号分隔的固定 t，用于记录 eps_mse@t。")
+    p.add_argument("--eval_z0_t_list", type=str, default="100,500",
                    help="评估单步 z0 估计 PSNR 用的时间步索引。")
+    p.add_argument("--eval_recon_t_starts", type=str, default="100,500",
+                   help="逗号分隔的反向 DDIM 起点 t（步索引），用于评估 decoded_psnr。")
 
     # I/O
     p.add_argument("--num_workers", type=int, default=8)
@@ -187,6 +201,24 @@ def seed_everything(seed: int) -> None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
+
+
+def parse_csv_ints(text: str | None, name: str = "list") -> list[int]:
+    if not text:
+        return []
+    vals = [int(x.strip()) for x in text.split(",") if x.strip()]
+    if not vals:
+        raise ValueError(f"{name} 不能为空。")
+    return vals
+
+
+def parse_csv_floats(text: str | None, name: str = "list") -> list[float]:
+    if not text:
+        return []
+    vals = [float(x.strip()) for x in text.split(",") if x.strip()]
+    if not vals:
+        raise ValueError(f"{name} 不能为空。")
+    return vals
 
 
 def build_config(dataset: str) -> SystemConfig:
@@ -249,6 +281,83 @@ def encode_latent(system: SemanticCommSystem, x: torch.Tensor) -> torch.Tensor:
     return z
 
 
+class LatentNormalizer:
+    """训练/评估共用的 latent 归一化器，兼容旧版 scalar std 与逐通道 whitening。"""
+
+    def __init__(self, mode: str, mean: torch.Tensor | float, std: torch.Tensor | float):
+        self.mode = mode
+        mean_t = torch.as_tensor(mean, dtype=torch.float32).detach().cpu()
+        std_t = torch.as_tensor(std, dtype=torch.float32).detach().cpu().clamp_min(1e-8)
+        if mean_t.ndim == 1:
+            mean_t = mean_t.view(1, -1, 1, 1)
+        if std_t.ndim == 1:
+            std_t = std_t.view(1, -1, 1, 1)
+        if mean_t.ndim == 0:
+            mean_t = mean_t.view(1, 1, 1, 1)
+        if std_t.ndim == 0:
+            std_t = std_t.view(1, 1, 1, 1)
+        self.mean = mean_t
+        self.std = std_t
+
+    def normalize(self, z: torch.Tensor) -> torch.Tensor:
+        mean = self.mean.to(device=z.device, dtype=z.dtype)
+        std = self.std.to(device=z.device, dtype=z.dtype)
+        return (z - mean) / std
+
+    def denormalize(self, z_norm: torch.Tensor) -> torch.Tensor:
+        mean = self.mean.to(device=z_norm.device, dtype=z_norm.dtype)
+        std = self.std.to(device=z_norm.device, dtype=z_norm.dtype)
+        return z_norm * std + mean
+
+    def legacy_latent_std(self) -> float:
+        return float(self.std.float().mean().item())
+
+    def state_dict(self) -> dict:
+        return {
+            "mode": self.mode,
+            "mean": self.mean.clone(),
+            "std": self.std.clone(),
+        }
+
+    @classmethod
+    def from_checkpoint(cls, ckpt: dict, fallback: "LatentNormalizer") -> "LatentNormalizer":
+        norm = ckpt.get("latent_norm")
+        if isinstance(norm, dict) and "std" in norm:
+            return cls(
+                str(norm.get("mode", "global")),
+                norm.get("mean", 0.0),
+                norm["std"],
+            )
+        if ckpt.get("latent_channel_std") is not None:
+            return cls(
+                "channel",
+                ckpt.get("latent_channel_mean", 0.0),
+                ckpt["latent_channel_std"],
+            )
+        if float(ckpt.get("latent_std", 0.0)) > 0:
+            return cls("global", 0.0, float(ckpt["latent_std"]))
+        return fallback
+
+    def channel_mean_list(self) -> list[float] | None:
+        if self.mean.numel() <= 1:
+            return None
+        return [float(x) for x in self.mean.view(-1).tolist()]
+
+    def channel_std_list(self) -> list[float] | None:
+        if self.std.numel() <= 1:
+            return None
+        return [float(x) for x in self.std.view(-1).tolist()]
+
+    def summary(self) -> str:
+        if self.std.numel() == 1:
+            return f"{self.mode}  mean={float(self.mean.item()):.6f}  std={float(self.std.item()):.6f}"
+        return (
+            f"{self.mode}  channels={self.std.numel()}  "
+            f"mean_range=[{float(self.mean.min()):.6f},{float(self.mean.max()):.6f}]  "
+            f"std_range=[{float(self.std.min()):.6f},{float(self.std.max()):.6f}]"
+        )
+
+
 @torch.no_grad()
 def estimate_latent_std(system: SemanticCommSystem,
                         loader: DataLoader,
@@ -259,7 +368,7 @@ def estimate_latent_std(system: SemanticCommSystem,
     sums_sq = 0.0
     n = 0
     for i, batch in enumerate(loader):
-        if i >= max_batches:
+        if max_batches > 0 and i >= max_batches:
             break
         images = batch[0] if isinstance(batch, (tuple, list)) else batch
         images = images.to(device, non_blocking=True)
@@ -272,6 +381,129 @@ def estimate_latent_std(system: SemanticCommSystem,
     mean = sums / n
     var = max(1e-12, sums_sq / n - mean * mean)
     return float(math.sqrt(var))
+
+
+@torch.no_grad()
+def estimate_latent_channel_stats(system: SemanticCommSystem,
+                                  loader: DataLoader,
+                                  device: torch.device,
+                                  max_batches: int = 20) -> dict[str, torch.Tensor | int]:
+    """估计每个 latent 通道的 mean/var/std/min/max。"""
+    sums = None
+    sums_sq = None
+    mins = None
+    maxs = None
+    n = 0
+    batches = 0
+    for i, batch in enumerate(loader):
+        if max_batches > 0 and i >= max_batches:
+            break
+        images = batch[0] if isinstance(batch, (tuple, list)) else batch
+        images = images.to(device, non_blocking=True)
+        z = encode_latent(system, images).float()
+        z64 = z.double()
+        reduce_dims = (0, 2, 3)
+        if sums is None:
+            c = z.shape[1]
+            sums = torch.zeros(c, dtype=torch.float64)
+            sums_sq = torch.zeros(c, dtype=torch.float64)
+            mins = torch.full((c,), float("inf"), dtype=torch.float64)
+            maxs = torch.full((c,), float("-inf"), dtype=torch.float64)
+        sums += z64.sum(dim=reduce_dims).cpu()
+        sums_sq += (z64 * z64).sum(dim=reduce_dims).cpu()
+        mins = torch.minimum(mins, z64.amin(dim=reduce_dims).cpu())
+        maxs = torch.maximum(maxs, z64.amax(dim=reduce_dims).cpu())
+        n += z.shape[0] * z.shape[2] * z.shape[3]
+        batches += 1
+    if n == 0 or sums is None or sums_sq is None or mins is None or maxs is None:
+        raise RuntimeError("无法估计 latent 通道统计：训练 loader 为空。")
+    mean = sums / float(n)
+    var = (sums_sq / float(n) - mean * mean).clamp_min(1e-12)
+    return {
+        "mean": mean.float(),
+        "var": var.float(),
+        "std": var.sqrt().float(),
+        "min": mins.float(),
+        "max": maxs.float(),
+        "n_per_channel": n,
+        "batches": batches,
+    }
+
+
+def print_latent_channel_stats(stats: dict[str, torch.Tensor | int]) -> None:
+    mean = stats["mean"]
+    var = stats["var"]
+    std = stats["std"]
+    zmin = stats.get("min")
+    zmax = stats.get("max")
+    assert isinstance(mean, torch.Tensor)
+    assert isinstance(var, torch.Tensor)
+    assert isinstance(std, torch.Tensor)
+    print("  latent channel stats:")
+    if isinstance(zmin, torch.Tensor) and isinstance(zmax, torch.Tensor):
+        print("    ch          mean           var           std           min           max")
+        print("  ----  ------------  ------------  ------------  ------------  ------------")
+        for ch in range(mean.numel()):
+            print(
+                f"  {ch:4d}  {float(mean[ch]):12.6f}  {float(var[ch]):12.6f}  "
+                f"{float(std[ch]):12.6f}  {float(zmin[ch]):12.6f}  {float(zmax[ch]):12.6f}"
+            )
+    else:
+        print("    ch          mean           var           std")
+        print("  ----  ------------  ------------  ------------")
+        for ch in range(mean.numel()):
+            print(
+                f"  {ch:4d}  {float(mean[ch]):12.6f}  {float(var[ch]):12.6f}  "
+                f"{float(std[ch]):12.6f}"
+            )
+
+
+def build_latent_normalizer(args: argparse.Namespace,
+                            system: SemanticCommSystem,
+                            loader: DataLoader,
+                            device: torch.device,
+                            channels: int) -> LatentNormalizer:
+    if args.latent_norm == "none":
+        return LatentNormalizer("none", 0.0, 1.0)
+
+    if args.latent_norm == "global":
+        if args.latent_std > 0:
+            return LatentNormalizer("global", 0.0, float(args.latent_std))
+        latent_std = estimate_latent_std(system, loader, device, max_batches=args.latent_std_batches)
+        return LatentNormalizer("global", 0.0, latent_std)
+
+    manual_mean = parse_csv_floats(args.latent_channel_mean, "--latent_channel_mean")
+    manual_std = parse_csv_floats(args.latent_channel_std, "--latent_channel_std")
+    if bool(manual_mean) != bool(manual_std):
+        raise ValueError("--latent_channel_mean 与 --latent_channel_std 必须同时提供，或同时留空。")
+    if manual_mean and manual_std:
+        if len(manual_mean) != channels or len(manual_std) != channels:
+            raise ValueError(
+                f"手动通道统计长度必须等于 latent 通道数 {channels}，"
+                f"收到 mean={len(manual_mean)}, std={len(manual_std)}。"
+            )
+        mean = torch.tensor(manual_mean, dtype=torch.float32)
+        std = torch.tensor(manual_std, dtype=torch.float32)
+        stats = {"mean": mean, "var": std.square(), "std": std}
+        print_latent_channel_stats(stats)
+        return LatentNormalizer("channel", mean, std)
+
+    stats = estimate_latent_channel_stats(system, loader, device, max_batches=args.latent_std_batches)
+    print_latent_channel_stats(stats)
+    mean_t = stats["mean"]
+    std_t = stats["std"]
+    assert isinstance(mean_t, torch.Tensor)
+    assert isinstance(std_t, torch.Tensor)
+    return LatentNormalizer("channel", mean_t, std_t)
+
+
+def apply_latent_normalizer_to_config(cfg: SystemConfig, normalizer: LatentNormalizer) -> None:
+    cfg.diffusion.latent_std = normalizer.legacy_latent_std()
+    if hasattr(cfg.diffusion, "latent_mean"):
+        cfg.diffusion.latent_mean = normalizer.channel_mean_list()
+    if hasattr(cfg.diffusion, "latent_std_channels"):
+        cfg.diffusion.latent_std_channels = normalizer.channel_std_list()
+    cfg.validate()
 
 
 # ===========================================================================
@@ -312,6 +544,10 @@ class EMA:
         self.step_count = sd.get("step_count", 0)
         self.shadow = {k: v.clone() for k, v in sd["shadow"].items()}
 
+    def to(self, device: torch.device) -> "EMA":
+        self.shadow = {k: v.to(device) for k, v in self.shadow.items()}
+        return self
+
     @contextlib.contextmanager
     def swap_in(self, model: nn.Module):
         """临时把 EMA 权重换进 model 用于评估/采样，结束后恢复原权重。"""
@@ -333,7 +569,7 @@ def evaluate(
     val_loader: DataLoader,
     device: torch.device,
     args: argparse.Namespace,
-    latent_std: float,
+    normalizer: LatentNormalizer,
     amp_enabled: bool,
     amp_dtype: torch.dtype,
     have_decoder: bool,
@@ -352,13 +588,21 @@ def evaluate(
     bin_sums = [0.0] * 4
     bin_ns = [0] * 4
 
-    z0_t_list = [int(t.strip()) for t in args.eval_z0_t_list.split(",") if t.strip()]
+    eps_t_list = parse_csv_ints(args.eval_eps_t_list, "--eval_eps_t_list")
+    eps_t_sums = {t: 0.0 for t in eps_t_list}
+    eps_t_ns = {t: 0 for t in eps_t_list}
+
+    z0_t_list = parse_csv_ints(args.eval_z0_t_list, "--eval_z0_t_list")
     z0_psnr_sum = {t: 0.0 for t in z0_t_list}
     z0_psnr_n = 0
 
-    recon_t_starts = [int(t.strip()) for t in args.eval_recon_t_starts.split(",") if t.strip()]
+    recon_t_starts = parse_csv_ints(args.eval_recon_t_starts, "--eval_recon_t_starts")
     decoded_psnr_sum = {t: 0.0 for t in recon_t_starts}
     decoded_psnr_n = 0
+
+    for t in eps_t_list + z0_t_list + recon_t_starts:
+        if t < 0 or t >= T:
+            raise ValueError(f"评估时间步 {t} 超出 [0, {T - 1}]。")
 
     autocast_kw = dict(enabled=amp_enabled, dtype=amp_dtype)
 
@@ -367,7 +611,7 @@ def evaluate(
             break
         images = batch[0] if isinstance(batch, (tuple, list)) else batch
         images = images.to(device, non_blocking=True)
-        z0 = encode_latent(system, images) / latent_std  # 归一化
+        z0 = normalizer.normalize(encode_latent(system, images))
 
         bsz = z0.shape[0]
         # ---- 1) ε MSE（跨 t 平均 + 4 段分位）----
@@ -388,7 +632,19 @@ def evaluate(
                 bin_sums[b] += per_sample_mse[sel].sum().item()
                 bin_ns[b] += int(sel.sum().item())
 
-        # ---- 2) 固定 t 的单步 z0 PSNR（latent 空间）----
+        # ---- 2) 固定 t 的 ε MSE ----
+        for t_fix in eps_t_list:
+            t_idx_fixed = torch.full((bsz,), t_fix, device=device, dtype=torch.long)
+            eps_fixed = torch.randn_like(z0)
+            ab_fixed = alpha_bars[t_idx_fixed].view(-1, 1, 1, 1).to(z0.dtype)
+            z_t_fixed = ab_fixed.sqrt() * z0 + (1 - ab_fixed).sqrt() * eps_fixed
+            with torch.autocast("cuda", **autocast_kw):
+                eps_pred_fixed = system.unet_denoiser(z_t_fixed, t_idx_fixed)
+            per_sample_mse_fixed = ((eps_pred_fixed.float() - eps_fixed.float()) ** 2).mean(dim=(1, 2, 3))
+            eps_t_sums[t_fix] += per_sample_mse_fixed.sum().item()
+            eps_t_ns[t_fix] += bsz
+
+        # ---- 3) 固定 t 的单步 z0 PSNR（latent 归一化空间）----
         for t_fix in z0_t_list:
             t_idx2 = torch.full((bsz,), t_fix, device=device, dtype=torch.long)
             eps2 = torch.randn_like(z0)
@@ -402,7 +658,7 @@ def evaluate(
             z0_psnr_sum[t_fix] += psnr * bsz
         z0_psnr_n += bsz
 
-        # ---- 3) 反向 DDIM 到 0 后 decode → decoded_psnr ----
+        # ---- 4) 反向 DDIM 到 0 后 decode → decoded_psnr ----
         if have_decoder:
             for t_start in recon_t_starts:
                 eps3 = torch.randn_like(z0)
@@ -423,7 +679,7 @@ def evaluate(
                     z0_pred = (z - (1 - a).sqrt() * eps_p) / a.sqrt().clamp(min=1e-8)
                     z = a_prev.sqrt() * z0_pred + (1 - a_prev).sqrt() * eps_p
                 # 反归一化后解码
-                z_decode = z * latent_std
+                z_decode = normalizer.denormalize(z)
                 with torch.autocast("cuda", **autocast_kw):
                     x_hat = system.semantic_decoder(z_decode).float().clamp(0, 1)
                 mse = F.mse_loss(x_hat, images.float()).item()
@@ -436,6 +692,8 @@ def evaluate(
     }
     for b in range(4):
         out[f"val_eps_mse_t_q{b}"] = bin_sums[b] / max(1, bin_ns[b])
+    for t_fix in eps_t_list:
+        out[f"eps_mse@t={t_fix}"] = eps_t_sums[t_fix] / max(1, eps_t_ns[t_fix])
     for t_fix in z0_t_list:
         out[f"z0_psnr@t={t_fix}"] = z0_psnr_sum[t_fix] / max(1, z0_psnr_n)
     if have_decoder:
@@ -469,12 +727,19 @@ def main():
     print("=" * 80)
 
     cfg = build_config(args.dataset)
+    if args.noise_schedule is not None:
+        cfg.diffusion.noise_schedule = args.noise_schedule
+    if args.unet_attn is not None:
+        cfg.unet_uncond.attn = tuple(parse_csv_ints(args.unet_attn, "--unet_attn"))
     print(f"  semantic.embed_dim    = {cfg.semantic.embed_dim}")
     print(f"  unet_uncond.input_ch  = {cfg.unet_uncond.input_channel}")
     print(f"  unet_uncond.ch        = {cfg.unet_uncond.ch}")
     print(f"  unet_uncond.ch_mult   = {cfg.unet_uncond.ch_mult}")
     print(f"  unet_uncond.attn      = {cfg.unet_uncond.attn}")
     print(f"  diffusion.num_train_steps = {cfg.diffusion.num_train_steps}")
+    print(f"  diffusion.noise_schedule  = {cfg.diffusion.noise_schedule}")
+    print(f"  latent_norm           = {args.latent_norm}")
+    print(f"  min_snr_gamma         = {args.min_snr_gamma}")
     if cfg.unet_uncond.input_channel != cfg.semantic.embed_dim:
         raise ValueError(
             f"unet_uncond.input_channel({cfg.unet_uncond.input_channel}) "
@@ -499,14 +764,14 @@ def main():
     print(f"  train batches/epoch   : {len(train_loader)}")
     print(f"  val   batches/epoch   : {len(val_loader)}")
 
-    # ---- 估计 latent_std（LDM scaling factor）----
-    if args.latent_std > 0:
-        latent_std = float(args.latent_std)
-        print(f"  latent_std (manual)   : {latent_std:.6f}")
-    else:
-        t0 = time.time()
-        latent_std = estimate_latent_std(system, train_loader, device, max_batches=args.latent_std_batches)
-        print(f"  latent_std (dry-run)  : {latent_std:.6f}  (used {args.latent_std_batches} batches, {time.time()-t0:.1f}s)")
+    # ---- 估计/装配 latent 标准化 ----
+    t0 = time.time()
+    normalizer = build_latent_normalizer(
+        args, system, train_loader, device, channels=cfg.semantic.embed_dim,
+    )
+    apply_latent_normalizer_to_config(cfg, normalizer)
+    used_batches = "all" if args.latent_std_batches <= 0 else str(args.latent_std_batches)
+    print(f"  latent_normalizer     : {normalizer.summary()}  (stat_batches={used_batches}, {time.time()-t0:.1f}s)")
 
     # ---- 优化器 / 调度器 ----
     optimizer = optim.AdamW(
@@ -545,16 +810,18 @@ def main():
         system.unet_denoiser.load_state_dict(ckpt["unet_state_dict"])
         if "ema_state_dict" in ckpt:
             ema.load_state_dict(ckpt["ema_state_dict"])
+            ema.to(device)
         if "optimizer_state_dict" in ckpt:
             optimizer.load_state_dict(ckpt["optimizer_state_dict"])
         if "scheduler_state_dict" in ckpt:
             scheduler.load_state_dict(ckpt["scheduler_state_dict"])
         start_epoch = int(ckpt.get("epoch", 0))
         global_step = int(ckpt.get("global_step", 0))
-        latent_std = float(ckpt.get("latent_std", latent_std))
+        normalizer = LatentNormalizer.from_checkpoint(ckpt, fallback=normalizer)
+        apply_latent_normalizer_to_config(cfg, normalizer)
         best_metric = float(ckpt.get("best_val_eps_mse", float("inf")))
         print(f"  resumed from {args.resume}  epoch={start_epoch}  step={global_step}  "
-              f"latent_std={latent_std:.6f}  best_val_eps_mse={best_metric:.6f}")
+              f"latent_normalizer={normalizer.summary()}  best_val_eps_mse={best_metric:.6f}")
 
     os.makedirs(args.save_dir, exist_ok=True)
     base_tag = f"unet_un_{args.dataset}_c{cfg.semantic.embed_dim}"
@@ -582,7 +849,7 @@ def main():
         for i, batch in enumerate(train_loader):
             images = batch[0] if isinstance(batch, (tuple, list)) else batch
             images = images.to(device, non_blocking=True)
-            z0 = encode_latent(system, images) / latent_std
+            z0 = normalizer.normalize(encode_latent(system, images))
 
             bsz = z0.shape[0]
             t_idx = torch.randint(0, T, (bsz,), device=device, dtype=torch.long)
@@ -626,7 +893,7 @@ def main():
                 # 中途评估
                 if args.eval_every_steps > 0 and global_step % args.eval_every_steps == 0:
                     with ema.swap_in(system.unet_denoiser):
-                        m = evaluate(system, val_loader, device, args, latent_std,
+                        m = evaluate(system, val_loader, device, args, normalizer,
                                      amp_enabled, amp_dtype, have_decoder)
                     print(f"  [eval@step {global_step}] " + "  ".join(f"{k}={v:.4f}" for k, v in m.items()))
                     monitor = m["val_eps_mse"]
@@ -635,7 +902,7 @@ def main():
                         torch.save(
                             _pack_ckpt(
                                 system, ema, optimizer, scheduler, args, cfg,
-                                latent_std, epoch, global_step, m,
+                                normalizer, epoch, global_step, m,
                                 best_val_eps_mse=best_metric,
                             ),
                             best_path,
@@ -664,7 +931,7 @@ def main():
             system.unet_denoiser.eval()
             with ema.swap_in(system.unet_denoiser):
                 m = evaluate(
-                    system, val_loader, device, args, latent_std,
+                    system, val_loader, device, args, normalizer,
                     amp_enabled, amp_dtype, have_decoder,
                 )
             print(
@@ -677,7 +944,7 @@ def main():
                 torch.save(
                     _pack_ckpt(
                         system, ema, optimizer, scheduler, args, cfg,
-                        latent_std, nepoch, global_step, m,
+                        normalizer, nepoch, global_step, m,
                         best_val_eps_mse=best_metric,
                     ),
                     best_path,
@@ -688,7 +955,7 @@ def main():
 
 
 def _pack_ckpt(system, ema, optimizer, scheduler, args, cfg,
-               latent_std, epoch, global_step, metrics,
+               normalizer: LatentNormalizer, epoch, global_step, metrics,
                best_val_eps_mse: float | None = None):
     out = {
         "unet_state_dict": system.unet_denoiser.state_dict(),
@@ -697,7 +964,10 @@ def _pack_ckpt(system, ema, optimizer, scheduler, args, cfg,
         "scheduler_state_dict": scheduler.state_dict(),
         "epoch": epoch,
         "global_step": global_step,
-        "latent_std": latent_std,
+        "latent_std": normalizer.legacy_latent_std(),
+        "latent_norm": normalizer.state_dict(),
+        "latent_channel_mean": normalizer.channel_mean_list(),
+        "latent_channel_std": normalizer.channel_std_list(),
         "args": vars(args),
         "cfg_unet_uncond": vars(cfg.unet_uncond) if hasattr(cfg.unet_uncond, "__dict__") else None,
         "cfg_diffusion": vars(cfg.diffusion) if hasattr(cfg.diffusion, "__dict__") else None,
