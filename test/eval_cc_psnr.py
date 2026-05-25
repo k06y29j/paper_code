@@ -253,7 +253,7 @@ def main() -> None:
     p.add_argument(
         "--cc-root",
         type=str,
-        default=os.path.join(PROJECT_ROOT, "checkpoints-val", "cc"),
+        default=os.path.join(PROJECT_ROOT, "checkpoints-val-v1", "route_a/cc_dct_c4"),
         help="信道权重根目录（其下含 model1/ model2/ model3/）",
     )
     p.add_argument(

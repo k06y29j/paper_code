@@ -319,6 +319,10 @@ class SemanticCommSystem(nn.Module):
         w_dec = composed_1x1_weight(self.channel_decoder.net)
         return w_dec @ w_enc
 
+    def _channel_encoder_matrix(self) -> torch.Tensor:
+        """H0 = W_enc，形状 [C_ch, C_sem]；Route-A 中即固定半正交矩阵 A。"""
+        return composed_1x1_weight(self.channel_encoder.net)
+
     @staticmethod
     def _linear_ddnm_correct_batch(
         u_flat: torch.Tensor,
@@ -616,3 +620,113 @@ class SemanticCommSystem(nn.Module):
         )
         z = self._denormalize_latent(z)
         return self.semantic_decoder(z).clamp(0, 1)
+    
+    @torch.no_grad()
+    def route_a_wiener_sample_normalized(
+        self,
+        z_anchor: torch.Tensor,
+        z_rx: torch.Tensor,
+        beta: torch.Tensor,
+        sigma_y: float,
+        latent_std: float,
+        num_steps: int,
+        t_start: int,
+        blend: float = 1.0,
+        latent_mean=None,
+        latent_channel_std=None,
+        keep_null_space: float = 1.0,
+        final_wiener: float = 1.0,
+    ) -> torch.Tensor:
+        
+        device = z_anchor.device
+        mean, std = self._latent_norm_params(
+            z_anchor, latent_std=latent_std, latent_mean=latent_mean, latent_channel_std=latent_channel_std,
+        )
+        z_anchor_norm = (z_anchor - mean) / std
+        b, c, h, w = z_anchor_norm.shape
+
+        a = self._channel_encoder_matrix().to(device=device, dtype=z_anchor_norm.dtype)
+        out_c = a.shape[0]
+
+        if t_start <= 0:
+            z_final_norm = z_anchor_norm
+        else:
+            alpha_bars = self.alpha_bars.to(device=device, dtype=z_anchor_norm.dtype)
+            n_total = int(alpha_bars.shape[0])
+            t_start = max(0, min(int(t_start), n_total - 1))
+
+            alpha_bar_start = alpha_bars[t_start]
+            # [修正]: SDEdit 局部加噪初始化
+            z = (
+                torch.sqrt(alpha_bar_start) * z_anchor_norm
+                + torch.sqrt(1.0 - alpha_bar_start) * torch.randn_like(z_anchor_norm)
+            )
+            step_indices = torch.linspace(t_start, 0, num_steps, device=device).long()
+
+            std_vec = std.view(-1).to(device=device, dtype=a.dtype)
+            if std_vec.numel() == 1:
+                std_vec = std_vec.expand(c)
+            a_row_var = (a.pow(2) @ std_vec.pow(2)).clamp_min(1e-12).view(1, out_c, 1, 1)
+
+            beta_safe = beta.to(device=device, dtype=z_rx.dtype).view(b, 1, 1, 1).clamp_min(1e-6)
+            y_eff = z_rx.to(device=device, dtype=z_anchor_norm.dtype) / beta_safe.to(dtype=z_anchor_norm.dtype)
+            sigma_channel2 = (float(sigma_y) ** 2) / beta_safe.to(dtype=z_anchor_norm.dtype).pow(2)
+            sigma_channel2 = sigma_channel2.clamp_min(1e-12)
+
+            for i, idx in enumerate(step_indices):
+                alpha_bar = alpha_bars[idx]
+                sigma_t2 = (1.0 - alpha_bar).clamp_min(0.0)
+                alpha_bar_prev = (
+                    alpha_bars[step_indices[i + 1]]
+                    if i + 1 < len(step_indices)
+                    else torch.tensor(1.0, device=device, dtype=z_anchor_norm.dtype)
+                )
+
+                t_emb = torch.full((b,), int(idx.item()), device=device, dtype=torch.long)
+                eps_pred = self.unet_denoiser(z, t_emb)
+                z0_norm = (z - torch.sqrt(1.0 - alpha_bar) * eps_pred) / torch.sqrt(alpha_bar + 1e-8)
+                z0 = z0_norm * std + mean
+
+                az0 = torch.einsum("oc,bchw->bohw", a, z0)
+                null_part = z0 - torch.einsum("oc,bohw->bchw", a, az0)
+
+                sigma_t_channel2 = (sigma_t2 * a_row_var).to(dtype=z0.dtype)
+                w_y = sigma_t_channel2 / (sigma_t_channel2 + sigma_channel2.to(dtype=z0.dtype))
+                subspace_obs = w_y * y_eff.to(dtype=z0.dtype) + (1.0 - w_y) * az0
+                low_part = torch.einsum("oc,bohw->bchw", a, subspace_obs)
+
+                z_corr = null_part + low_part
+                z0_norm_corr = (z_corr - mean) / std
+                z = (
+                    torch.sqrt(alpha_bar_prev) * z0_norm_corr
+                    + torch.sqrt(1.0 - alpha_bar_prev) * eps_pred
+                )
+
+            z_final_norm = z
+
+        z_final_physical = z_final_norm * std + mean
+
+        az_final = torch.einsum("oc,bchw->bohw", a, z_final_physical)
+        low_part_final = torch.einsum("oc,bohw->bchw", a, az_final)
+        null_part_final = z_final_physical - low_part_final
+
+        final_wiener = max(0.0, min(float(final_wiener), 1.0))
+        if t_start > 0 and final_wiener > 0.0:
+            w_static = a_row_var / (a_row_var + sigma_channel2.to(dtype=a.dtype))
+            optimal_subspace = w_static * y_eff.to(dtype=a.dtype) + (1.0 - w_static) * az_final
+            wiener_low_part = torch.einsum("oc,bohw->bchw", a, optimal_subspace)
+            optimal_low_part = (
+                final_wiener * wiener_low_part
+                + (1.0 - final_wiener) * low_part_final
+            )
+        else:
+            optimal_low_part = low_part_final
+
+        keep_null_space = float(keep_null_space)
+        z_final_physical = optimal_low_part + keep_null_space * null_part_final
+
+        if blend < 1.0:
+            z_anchor_physical = z_anchor_norm * std + mean
+            z_final_physical = float(blend) * z_final_physical + (1.0 - float(blend)) * z_anchor_physical
+
+        return z_final_physical

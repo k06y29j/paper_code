@@ -1,0 +1,1690 @@
+
+=== Route A SC session @ 2026-05-20 11:54:31 ===
+Log file: /workspace/yongjia/paper_code/log-v2/route_a/sc_dct_c4_awgn12.txt
+  [semantic_encoder] loaded init: checkpoints-val-v1/route_a/sc_dct_c4/sc_encoder_div2k_c16.pth
+  [semantic_decoder] loaded init: checkpoints-val-v1/route_a/sc_dct_c4/sc_decoder_div2k_c16.pth
+================================================================================
+Route A Stage 2: fixed orthogonal DCT A + dual-branch Swin-VAE
+  dataset        : div2k
+  data_dir       : /workspace/yongjia/datasets/DIV2K
+  device         : cuda
+  gpu            : NVIDIA GeForce RTX 4090 D
+  latent C       : 16
+  A shape        : 4 x 16
+  A init         : dct
+  A orth error   : 4.843e-08
+  channel_noise  : awgn
+  train/test SNR : 12 dB
+  lambdas        : sub=1, reg=0.001, kl_max=1e-06
+  KL anneal      : 50 epochs
+  blur           : kernel=15, sigma=3
+  batches        : train=50, val=7
+  save_dir       : checkpoints-val-v2/route_a/sc_dct_c4_awgn12
+================================================================================
+
+--- Epoch 1/400 ---
+  [1/400][50/50] loss=0.00645 full=0.00306 sub=0.00338 reg=0.01329 kl=6.17207*2.00e-08 noise_std=2.385e-01 psnr_full=28.85 psnr_sub=25.42 lr=1.02e-05 0.54s/it
+  train: loss=0.00645 full=0.00306 sub=0.00338 reg=0.01329 psnr_full=28.852dB psnr_sub=25.417dB
+
+--- Epoch 2/400 ---
+  [2/400][50/50] loss=0.00488 full=0.00310 sub=0.00175 reg=0.02197 kl=6.07826*4.00e-08 noise_std=2.168e-01 psnr_full=28.67 psnr_sub=28.28 lr=2.02e-05 0.50s/it
+  train: loss=0.00488 full=0.00310 sub=0.00175 reg=0.02197 psnr_full=28.671dB psnr_sub=28.279dB
+
+--- Epoch 3/400 ---
+  [3/400][50/50] loss=0.00472 full=0.00313 sub=0.00156 reg=0.02362 kl=6.01603*6.00e-08 noise_std=2.084e-01 psnr_full=28.66 psnr_sub=28.88 lr=3.02e-05 0.50s/it
+  train: loss=0.00472 full=0.00313 sub=0.00156 reg=0.02362 psnr_full=28.658dB psnr_sub=28.883dB
+
+--- Epoch 4/400 ---
+  [4/400][50/50] loss=0.00468 full=0.00316 sub=0.00149 reg=0.02455 kl=5.96435*8.00e-08 noise_std=2.048e-01 psnr_full=28.29 psnr_sub=29.13 lr=4.02e-05 0.50s/it
+  train: loss=0.00468 full=0.00316 sub=0.00149 reg=0.02455 psnr_full=28.291dB psnr_sub=29.130dB
+
+--- Epoch 5/400 ---
+  [5/400][50/50] loss=0.00490 full=0.00330 sub=0.00158 reg=0.02618 kl=5.92381*1.00e-07 noise_std=2.106e-01 psnr_full=27.51 psnr_sub=28.89 lr=5.02e-05 0.50s/it
+  train: loss=0.00490 full=0.00330 sub=0.00158 reg=0.02618 psnr_full=27.512dB psnr_sub=28.893dB
+
+--- Epoch 6/400 ---
+  [6/400][50/50] loss=0.00469 full=0.00322 sub=0.00145 reg=0.02596 kl=5.89346*1.20e-07 noise_std=2.101e-01 psnr_full=28.01 psnr_sub=29.31 lr=6.02e-05 0.49s/it
+  train: loss=0.00469 full=0.00322 sub=0.00145 reg=0.02596 psnr_full=28.007dB psnr_sub=29.309dB
+
+--- Epoch 7/400 ---
+  [7/400][50/50] loss=0.00475 full=0.00322 sub=0.00150 reg=0.02789 kl=5.89060*1.40e-07 noise_std=2.197e-01 psnr_full=27.74 psnr_sub=29.09 lr=7.02e-05 0.50s/it
+  train: loss=0.00475 full=0.00322 sub=0.00150 reg=0.02789 psnr_full=27.741dB psnr_sub=29.088dB
+
+--- Epoch 8/400 ---
+  [8/400][50/50] loss=0.00484 full=0.00330 sub=0.00151 reg=0.03015 kl=5.86930*1.60e-07 noise_std=2.253e-01 psnr_full=27.51 psnr_sub=29.07 lr=8.02e-05 0.50s/it
+  train: loss=0.00484 full=0.00330 sub=0.00151 reg=0.03015 psnr_full=27.507dB psnr_sub=29.065dB
+
+--- Epoch 9/400 ---
+  [9/400][50/50] loss=0.00500 full=0.00339 sub=0.00158 reg=0.03261 kl=5.87689*1.80e-07 noise_std=2.336e-01 psnr_full=27.31 psnr_sub=28.91 lr=9.02e-05 0.50s/it
+  train: loss=0.00500 full=0.00339 sub=0.00158 reg=0.03261 psnr_full=27.308dB psnr_sub=28.907dB
+
+--- Epoch 10/400 ---
+  [10/400][50/50] loss=0.00595 full=0.00395 sub=0.00196 reg=0.03921 kl=5.84883*2.00e-07 noise_std=2.514e-01 psnr_full=26.19 psnr_sub=27.86 lr=1.00e-04 0.49s/it
+  train: loss=0.00595 full=0.00395 sub=0.00196 reg=0.03921 psnr_full=26.194dB psnr_sub=27.861dB
+  val: loss=0.00720 full=0.00485 sub=0.00229 reg=0.05663 psnr_full=24.513dB psnr_sub=27.078dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.007202 ***
+
+--- Epoch 11/400 ---
+  [11/400][50/50] loss=0.00575 full=0.00387 sub=0.00184 reg=0.04547 kl=5.90344*2.20e-07 noise_std=2.591e-01 psnr_full=26.36 psnr_sub=28.15 lr=1.00e-04 0.50s/it
+  train: loss=0.00575 full=0.00387 sub=0.00184 reg=0.04547 psnr_full=26.361dB psnr_sub=28.146dB
+
+--- Epoch 12/400 ---
+  [12/400][50/50] loss=0.00523 full=0.00353 sub=0.00165 reg=0.04567 kl=5.80330*2.40e-07 noise_std=2.618e-01 psnr_full=26.86 psnr_sub=28.60 lr=1.00e-04 0.50s/it
+  train: loss=0.00523 full=0.00353 sub=0.00165 reg=0.04567 psnr_full=26.857dB psnr_sub=28.599dB
+
+--- Epoch 13/400 ---
+  [13/400][50/50] loss=0.00439 full=0.00301 sub=0.00133 reg=0.03968 kl=5.81615*2.60e-07 noise_std=2.519e-01 psnr_full=28.25 psnr_sub=29.72 lr=1.00e-04 0.50s/it
+  train: loss=0.00439 full=0.00301 sub=0.00133 reg=0.03968 psnr_full=28.251dB psnr_sub=29.720dB
+
+--- Epoch 14/400 ---
+  [14/400][50/50] loss=0.00463 full=0.00327 sub=0.00132 reg=0.03735 kl=5.83655*2.80e-07 noise_std=2.415e-01 psnr_full=27.57 psnr_sub=29.60 lr=1.00e-04 0.49s/it
+  train: loss=0.00463 full=0.00327 sub=0.00132 reg=0.03735 psnr_full=27.571dB psnr_sub=29.601dB
+
+--- Epoch 15/400 ---
+  [15/400][50/50] loss=0.00431 full=0.00309 sub=0.00119 reg=0.03510 kl=5.83722*3.00e-07 noise_std=2.387e-01 psnr_full=28.71 psnr_sub=30.37 lr=1.00e-04 0.50s/it
+  train: loss=0.00431 full=0.00309 sub=0.00119 reg=0.03510 psnr_full=28.705dB psnr_sub=30.367dB
+
+--- Epoch 16/400 ---
+  [16/400][50/50] loss=0.00495 full=0.00336 sub=0.00155 reg=0.03360 kl=5.81393*3.20e-07 noise_std=2.337e-01 psnr_full=27.55 psnr_sub=29.26 lr=9.99e-05 0.50s/it
+  train: loss=0.00495 full=0.00336 sub=0.00155 reg=0.03360 psnr_full=27.554dB psnr_sub=29.256dB
+
+--- Epoch 17/400 ---
+  [17/400][50/50] loss=0.00570 full=0.00383 sub=0.00181 reg=0.04859 kl=5.82121*3.40e-07 noise_std=2.755e-01 psnr_full=26.43 psnr_sub=28.30 lr=9.99e-05 0.49s/it
+  train: loss=0.00570 full=0.00383 sub=0.00181 reg=0.04859 psnr_full=26.428dB psnr_sub=28.298dB
+
+--- Epoch 18/400 ---
+  [18/400][50/50] loss=0.00470 full=0.00336 sub=0.00129 reg=0.03961 kl=5.87081*3.60e-07 noise_std=2.471e-01 psnr_full=27.86 psnr_sub=29.80 lr=9.99e-05 0.49s/it
+  train: loss=0.00470 full=0.00336 sub=0.00129 reg=0.03961 psnr_full=27.857dB psnr_sub=29.800dB
+
+--- Epoch 19/400 ---
+  [19/400][50/50] loss=0.00452 full=0.00324 sub=0.00124 reg=0.03613 kl=5.84779*3.80e-07 noise_std=2.378e-01 psnr_full=28.14 psnr_sub=30.10 lr=9.99e-05 0.50s/it
+  train: loss=0.00452 full=0.00324 sub=0.00124 reg=0.03613 psnr_full=28.142dB psnr_sub=30.100dB
+
+--- Epoch 20/400 ---
+  [20/400][50/50] loss=0.00457 full=0.00329 sub=0.00124 reg=0.03460 kl=5.82865*4.00e-07 noise_std=2.313e-01 psnr_full=27.81 psnr_sub=30.09 lr=9.98e-05 0.50s/it
+  train: loss=0.00457 full=0.00329 sub=0.00124 reg=0.03460 psnr_full=27.809dB psnr_sub=30.090dB
+  val: loss=0.00555 full=0.00399 sub=0.00152 reg=0.04065 psnr_full=25.766dB psnr_sub=28.841dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.005545 ***
+
+--- Epoch 21/400 ---
+  [21/400][50/50] loss=0.00475 full=0.00336 sub=0.00135 reg=0.03439 kl=5.83282*4.20e-07 noise_std=2.350e-01 psnr_full=27.55 psnr_sub=29.59 lr=9.98e-05 0.50s/it
+  train: loss=0.00475 full=0.00336 sub=0.00135 reg=0.03439 psnr_full=27.555dB psnr_sub=29.594dB
+
+--- Epoch 22/400 ---
+  [22/400][50/50] loss=0.00479 full=0.00334 sub=0.00141 reg=0.03706 kl=5.82324*4.40e-07 noise_std=2.431e-01 psnr_full=27.26 psnr_sub=29.32 lr=9.98e-05 0.49s/it
+  train: loss=0.00479 full=0.00334 sub=0.00141 reg=0.03706 psnr_full=27.258dB psnr_sub=29.322dB
+
+--- Epoch 23/400 ---
+  [23/400][50/50] loss=0.00511 full=0.00356 sub=0.00150 reg=0.04028 kl=5.79824*4.60e-07 noise_std=2.541e-01 psnr_full=26.96 psnr_sub=29.09 lr=9.97e-05 0.49s/it
+  train: loss=0.00511 full=0.00356 sub=0.00150 reg=0.04028 psnr_full=26.961dB psnr_sub=29.090dB
+
+--- Epoch 24/400 ---
+  [24/400][50/50] loss=0.00481 full=0.00330 sub=0.00146 reg=0.04078 kl=5.81421*4.80e-07 noise_std=2.541e-01 psnr_full=27.43 psnr_sub=29.29 lr=9.97e-05 0.49s/it
+  train: loss=0.00481 full=0.00330 sub=0.00146 reg=0.04078 psnr_full=27.427dB psnr_sub=29.293dB
+
+--- Epoch 25/400 ---
+  [25/400][50/50] loss=0.00472 full=0.00334 sub=0.00133 reg=0.04036 kl=5.79819*5.00e-07 noise_std=2.518e-01 psnr_full=27.73 psnr_sub=29.75 lr=9.97e-05 0.49s/it
+  train: loss=0.00472 full=0.00334 sub=0.00133 reg=0.04036 psnr_full=27.735dB psnr_sub=29.754dB
+
+--- Epoch 26/400 ---
+  [26/400][50/50] loss=0.00505 full=0.00352 sub=0.00149 reg=0.03899 kl=5.83056*5.20e-07 noise_std=2.518e-01 psnr_full=27.13 psnr_sub=29.16 lr=9.96e-05 0.50s/it
+  train: loss=0.00505 full=0.00352 sub=0.00149 reg=0.03899 psnr_full=27.127dB psnr_sub=29.165dB
+
+--- Epoch 27/400 ---
+  [27/400][50/50] loss=0.00553 full=0.00374 sub=0.00175 reg=0.04415 kl=5.79193*5.40e-07 noise_std=2.685e-01 psnr_full=26.38 psnr_sub=28.41 lr=9.96e-05 0.50s/it
+  train: loss=0.00553 full=0.00374 sub=0.00175 reg=0.04415 psnr_full=26.383dB psnr_sub=28.408dB
+
+--- Epoch 28/400 ---
+  [28/400][50/50] loss=0.00494 full=0.00345 sub=0.00145 reg=0.04643 kl=5.81121*5.60e-07 noise_std=2.706e-01 psnr_full=27.10 psnr_sub=29.22 lr=9.95e-05 0.50s/it
+  train: loss=0.00494 full=0.00345 sub=0.00145 reg=0.04643 psnr_full=27.097dB psnr_sub=29.221dB
+
+--- Epoch 29/400 ---
+  [29/400][50/50] loss=0.00459 full=0.00324 sub=0.00130 reg=0.04152 kl=5.79730*5.80e-07 noise_std=2.570e-01 psnr_full=27.84 psnr_sub=29.84 lr=9.94e-05 0.49s/it
+  train: loss=0.00459 full=0.00324 sub=0.00130 reg=0.04152 psnr_full=27.842dB psnr_sub=29.841dB
+
+--- Epoch 30/400 ---
+  [30/400][50/50] loss=0.00465 full=0.00332 sub=0.00128 reg=0.03953 kl=5.79282*6.00e-07 noise_std=2.491e-01 psnr_full=27.68 psnr_sub=29.86 lr=9.94e-05 0.50s/it
+  train: loss=0.00465 full=0.00332 sub=0.00128 reg=0.03953 psnr_full=27.678dB psnr_sub=29.864dB
+  val: loss=0.00557 full=0.00401 sub=0.00151 reg=0.04589 psnr_full=25.627dB psnr_sub=28.801dB
+
+--- Epoch 31/400 ---
+  [31/400][50/50] loss=0.00445 full=0.00324 sub=0.00117 reg=0.03714 kl=5.79729*6.20e-07 noise_std=2.416e-01 psnr_full=28.14 psnr_sub=30.38 lr=9.93e-05 0.49s/it
+  train: loss=0.00445 full=0.00324 sub=0.00117 reg=0.03714 psnr_full=28.138dB psnr_sub=30.375dB
+
+--- Epoch 32/400 ---
+  [32/400][50/50] loss=0.00452 full=0.00330 sub=0.00118 reg=0.03567 kl=5.78333*6.40e-07 noise_std=2.380e-01 psnr_full=28.03 psnr_sub=30.35 lr=9.93e-05 0.49s/it
+  train: loss=0.00452 full=0.00330 sub=0.00118 reg=0.03567 psnr_full=28.028dB psnr_sub=30.350dB
+
+--- Epoch 33/400 ---
+  [33/400][50/50] loss=0.00421 full=0.00305 sub=0.00112 reg=0.03334 kl=5.79511*6.60e-07 noise_std=2.324e-01 psnr_full=28.56 psnr_sub=30.68 lr=9.92e-05 0.50s/it
+  train: loss=0.00421 full=0.00305 sub=0.00112 reg=0.03334 psnr_full=28.561dB psnr_sub=30.680dB
+
+--- Epoch 34/400 ---
+  [34/400][50/50] loss=0.00426 full=0.00303 sub=0.00119 reg=0.03252 kl=5.79740*6.80e-07 noise_std=2.278e-01 psnr_full=28.04 psnr_sub=30.32 lr=9.91e-05 0.49s/it
+  train: loss=0.00426 full=0.00303 sub=0.00119 reg=0.03252 psnr_full=28.043dB psnr_sub=30.323dB
+
+--- Epoch 35/400 ---
+  [35/400][50/50] loss=0.00540 full=0.00376 sub=0.00160 reg=0.03799 kl=5.77058*7.00e-07 noise_std=2.442e-01 psnr_full=26.69 psnr_sub=28.88 lr=9.90e-05 0.49s/it
+  train: loss=0.00540 full=0.00376 sub=0.00160 reg=0.03799 psnr_full=26.688dB psnr_sub=28.878dB
+
+--- Epoch 36/400 ---
+  [36/400][50/50] loss=0.00530 full=0.00362 sub=0.00163 reg=0.04416 kl=5.75294*7.20e-07 noise_std=2.590e-01 psnr_full=26.55 psnr_sub=28.75 lr=9.90e-05 0.49s/it
+  train: loss=0.00530 full=0.00362 sub=0.00163 reg=0.04416 psnr_full=26.555dB psnr_sub=28.750dB
+
+--- Epoch 37/400 ---
+  [37/400][50/50] loss=0.00474 full=0.00325 sub=0.00144 reg=0.04703 kl=5.71131*7.40e-07 noise_std=2.675e-01 psnr_full=27.21 psnr_sub=29.31 lr=9.89e-05 0.49s/it
+  train: loss=0.00474 full=0.00325 sub=0.00144 reg=0.04703 psnr_full=27.205dB psnr_sub=29.305dB
+
+--- Epoch 38/400 ---
+  [38/400][50/50] loss=0.00458 full=0.00333 sub=0.00120 reg=0.04208 kl=5.76539*7.60e-07 noise_std=2.488e-01 psnr_full=27.89 psnr_sub=30.35 lr=9.88e-05 0.49s/it
+  train: loss=0.00458 full=0.00333 sub=0.00120 reg=0.04208 psnr_full=27.889dB psnr_sub=30.350dB
+
+--- Epoch 39/400 ---
+  [39/400][50/50] loss=0.00452 full=0.00330 sub=0.00117 reg=0.03790 kl=5.76704*7.80e-07 noise_std=2.385e-01 psnr_full=28.06 psnr_sub=30.47 lr=9.87e-05 0.50s/it
+  train: loss=0.00452 full=0.00330 sub=0.00117 reg=0.03790 psnr_full=28.059dB psnr_sub=30.474dB
+
+--- Epoch 40/400 ---
+  [40/400][50/50] loss=0.00444 full=0.00323 sub=0.00117 reg=0.03512 kl=5.74583*8.00e-07 noise_std=2.346e-01 psnr_full=28.08 psnr_sub=30.41 lr=9.86e-05 0.49s/it
+  train: loss=0.00444 full=0.00323 sub=0.00117 reg=0.03512 psnr_full=28.085dB psnr_sub=30.414dB
+  val: loss=0.00547 full=0.00399 sub=0.00143 reg=0.04095 psnr_full=25.597dB psnr_sub=29.015dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.005470 ***
+
+--- Epoch 41/400 ---
+  [41/400][50/50] loss=0.00477 full=0.00337 sub=0.00136 reg=0.03654 kl=5.74370*8.20e-07 noise_std=2.447e-01 psnr_full=27.35 psnr_sub=29.60 lr=9.85e-05 0.49s/it
+  train: loss=0.00477 full=0.00337 sub=0.00136 reg=0.03654 psnr_full=27.352dB psnr_sub=29.595dB
+
+--- Epoch 42/400 ---
+  [42/400][50/50] loss=0.00465 full=0.00326 sub=0.00134 reg=0.03919 kl=5.71565*8.40e-07 noise_std=2.553e-01 psnr_full=27.47 psnr_sub=29.66 lr=9.84e-05 0.50s/it
+  train: loss=0.00465 full=0.00326 sub=0.00134 reg=0.03919 psnr_full=27.467dB psnr_sub=29.659dB
+
+--- Epoch 43/400 ---
+  [43/400][50/50] loss=0.00441 full=0.00318 sub=0.00119 reg=0.03900 kl=5.68474*8.60e-07 noise_std=2.530e-01 psnr_full=27.89 psnr_sub=30.22 lr=9.83e-05 0.49s/it
+  train: loss=0.00441 full=0.00318 sub=0.00119 reg=0.03900 psnr_full=27.894dB psnr_sub=30.224dB
+
+--- Epoch 44/400 ---
+  [44/400][50/50] loss=0.00434 full=0.00317 sub=0.00112 reg=0.03643 kl=5.70651*8.80e-07 noise_std=2.422e-01 psnr_full=28.34 psnr_sub=30.65 lr=9.82e-05 0.49s/it
+  train: loss=0.00434 full=0.00317 sub=0.00112 reg=0.03643 psnr_full=28.345dB psnr_sub=30.651dB
+
+--- Epoch 45/400 ---
+  [45/400][50/50] loss=0.00432 full=0.00316 sub=0.00112 reg=0.03422 kl=5.70336*9.00e-07 noise_std=2.357e-01 psnr_full=28.42 psnr_sub=30.69 lr=9.81e-05 0.49s/it
+  train: loss=0.00432 full=0.00316 sub=0.00112 reg=0.03422 psnr_full=28.421dB psnr_sub=30.693dB
+
+--- Epoch 46/400 ---
+  [46/400][50/50] loss=0.00425 full=0.00312 sub=0.00109 reg=0.03240 kl=5.69338*9.20e-07 noise_std=2.297e-01 psnr_full=28.42 psnr_sub=30.79 lr=9.80e-05 0.49s/it
+  train: loss=0.00425 full=0.00312 sub=0.00109 reg=0.03240 psnr_full=28.418dB psnr_sub=30.792dB
+
+--- Epoch 47/400 ---
+  [47/400][50/50] loss=0.00434 full=0.00320 sub=0.00111 reg=0.03242 kl=5.69462*9.40e-07 noise_std=2.259e-01 psnr_full=28.37 psnr_sub=30.84 lr=9.79e-05 0.49s/it
+  train: loss=0.00434 full=0.00320 sub=0.00111 reg=0.03242 psnr_full=28.371dB psnr_sub=30.838dB
+
+--- Epoch 48/400 ---
+  [48/400][50/50] loss=0.00433 full=0.00307 sub=0.00122 reg=0.03257 kl=5.68986*9.60e-07 noise_std=2.305e-01 psnr_full=27.79 psnr_sub=30.16 lr=9.78e-05 0.50s/it
+  train: loss=0.00433 full=0.00307 sub=0.00122 reg=0.03257 psnr_full=27.785dB psnr_sub=30.161dB
+
+--- Epoch 49/400 ---
+  [49/400][50/50] loss=0.00469 full=0.00337 sub=0.00128 reg=0.03704 kl=5.68720*9.80e-07 noise_std=2.411e-01 psnr_full=27.43 psnr_sub=29.89 lr=9.77e-05 0.49s/it
+  train: loss=0.00469 full=0.00337 sub=0.00128 reg=0.03704 psnr_full=27.434dB psnr_sub=29.891dB
+
+--- Epoch 50/400 ---
+  [50/400][50/50] loss=0.00454 full=0.00328 sub=0.00122 reg=0.03636 kl=5.66201*1.00e-06 noise_std=2.417e-01 psnr_full=27.65 psnr_sub=30.12 lr=9.76e-05 0.49s/it
+  train: loss=0.00454 full=0.00328 sub=0.00122 reg=0.03636 psnr_full=27.655dB psnr_sub=30.117dB
+  val: loss=0.00567 full=0.00409 sub=0.00154 reg=0.04037 psnr_full=25.448dB psnr_sub=28.716dB
+
+--- Epoch 51/400 ---
+  [51/400][50/50] loss=0.00462 full=0.00337 sub=0.00121 reg=0.03575 kl=5.68203*1.00e-06 noise_std=2.375e-01 psnr_full=27.55 psnr_sub=30.18 lr=9.74e-05 0.50s/it
+  train: loss=0.00462 full=0.00337 sub=0.00121 reg=0.03575 psnr_full=27.548dB psnr_sub=30.179dB
+
+--- Epoch 52/400 ---
+  [52/400][50/50] loss=0.00461 full=0.00337 sub=0.00119 reg=0.03424 kl=5.69821*1.00e-06 noise_std=2.313e-01 psnr_full=27.71 psnr_sub=30.29 lr=9.73e-05 0.49s/it
+  train: loss=0.00461 full=0.00337 sub=0.00119 reg=0.03424 psnr_full=27.713dB psnr_sub=30.291dB
+
+--- Epoch 53/400 ---
+  [53/400][50/50] loss=0.00435 full=0.00313 sub=0.00118 reg=0.03478 kl=5.67295*1.00e-06 noise_std=2.344e-01 psnr_full=27.88 psnr_sub=30.35 lr=9.72e-05 0.50s/it
+  train: loss=0.00435 full=0.00313 sub=0.00118 reg=0.03478 psnr_full=27.881dB psnr_sub=30.348dB
+
+--- Epoch 54/400 ---
+  [54/400][50/50] loss=0.00433 full=0.00318 sub=0.00110 reg=0.03358 kl=5.65674*1.00e-06 noise_std=2.302e-01 psnr_full=28.32 psnr_sub=30.77 lr=9.70e-05 0.50s/it
+  train: loss=0.00433 full=0.00318 sub=0.00110 reg=0.03358 psnr_full=28.318dB psnr_sub=30.773dB
+
+--- Epoch 55/400 ---
+  [55/400][50/50] loss=0.00452 full=0.00329 sub=0.00120 reg=0.03304 kl=5.65369*1.00e-06 noise_std=2.283e-01 psnr_full=27.75 psnr_sub=30.35 lr=9.69e-05 0.50s/it
+  train: loss=0.00452 full=0.00329 sub=0.00120 reg=0.03304 psnr_full=27.754dB psnr_sub=30.355dB
+
+--- Epoch 56/400 ---
+  [56/400][50/50] loss=0.00443 full=0.00327 sub=0.00112 reg=0.03419 kl=5.65731*1.00e-06 noise_std=2.287e-01 psnr_full=28.05 psnr_sub=30.65 lr=9.68e-05 0.49s/it
+  train: loss=0.00443 full=0.00327 sub=0.00112 reg=0.03419 psnr_full=28.054dB psnr_sub=30.646dB
+
+--- Epoch 57/400 ---
+  [57/400][50/50] loss=0.00430 full=0.00315 sub=0.00111 reg=0.03185 kl=5.66025*1.00e-06 noise_std=2.219e-01 psnr_full=28.22 psnr_sub=30.72 lr=9.66e-05 0.50s/it
+  train: loss=0.00430 full=0.00315 sub=0.00111 reg=0.03185 psnr_full=28.218dB psnr_sub=30.723dB
+
+--- Epoch 58/400 ---
+  [58/400][50/50] loss=0.00428 full=0.00313 sub=0.00111 reg=0.03236 kl=5.65525*1.00e-06 noise_std=2.267e-01 psnr_full=28.15 psnr_sub=30.69 lr=9.65e-05 0.49s/it
+  train: loss=0.00428 full=0.00313 sub=0.00111 reg=0.03236 psnr_full=28.149dB psnr_sub=30.691dB
+
+--- Epoch 59/400 ---
+  [59/400][50/50] loss=0.00450 full=0.00324 sub=0.00121 reg=0.03339 kl=5.65008*1.00e-06 noise_std=2.331e-01 psnr_full=27.65 psnr_sub=30.14 lr=9.63e-05 0.49s/it
+  train: loss=0.00450 full=0.00324 sub=0.00121 reg=0.03339 psnr_full=27.647dB psnr_sub=30.143dB
+
+--- Epoch 60/400 ---
+  [60/400][50/50] loss=0.00450 full=0.00328 sub=0.00117 reg=0.03495 kl=5.64779*1.00e-06 noise_std=2.326e-01 psnr_full=27.66 psnr_sub=30.35 lr=9.62e-05 0.49s/it
+  train: loss=0.00450 full=0.00328 sub=0.00117 reg=0.03495 psnr_full=27.663dB psnr_sub=30.354dB
+  val: loss=0.00521 full=0.00388 sub=0.00128 reg=0.03989 psnr_full=25.899dB psnr_sub=29.658dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.005206 ***
+
+--- Epoch 61/400 ---
+  [61/400][50/50] loss=0.00435 full=0.00320 sub=0.00111 reg=0.03337 kl=5.64693*1.00e-06 noise_std=2.265e-01 psnr_full=28.12 psnr_sub=30.79 lr=9.60e-05 0.49s/it
+  train: loss=0.00435 full=0.00320 sub=0.00111 reg=0.03337 psnr_full=28.117dB psnr_sub=30.790dB
+
+--- Epoch 62/400 ---
+  [62/400][50/50] loss=0.00437 full=0.00314 sub=0.00120 reg=0.03151 kl=5.64412*1.00e-06 noise_std=2.236e-01 psnr_full=27.78 psnr_sub=30.33 lr=9.59e-05 0.50s/it
+  train: loss=0.00437 full=0.00314 sub=0.00120 reg=0.03151 psnr_full=27.778dB psnr_sub=30.328dB
+
+--- Epoch 63/400 ---
+  [63/400][50/50] loss=0.00438 full=0.00321 sub=0.00113 reg=0.03526 kl=5.62155*1.00e-06 noise_std=2.368e-01 psnr_full=27.83 psnr_sub=30.57 lr=9.57e-05 0.50s/it
+  train: loss=0.00438 full=0.00321 sub=0.00113 reg=0.03526 psnr_full=27.834dB psnr_sub=30.574dB
+
+--- Epoch 64/400 ---
+  [64/400][50/50] loss=0.00410 full=0.00301 sub=0.00105 reg=0.03217 kl=5.62266*1.00e-06 noise_std=2.251e-01 psnr_full=28.47 psnr_sub=31.06 lr=9.56e-05 0.49s/it
+  train: loss=0.00410 full=0.00301 sub=0.00105 reg=0.03217 psnr_full=28.466dB psnr_sub=31.057dB
+
+--- Epoch 65/400 ---
+  [65/400][50/50] loss=0.00425 full=0.00313 sub=0.00108 reg=0.03170 kl=5.63298*1.00e-06 noise_std=2.228e-01 psnr_full=28.17 psnr_sub=30.81 lr=9.54e-05 0.50s/it
+  train: loss=0.00425 full=0.00313 sub=0.00108 reg=0.03170 psnr_full=28.167dB psnr_sub=30.806dB
+
+--- Epoch 66/400 ---
+  [66/400][50/50] loss=0.00439 full=0.00324 sub=0.00112 reg=0.03176 kl=5.61907*1.00e-06 noise_std=2.241e-01 psnr_full=27.93 psnr_sub=30.58 lr=9.52e-05 0.50s/it
+  train: loss=0.00439 full=0.00324 sub=0.00112 reg=0.03176 psnr_full=27.929dB psnr_sub=30.585dB
+
+--- Epoch 67/400 ---
+  [67/400][50/50] loss=0.00394 full=0.00290 sub=0.00100 reg=0.02987 kl=5.63226*1.00e-06 noise_std=2.168e-01 psnr_full=28.64 psnr_sub=31.23 lr=9.51e-05 0.50s/it
+  train: loss=0.00394 full=0.00290 sub=0.00100 reg=0.02987 psnr_full=28.639dB psnr_sub=31.234dB
+
+--- Epoch 68/400 ---
+  [68/400][50/50] loss=0.00506 full=0.00363 sub=0.00138 reg=0.03284 kl=5.62044*1.00e-06 noise_std=2.273e-01 psnr_full=27.14 psnr_sub=29.66 lr=9.49e-05 0.49s/it
+  train: loss=0.00506 full=0.00363 sub=0.00138 reg=0.03284 psnr_full=27.145dB psnr_sub=29.661dB
+
+--- Epoch 69/400 ---
+  [69/400][50/50] loss=0.00521 full=0.00370 sub=0.00146 reg=0.04277 kl=5.60206*1.00e-06 noise_std=2.543e-01 psnr_full=26.73 psnr_sub=29.32 lr=9.47e-05 0.49s/it
+  train: loss=0.00521 full=0.00370 sub=0.00146 reg=0.04277 psnr_full=26.725dB psnr_sub=29.323dB
+
+--- Epoch 70/400 ---
+  [70/400][50/50] loss=0.00429 full=0.00316 sub=0.00109 reg=0.03986 kl=5.61457*1.00e-06 noise_std=2.435e-01 psnr_full=28.09 psnr_sub=30.80 lr=9.46e-05 0.50s/it
+  train: loss=0.00429 full=0.00316 sub=0.00109 reg=0.03986 psnr_full=28.091dB psnr_sub=30.797dB
+  val: loss=0.00563 full=0.00410 sub=0.00148 reg=0.04399 psnr_full=25.385dB psnr_sub=28.969dB
+
+--- Epoch 71/400 ---
+  [71/400][50/50] loss=0.00487 full=0.00339 sub=0.00143 reg=0.03880 kl=5.57606*1.00e-06 noise_std=2.536e-01 psnr_full=27.02 psnr_sub=29.35 lr=9.44e-05 0.49s/it
+  train: loss=0.00487 full=0.00339 sub=0.00143 reg=0.03880 psnr_full=27.016dB psnr_sub=29.345dB
+
+--- Epoch 72/400 ---
+  [72/400][50/50] loss=0.00482 full=0.00343 sub=0.00134 reg=0.04327 kl=5.53413*1.00e-06 noise_std=2.644e-01 psnr_full=27.23 psnr_sub=29.71 lr=9.42e-05 0.49s/it
+  train: loss=0.00482 full=0.00343 sub=0.00134 reg=0.04327 psnr_full=27.231dB psnr_sub=29.708dB
+
+--- Epoch 73/400 ---
+  [73/400][50/50] loss=0.00443 full=0.00326 sub=0.00113 reg=0.03783 kl=5.63625*1.00e-06 noise_std=2.428e-01 psnr_full=27.79 psnr_sub=30.59 lr=9.40e-05 0.50s/it
+  train: loss=0.00443 full=0.00326 sub=0.00113 reg=0.03783 psnr_full=27.790dB psnr_sub=30.591dB
+
+--- Epoch 74/400 ---
+  [74/400][50/50] loss=0.00423 full=0.00315 sub=0.00104 reg=0.03435 kl=5.61932*1.00e-06 noise_std=2.321e-01 psnr_full=28.42 psnr_sub=31.15 lr=9.38e-05 0.49s/it
+  train: loss=0.00423 full=0.00315 sub=0.00104 reg=0.03435 psnr_full=28.423dB psnr_sub=31.152dB
+
+--- Epoch 75/400 ---
+  [75/400][50/50] loss=0.00417 full=0.00301 sub=0.00112 reg=0.03234 kl=5.63105*1.00e-06 noise_std=2.296e-01 psnr_full=27.94 psnr_sub=30.53 lr=9.36e-05 0.49s/it
+  train: loss=0.00417 full=0.00301 sub=0.00112 reg=0.03234 psnr_full=27.941dB psnr_sub=30.525dB
+
+--- Epoch 76/400 ---
+  [76/400][50/50] loss=0.00420 full=0.00311 sub=0.00105 reg=0.03454 kl=5.59679*1.00e-06 noise_std=2.380e-01 psnr_full=28.19 psnr_sub=30.96 lr=9.34e-05 0.49s/it
+  train: loss=0.00420 full=0.00311 sub=0.00105 reg=0.03454 psnr_full=28.188dB psnr_sub=30.957dB
+
+--- Epoch 77/400 ---
+  [77/400][50/50] loss=0.00396 full=0.00291 sub=0.00101 reg=0.03128 kl=5.61008*1.00e-06 noise_std=2.267e-01 psnr_full=28.73 psnr_sub=31.26 lr=9.32e-05 0.49s/it
+  train: loss=0.00396 full=0.00291 sub=0.00101 reg=0.03128 psnr_full=28.733dB psnr_sub=31.263dB
+
+--- Epoch 78/400 ---
+  [78/400][50/50] loss=0.00445 full=0.00323 sub=0.00119 reg=0.03297 kl=5.62962*1.00e-06 noise_std=2.313e-01 psnr_full=27.56 psnr_sub=30.27 lr=9.31e-05 0.49s/it
+  train: loss=0.00445 full=0.00323 sub=0.00119 reg=0.03297 psnr_full=27.564dB psnr_sub=30.270dB
+
+--- Epoch 79/400 ---
+  [79/400][50/50] loss=0.00416 full=0.00312 sub=0.00100 reg=0.03364 kl=5.61128*1.00e-06 noise_std=2.324e-01 psnr_full=28.46 psnr_sub=31.26 lr=9.28e-05 0.49s/it
+  train: loss=0.00416 full=0.00312 sub=0.00100 reg=0.03364 psnr_full=28.464dB psnr_sub=31.259dB
+
+--- Epoch 80/400 ---
+  [80/400][50/50] loss=0.00407 full=0.00301 sub=0.00102 reg=0.03070 kl=5.62542*1.00e-06 noise_std=2.233e-01 psnr_full=28.79 psnr_sub=31.31 lr=9.26e-05 0.49s/it
+  train: loss=0.00407 full=0.00301 sub=0.00102 reg=0.03070 psnr_full=28.787dB psnr_sub=31.309dB
+  val: loss=0.00516 full=0.00387 sub=0.00125 reg=0.03649 psnr_full=25.923dB psnr_sub=29.744dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.005157 ***
+
+--- Epoch 81/400 ---
+  [81/400][50/50] loss=0.00413 full=0.00309 sub=0.00101 reg=0.02976 kl=5.62810*1.00e-06 noise_std=2.179e-01 psnr_full=28.38 psnr_sub=31.24 lr=9.24e-05 0.49s/it
+  train: loss=0.00413 full=0.00309 sub=0.00101 reg=0.02976 psnr_full=28.378dB psnr_sub=31.240dB
+
+--- Epoch 82/400 ---
+  [82/400][50/50] loss=0.00406 full=0.00302 sub=0.00101 reg=0.02899 kl=5.62692*1.00e-06 noise_std=2.161e-01 psnr_full=28.58 psnr_sub=31.25 lr=9.22e-05 0.50s/it
+  train: loss=0.00406 full=0.00302 sub=0.00101 reg=0.02899 psnr_full=28.581dB psnr_sub=31.249dB
+
+--- Epoch 83/400 ---
+  [83/400][50/50] loss=0.00421 full=0.00316 sub=0.00102 reg=0.02973 kl=5.64766*1.00e-06 noise_std=2.191e-01 psnr_full=28.34 psnr_sub=31.19 lr=9.20e-05 0.50s/it
+  train: loss=0.00421 full=0.00316 sub=0.00102 reg=0.02973 psnr_full=28.341dB psnr_sub=31.188dB
+
+--- Epoch 84/400 ---
+  [84/400][50/50] loss=0.00423 full=0.00320 sub=0.00100 reg=0.02814 kl=5.64402*1.00e-06 noise_std=2.115e-01 psnr_full=28.26 psnr_sub=31.29 lr=9.18e-05 0.50s/it
+  train: loss=0.00423 full=0.00320 sub=0.00100 reg=0.02814 psnr_full=28.262dB psnr_sub=31.287dB
+
+--- Epoch 85/400 ---
+  [85/400][50/50] loss=0.00478 full=0.00345 sub=0.00129 reg=0.03325 kl=5.60419*1.00e-06 noise_std=2.317e-01 psnr_full=27.18 psnr_sub=29.92 lr=9.16e-05 0.49s/it
+  train: loss=0.00478 full=0.00345 sub=0.00129 reg=0.03325 psnr_full=27.179dB psnr_sub=29.916dB
+
+--- Epoch 86/400 ---
+  [86/400][50/50] loss=0.00464 full=0.00340 sub=0.00120 reg=0.03604 kl=5.60951*1.00e-06 noise_std=2.395e-01 psnr_full=27.52 psnr_sub=30.19 lr=9.14e-05 0.49s/it
+  train: loss=0.00464 full=0.00340 sub=0.00120 reg=0.03604 psnr_full=27.520dB psnr_sub=30.193dB
+
+--- Epoch 87/400 ---
+  [87/400][50/50] loss=0.00458 full=0.00335 sub=0.00119 reg=0.03620 kl=5.61351*1.00e-06 noise_std=2.407e-01 psnr_full=27.52 psnr_sub=30.30 lr=9.12e-05 0.50s/it
+  train: loss=0.00458 full=0.00335 sub=0.00119 reg=0.03620 psnr_full=27.520dB psnr_sub=30.298dB
+
+--- Epoch 88/400 ---
+  [88/400][50/50] loss=0.00427 full=0.00315 sub=0.00108 reg=0.03421 kl=5.59817*1.00e-06 noise_std=2.341e-01 psnr_full=28.06 psnr_sub=30.86 lr=9.09e-05 0.50s/it
+  train: loss=0.00427 full=0.00315 sub=0.00108 reg=0.03421 psnr_full=28.058dB psnr_sub=30.858dB
+
+--- Epoch 89/400 ---
+  [89/400][50/50] loss=0.00401 full=0.00300 sub=0.00098 reg=0.03088 kl=5.61004*1.00e-06 noise_std=2.262e-01 psnr_full=28.88 psnr_sub=31.47 lr=9.07e-05 0.50s/it
+  train: loss=0.00401 full=0.00300 sub=0.00098 reg=0.03088 psnr_full=28.876dB psnr_sub=31.473dB
+
+--- Epoch 90/400 ---
+  [90/400][50/50] loss=0.00412 full=0.00307 sub=0.00102 reg=0.03003 kl=5.62909*1.00e-06 noise_std=2.203e-01 psnr_full=28.31 psnr_sub=31.17 lr=9.05e-05 0.50s/it
+  train: loss=0.00412 full=0.00307 sub=0.00102 reg=0.03003 psnr_full=28.311dB psnr_sub=31.166dB
+  val: loss=0.00523 full=0.00392 sub=0.00127 reg=0.03645 psnr_full=25.821dB psnr_sub=29.676dB
+
+--- Epoch 91/400 ---
+  [91/400][50/50] loss=0.00407 full=0.00303 sub=0.00101 reg=0.02915 kl=5.63111*1.00e-06 noise_std=2.160e-01 psnr_full=28.26 psnr_sub=31.17 lr=9.02e-05 0.49s/it
+  train: loss=0.00407 full=0.00303 sub=0.00101 reg=0.02915 psnr_full=28.257dB psnr_sub=31.173dB
+
+--- Epoch 92/400 ---
+  [92/400][50/50] loss=0.00403 full=0.00300 sub=0.00099 reg=0.02873 kl=5.63222*1.00e-06 noise_std=2.140e-01 psnr_full=28.54 psnr_sub=31.37 lr=9.00e-05 0.50s/it
+  train: loss=0.00403 full=0.00300 sub=0.00099 reg=0.02873 psnr_full=28.535dB psnr_sub=31.366dB
+
+--- Epoch 93/400 ---
+  [93/400][50/50] loss=0.00448 full=0.00334 sub=0.00111 reg=0.03018 kl=5.62471*1.00e-06 noise_std=2.196e-01 psnr_full=27.64 psnr_sub=30.61 lr=8.98e-05 0.50s/it
+  train: loss=0.00448 full=0.00334 sub=0.00111 reg=0.03018 psnr_full=27.635dB psnr_sub=30.607dB
+
+--- Epoch 94/400 ---
+  [94/400][50/50] loss=0.00417 full=0.00307 sub=0.00106 reg=0.03139 kl=5.60757*1.00e-06 noise_std=2.283e-01 psnr_full=28.10 psnr_sub=30.81 lr=8.95e-05 0.49s/it
+  train: loss=0.00417 full=0.00307 sub=0.00106 reg=0.03139 psnr_full=28.103dB psnr_sub=30.812dB
+
+--- Epoch 95/400 ---
+  [95/400][50/50] loss=0.00444 full=0.00327 sub=0.00113 reg=0.03193 kl=5.61456*1.00e-06 noise_std=2.271e-01 psnr_full=27.58 psnr_sub=30.51 lr=8.93e-05 0.49s/it
+  train: loss=0.00444 full=0.00327 sub=0.00113 reg=0.03193 psnr_full=27.579dB psnr_sub=30.506dB
+
+--- Epoch 96/400 ---
+  [96/400][50/50] loss=0.00421 full=0.00312 sub=0.00105 reg=0.03141 kl=5.60480*1.00e-06 noise_std=2.287e-01 psnr_full=28.03 psnr_sub=30.87 lr=8.91e-05 0.49s/it
+  train: loss=0.00421 full=0.00312 sub=0.00105 reg=0.03141 psnr_full=28.035dB psnr_sub=30.873dB
+
+--- Epoch 97/400 ---
+  [97/400][50/50] loss=0.00491 full=0.00351 sub=0.00135 reg=0.03558 kl=5.57043*1.00e-06 noise_std=2.429e-01 psnr_full=26.94 psnr_sub=29.61 lr=8.88e-05 0.49s/it
+  train: loss=0.00491 full=0.00351 sub=0.00135 reg=0.03558 psnr_full=26.942dB psnr_sub=29.608dB
+
+--- Epoch 98/400 ---
+  [98/400][50/50] loss=0.00431 full=0.00315 sub=0.00111 reg=0.03627 kl=5.58841*1.00e-06 noise_std=2.413e-01 psnr_full=27.78 psnr_sub=30.64 lr=8.86e-05 0.49s/it
+  train: loss=0.00431 full=0.00315 sub=0.00111 reg=0.03627 psnr_full=27.783dB psnr_sub=30.639dB
+
+--- Epoch 99/400 ---
+  [99/400][50/50] loss=0.00407 full=0.00301 sub=0.00102 reg=0.03323 kl=5.59368*1.00e-06 noise_std=2.336e-01 psnr_full=28.45 psnr_sub=31.19 lr=8.83e-05 0.49s/it
+  train: loss=0.00407 full=0.00301 sub=0.00102 reg=0.03323 psnr_full=28.448dB psnr_sub=31.185dB
+
+--- Epoch 100/400 ---
+  [100/400][50/50] loss=0.00425 full=0.00323 sub=0.00099 reg=0.03087 kl=5.63933*1.00e-06 noise_std=2.213e-01 psnr_full=28.28 psnr_sub=31.29 lr=8.81e-05 0.49s/it
+  train: loss=0.00425 full=0.00323 sub=0.00099 reg=0.03087 psnr_full=28.283dB psnr_sub=31.291dB
+  val: loss=0.00524 full=0.00393 sub=0.00127 reg=0.03541 psnr_full=25.746dB psnr_sub=29.642dB
+
+--- Epoch 101/400 ---
+  [101/400][50/50] loss=0.00402 full=0.00299 sub=0.00099 reg=0.02873 kl=5.63626*1.00e-06 noise_std=2.181e-01 psnr_full=28.54 psnr_sub=31.28 lr=8.78e-05 0.50s/it
+  train: loss=0.00402 full=0.00299 sub=0.00099 reg=0.02873 psnr_full=28.542dB psnr_sub=31.283dB
+
+--- Epoch 102/400 ---
+  [102/400][50/50] loss=0.00419 full=0.00317 sub=0.00098 reg=0.02828 kl=5.64148*1.00e-06 noise_std=2.162e-01 psnr_full=28.37 psnr_sub=31.43 lr=8.75e-05 0.49s/it
+  train: loss=0.00419 full=0.00317 sub=0.00098 reg=0.02828 psnr_full=28.371dB psnr_sub=31.432dB
+
+--- Epoch 103/400 ---
+  [103/400][50/50] loss=0.00416 full=0.00311 sub=0.00102 reg=0.02771 kl=5.62929*1.00e-06 noise_std=2.132e-01 psnr_full=28.44 psnr_sub=31.25 lr=8.73e-05 0.49s/it
+  train: loss=0.00416 full=0.00311 sub=0.00102 reg=0.02771 psnr_full=28.441dB psnr_sub=31.248dB
+
+--- Epoch 104/400 ---
+  [104/400][50/50] loss=0.00431 full=0.00316 sub=0.00112 reg=0.02979 kl=5.61246*1.00e-06 noise_std=2.248e-01 psnr_full=27.75 psnr_sub=30.57 lr=8.70e-05 0.49s/it
+  train: loss=0.00431 full=0.00316 sub=0.00112 reg=0.02979 psnr_full=27.748dB psnr_sub=30.567dB
+
+--- Epoch 105/400 ---
+  [105/400][50/50] loss=0.00443 full=0.00319 sub=0.00119 reg=0.03412 kl=5.58293*1.00e-06 noise_std=2.348e-01 psnr_full=27.47 psnr_sub=30.28 lr=8.68e-05 0.50s/it
+  train: loss=0.00443 full=0.00319 sub=0.00119 reg=0.03412 psnr_full=27.469dB psnr_sub=30.284dB
+
+--- Epoch 106/400 ---
+  [106/400][50/50] loss=0.00394 full=0.00285 sub=0.00106 reg=0.03211 kl=5.60774*1.00e-06 noise_std=2.315e-01 psnr_full=28.31 psnr_sub=30.99 lr=8.65e-05 0.50s/it
+  train: loss=0.00394 full=0.00285 sub=0.00106 reg=0.03211 psnr_full=28.312dB psnr_sub=30.992dB
+
+--- Epoch 107/400 ---
+  [107/400][50/50] loss=0.00414 full=0.00310 sub=0.00100 reg=0.02962 kl=5.62419*1.00e-06 noise_std=2.219e-01 psnr_full=28.43 psnr_sub=31.29 lr=8.62e-05 0.50s/it
+  train: loss=0.00414 full=0.00310 sub=0.00100 reg=0.02962 psnr_full=28.431dB psnr_sub=31.295dB
+
+--- Epoch 108/400 ---
+  [108/400][50/50] loss=0.00401 full=0.00302 sub=0.00095 reg=0.02774 kl=5.64649*1.00e-06 noise_std=2.150e-01 psnr_full=28.40 psnr_sub=31.43 lr=8.60e-05 0.50s/it
+  train: loss=0.00401 full=0.00302 sub=0.00095 reg=0.02774 psnr_full=28.398dB psnr_sub=31.427dB
+
+--- Epoch 109/400 ---
+  [109/400][50/50] loss=0.00424 full=0.00322 sub=0.00098 reg=0.02762 kl=5.66839*1.00e-06 noise_std=2.106e-01 psnr_full=28.49 psnr_sub=31.49 lr=8.57e-05 0.50s/it
+  train: loss=0.00424 full=0.00322 sub=0.00098 reg=0.02762 psnr_full=28.490dB psnr_sub=31.493dB
+
+--- Epoch 110/400 ---
+  [110/400][50/50] loss=0.00427 full=0.00320 sub=0.00103 reg=0.02794 kl=5.67020*1.00e-06 noise_std=2.141e-01 psnr_full=28.08 psnr_sub=31.07 lr=8.54e-05 0.49s/it
+  train: loss=0.00427 full=0.00320 sub=0.00103 reg=0.02794 psnr_full=28.082dB psnr_sub=31.071dB
+  val: loss=0.00503 full=0.00382 sub=0.00117 reg=0.03406 psnr_full=26.047dB psnr_sub=30.151dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.005026 ***
+
+--- Epoch 111/400 ---
+  [111/400][50/50] loss=0.00417 full=0.00305 sub=0.00108 reg=0.02743 kl=5.65999*1.00e-06 noise_std=2.156e-01 psnr_full=28.07 psnr_sub=30.85 lr=8.51e-05 0.50s/it
+  train: loss=0.00417 full=0.00305 sub=0.00108 reg=0.02743 psnr_full=28.074dB psnr_sub=30.852dB
+
+--- Epoch 112/400 ---
+  [112/400][50/50] loss=0.00445 full=0.00327 sub=0.00114 reg=0.03138 kl=5.63725*1.00e-06 noise_std=2.260e-01 psnr_full=27.43 psnr_sub=30.41 lr=8.48e-05 0.49s/it
+  train: loss=0.00445 full=0.00327 sub=0.00114 reg=0.03138 psnr_full=27.427dB psnr_sub=30.409dB
+
+--- Epoch 113/400 ---
+  [113/400][50/50] loss=0.00392 full=0.00291 sub=0.00097 reg=0.03120 kl=5.63149*1.00e-06 noise_std=2.250e-01 psnr_full=28.53 psnr_sub=31.41 lr=8.46e-05 0.50s/it
+  train: loss=0.00392 full=0.00291 sub=0.00097 reg=0.03120 psnr_full=28.531dB psnr_sub=31.405dB
+
+--- Epoch 114/400 ---
+  [114/400][50/50] loss=0.00381 full=0.00285 sub=0.00092 reg=0.02789 kl=5.65116*1.00e-06 noise_std=2.143e-01 psnr_full=28.70 psnr_sub=31.70 lr=8.43e-05 0.49s/it
+  train: loss=0.00381 full=0.00285 sub=0.00092 reg=0.02789 psnr_full=28.699dB psnr_sub=31.701dB
+
+--- Epoch 115/400 ---
+  [115/400][50/50] loss=0.00435 full=0.00331 sub=0.00100 reg=0.02783 kl=5.66539*1.00e-06 noise_std=2.109e-01 psnr_full=28.24 psnr_sub=31.27 lr=8.40e-05 0.50s/it
+  train: loss=0.00435 full=0.00331 sub=0.00100 reg=0.02783 psnr_full=28.239dB psnr_sub=31.274dB
+
+--- Epoch 116/400 ---
+  [116/400][50/50] loss=0.00415 full=0.00314 sub=0.00097 reg=0.02659 kl=5.65173*1.00e-06 noise_std=2.079e-01 psnr_full=28.42 psnr_sub=31.48 lr=8.37e-05 0.50s/it
+  train: loss=0.00415 full=0.00314 sub=0.00097 reg=0.02659 psnr_full=28.418dB psnr_sub=31.479dB
+
+--- Epoch 117/400 ---
+  [117/400][50/50] loss=0.00410 full=0.00309 sub=0.00098 reg=0.02595 kl=5.65839*1.00e-06 noise_std=2.076e-01 psnr_full=28.30 psnr_sub=31.33 lr=8.34e-05 0.49s/it
+  train: loss=0.00410 full=0.00309 sub=0.00098 reg=0.02595 psnr_full=28.301dB psnr_sub=31.335dB
+
+--- Epoch 118/400 ---
+  [118/400][50/50] loss=0.00424 full=0.00311 sub=0.00110 reg=0.02927 kl=5.63121*1.00e-06 noise_std=2.235e-01 psnr_full=27.78 psnr_sub=30.64 lr=8.31e-05 0.49s/it
+  train: loss=0.00424 full=0.00311 sub=0.00110 reg=0.02927 psnr_full=27.779dB psnr_sub=30.636dB
+
+--- Epoch 119/400 ---
+  [119/400][50/50] loss=0.00431 full=0.00323 sub=0.00105 reg=0.03019 kl=5.63840*1.00e-06 noise_std=2.249e-01 psnr_full=28.03 psnr_sub=30.97 lr=8.28e-05 0.49s/it
+  train: loss=0.00431 full=0.00323 sub=0.00105 reg=0.03019 psnr_full=28.029dB psnr_sub=30.972dB
+
+--- Epoch 120/400 ---
+  [120/400][50/50] loss=0.00445 full=0.00326 sub=0.00114 reg=0.03102 kl=5.61823*1.00e-06 noise_std=2.295e-01 psnr_full=27.85 psnr_sub=30.68 lr=8.25e-05 0.50s/it
+  train: loss=0.00445 full=0.00326 sub=0.00114 reg=0.03102 psnr_full=27.846dB psnr_sub=30.676dB
+  val: loss=0.00519 full=0.00389 sub=0.00126 reg=0.03737 psnr_full=25.848dB psnr_sub=29.675dB
+
+--- Epoch 121/400 ---
+  [121/400][50/50] loss=0.00417 full=0.00310 sub=0.00103 reg=0.03024 kl=5.63958*1.00e-06 noise_std=2.247e-01 psnr_full=28.18 psnr_sub=30.99 lr=8.22e-05 0.49s/it
+  train: loss=0.00417 full=0.00310 sub=0.00103 reg=0.03024 psnr_full=28.179dB psnr_sub=30.991dB
+
+--- Epoch 122/400 ---
+  [122/400][50/50] loss=0.00405 full=0.00305 sub=0.00097 reg=0.02854 kl=5.64593*1.00e-06 noise_std=2.182e-01 psnr_full=28.45 psnr_sub=31.45 lr=8.19e-05 0.49s/it
+  train: loss=0.00405 full=0.00305 sub=0.00097 reg=0.02854 psnr_full=28.452dB psnr_sub=31.451dB
+
+--- Epoch 123/400 ---
+  [123/400][50/50] loss=0.00378 full=0.00283 sub=0.00092 reg=0.02644 kl=5.65728*1.00e-06 noise_std=2.115e-01 psnr_full=28.74 psnr_sub=31.71 lr=8.16e-05 0.49s/it
+  train: loss=0.00378 full=0.00283 sub=0.00092 reg=0.02644 psnr_full=28.736dB psnr_sub=31.707dB
+
+--- Epoch 124/400 ---
+  [124/400][50/50] loss=0.00392 full=0.00293 sub=0.00096 reg=0.02627 kl=5.66854*1.00e-06 noise_std=2.085e-01 psnr_full=28.57 psnr_sub=31.54 lr=8.13e-05 0.49s/it
+  train: loss=0.00392 full=0.00293 sub=0.00096 reg=0.02627 psnr_full=28.570dB psnr_sub=31.539dB
+
+--- Epoch 125/400 ---
+  [125/400][50/50] loss=0.00437 full=0.00325 sub=0.00108 reg=0.02805 kl=5.66545*1.00e-06 noise_std=2.186e-01 psnr_full=27.72 psnr_sub=30.73 lr=8.10e-05 0.49s/it
+  train: loss=0.00437 full=0.00325 sub=0.00108 reg=0.02805 psnr_full=27.718dB psnr_sub=30.729dB
+
+--- Epoch 126/400 ---
+  [126/400][50/50] loss=0.00417 full=0.00309 sub=0.00104 reg=0.02919 kl=5.64860*1.00e-06 noise_std=2.236e-01 psnr_full=28.00 psnr_sub=30.98 lr=8.07e-05 0.50s/it
+  train: loss=0.00417 full=0.00309 sub=0.00104 reg=0.02919 psnr_full=28.004dB psnr_sub=30.980dB
+
+--- Epoch 127/400 ---
+  [127/400][50/50] loss=0.00403 full=0.00303 sub=0.00096 reg=0.02788 kl=5.64728*1.00e-06 noise_std=2.185e-01 psnr_full=28.55 psnr_sub=31.51 lr=8.04e-05 0.49s/it
+  train: loss=0.00403 full=0.00303 sub=0.00096 reg=0.02788 psnr_full=28.553dB psnr_sub=31.507dB
+
+--- Epoch 128/400 ---
+  [128/400][50/50] loss=0.00393 full=0.00297 sub=0.00092 reg=0.02651 kl=5.66128*1.00e-06 noise_std=2.112e-01 psnr_full=28.82 psnr_sub=31.75 lr=8.01e-05 0.50s/it
+  train: loss=0.00393 full=0.00297 sub=0.00092 reg=0.02651 psnr_full=28.819dB psnr_sub=31.754dB
+
+--- Epoch 129/400 ---
+  [129/400][50/50] loss=0.00401 full=0.00299 sub=0.00099 reg=0.02569 kl=5.66421*1.00e-06 noise_std=2.094e-01 psnr_full=28.38 psnr_sub=31.33 lr=7.98e-05 0.50s/it
+  train: loss=0.00401 full=0.00299 sub=0.00099 reg=0.02569 psnr_full=28.377dB psnr_sub=31.329dB
+
+--- Epoch 130/400 ---
+  [130/400][50/50] loss=0.00421 full=0.00311 sub=0.00106 reg=0.02739 kl=5.66464*1.00e-06 noise_std=2.181e-01 psnr_full=27.88 psnr_sub=30.84 lr=7.95e-05 0.49s/it
+  train: loss=0.00421 full=0.00311 sub=0.00106 reg=0.02739 psnr_full=27.877dB psnr_sub=30.839dB
+  val: loss=0.00551 full=0.00406 sub=0.00141 reg=0.03286 psnr_full=25.454dB psnr_sub=29.075dB
+
+--- Epoch 131/400 ---
+  [131/400][50/50] loss=0.00421 full=0.00312 sub=0.00106 reg=0.02958 kl=5.64091*1.00e-06 noise_std=2.265e-01 psnr_full=27.96 psnr_sub=30.90 lr=7.92e-05 0.50s/it
+  train: loss=0.00421 full=0.00312 sub=0.00106 reg=0.02958 psnr_full=27.955dB psnr_sub=30.905dB
+
+--- Epoch 132/400 ---
+  [132/400][50/50] loss=0.00409 full=0.00307 sub=0.00099 reg=0.02776 kl=5.66838*1.00e-06 noise_std=2.169e-01 psnr_full=28.47 psnr_sub=31.37 lr=7.88e-05 0.50s/it
+  train: loss=0.00409 full=0.00307 sub=0.00099 reg=0.02776 psnr_full=28.469dB psnr_sub=31.373dB
+
+--- Epoch 133/400 ---
+  [133/400][50/50] loss=0.00416 full=0.00309 sub=0.00104 reg=0.02732 kl=5.67749*1.00e-06 noise_std=2.162e-01 psnr_full=28.28 psnr_sub=31.12 lr=7.85e-05 0.49s/it
+  train: loss=0.00416 full=0.00309 sub=0.00104 reg=0.02732 psnr_full=28.284dB psnr_sub=31.116dB
+
+--- Epoch 134/400 ---
+  [134/400][50/50] loss=0.00408 full=0.00302 sub=0.00103 reg=0.02721 kl=5.66735*1.00e-06 noise_std=2.182e-01 psnr_full=28.08 psnr_sub=30.97 lr=7.82e-05 0.49s/it
+  train: loss=0.00408 full=0.00302 sub=0.00103 reg=0.02721 psnr_full=28.080dB psnr_sub=30.971dB
+
+--- Epoch 135/400 ---
+  [135/400][50/50] loss=0.00428 full=0.00322 sub=0.00102 reg=0.02836 kl=5.65669*1.00e-06 noise_std=2.219e-01 psnr_full=28.06 psnr_sub=31.05 lr=7.79e-05 0.50s/it
+  train: loss=0.00428 full=0.00322 sub=0.00102 reg=0.02836 psnr_full=28.061dB psnr_sub=31.050dB
+
+--- Epoch 136/400 ---
+  [136/400][50/50] loss=0.00438 full=0.00324 sub=0.00111 reg=0.02844 kl=5.66526*1.00e-06 noise_std=2.231e-01 psnr_full=27.80 psnr_sub=30.72 lr=7.76e-05 0.49s/it
+  train: loss=0.00438 full=0.00324 sub=0.00111 reg=0.02844 psnr_full=27.796dB psnr_sub=30.716dB
+
+--- Epoch 137/400 ---
+  [137/400][50/50] loss=0.00437 full=0.00325 sub=0.00109 reg=0.02857 kl=5.66991*1.00e-06 noise_std=2.236e-01 psnr_full=27.84 psnr_sub=30.84 lr=7.72e-05 0.49s/it
+  train: loss=0.00437 full=0.00325 sub=0.00109 reg=0.02857 psnr_full=27.838dB psnr_sub=30.836dB
+
+--- Epoch 138/400 ---
+  [138/400][50/50] loss=0.00420 full=0.00315 sub=0.00101 reg=0.02842 kl=5.67901*1.00e-06 noise_std=2.211e-01 psnr_full=28.20 psnr_sub=31.17 lr=7.69e-05 0.49s/it
+  train: loss=0.00420 full=0.00315 sub=0.00101 reg=0.02842 psnr_full=28.204dB psnr_sub=31.168dB
+
+--- Epoch 139/400 ---
+  [139/400][50/50] loss=0.00418 full=0.00315 sub=0.00099 reg=0.02741 kl=5.68633*1.00e-06 noise_std=2.150e-01 psnr_full=28.26 psnr_sub=31.36 lr=7.66e-05 0.50s/it
+  train: loss=0.00418 full=0.00315 sub=0.00099 reg=0.02741 psnr_full=28.256dB psnr_sub=31.356dB
+
+--- Epoch 140/400 ---
+  [140/400][50/50] loss=0.00407 full=0.00306 sub=0.00097 reg=0.02663 kl=5.68614*1.00e-06 noise_std=2.144e-01 psnr_full=28.39 psnr_sub=31.42 lr=7.62e-05 0.50s/it
+  train: loss=0.00407 full=0.00306 sub=0.00097 reg=0.02663 psnr_full=28.391dB psnr_sub=31.420dB
+  val: loss=0.00504 full=0.00380 sub=0.00120 reg=0.03159 psnr_full=25.961dB psnr_sub=29.895dB
+
+--- Epoch 141/400 ---
+  [141/400][50/50] loss=0.00414 full=0.00309 sub=0.00102 reg=0.02649 kl=5.67923*1.00e-06 noise_std=2.169e-01 psnr_full=28.10 psnr_sub=31.04 lr=7.59e-05 0.49s/it
+  train: loss=0.00414 full=0.00309 sub=0.00102 reg=0.02649 psnr_full=28.100dB psnr_sub=31.036dB
+
+--- Epoch 142/400 ---
+  [142/400][50/50] loss=0.00423 full=0.00325 sub=0.00095 reg=0.02750 kl=5.68291*1.00e-06 noise_std=2.188e-01 psnr_full=28.34 psnr_sub=31.55 lr=7.56e-05 0.50s/it
+  train: loss=0.00423 full=0.00325 sub=0.00095 reg=0.02750 psnr_full=28.336dB psnr_sub=31.551dB
+
+--- Epoch 143/400 ---
+  [143/400][50/50] loss=0.00406 full=0.00308 sub=0.00095 reg=0.02577 kl=5.70296*1.00e-06 noise_std=2.108e-01 psnr_full=28.52 psnr_sub=31.70 lr=7.52e-05 0.49s/it
+  train: loss=0.00406 full=0.00308 sub=0.00095 reg=0.02577 psnr_full=28.522dB psnr_sub=31.696dB
+
+--- Epoch 144/400 ---
+  [144/400][50/50] loss=0.00393 full=0.00298 sub=0.00092 reg=0.02473 kl=5.70826*1.00e-06 noise_std=2.064e-01 psnr_full=28.63 psnr_sub=31.78 lr=7.49e-05 0.49s/it
+  train: loss=0.00393 full=0.00298 sub=0.00092 reg=0.02473 psnr_full=28.627dB psnr_sub=31.784dB
+
+--- Epoch 145/400 ---
+  [145/400][50/50] loss=0.00420 full=0.00317 sub=0.00101 reg=0.02508 kl=5.71086*1.00e-06 noise_std=2.075e-01 psnr_full=28.18 psnr_sub=31.20 lr=7.46e-05 0.50s/it
+  train: loss=0.00420 full=0.00317 sub=0.00101 reg=0.02508 psnr_full=28.183dB psnr_sub=31.196dB
+
+--- Epoch 146/400 ---
+  [146/400][50/50] loss=0.00416 full=0.00313 sub=0.00100 reg=0.02615 kl=5.70159*1.00e-06 noise_std=2.113e-01 psnr_full=28.27 psnr_sub=31.32 lr=7.42e-05 0.49s/it
+  train: loss=0.00416 full=0.00313 sub=0.00100 reg=0.02615 psnr_full=28.265dB psnr_sub=31.317dB
+
+--- Epoch 147/400 ---
+  [147/400][50/50] loss=0.00407 full=0.00305 sub=0.00098 reg=0.02587 kl=5.68757*1.00e-06 noise_std=2.139e-01 psnr_full=28.32 psnr_sub=31.33 lr=7.39e-05 0.50s/it
+  train: loss=0.00407 full=0.00305 sub=0.00098 reg=0.02587 psnr_full=28.318dB psnr_sub=31.331dB
+
+--- Epoch 148/400 ---
+  [148/400][50/50] loss=0.00400 full=0.00301 sub=0.00095 reg=0.02585 kl=5.69264*1.00e-06 noise_std=2.128e-01 psnr_full=28.46 psnr_sub=31.49 lr=7.36e-05 0.50s/it
+  train: loss=0.00400 full=0.00301 sub=0.00095 reg=0.02585 psnr_full=28.461dB psnr_sub=31.493dB
+
+--- Epoch 149/400 ---
+  [149/400][50/50] loss=0.00394 full=0.00298 sub=0.00093 reg=0.02450 kl=5.69417*1.00e-06 noise_std=2.081e-01 psnr_full=28.59 psnr_sub=31.63 lr=7.32e-05 0.49s/it
+  train: loss=0.00394 full=0.00298 sub=0.00093 reg=0.02450 psnr_full=28.587dB psnr_sub=31.626dB
+
+--- Epoch 150/400 ---
+  [150/400][50/50] loss=0.00386 full=0.00289 sub=0.00094 reg=0.02462 kl=5.69727*1.00e-06 noise_std=2.072e-01 psnr_full=28.40 psnr_sub=31.48 lr=7.29e-05 0.50s/it
+  train: loss=0.00386 full=0.00289 sub=0.00094 reg=0.02462 psnr_full=28.398dB psnr_sub=31.479dB
+  val: loss=0.00511 full=0.00386 sub=0.00122 reg=0.03150 psnr_full=25.880dB psnr_sub=30.005dB
+
+--- Epoch 151/400 ---
+  [151/400][50/50] loss=0.00450 full=0.00326 sub=0.00121 reg=0.02770 kl=5.68113*1.00e-06 noise_std=2.209e-01 psnr_full=27.36 psnr_sub=30.19 lr=7.25e-05 0.49s/it
+  train: loss=0.00450 full=0.00326 sub=0.00121 reg=0.02770 psnr_full=27.359dB psnr_sub=30.192dB
+
+--- Epoch 152/400 ---
+  [152/400][50/50] loss=0.00411 full=0.00312 sub=0.00096 reg=0.02814 kl=5.68884*1.00e-06 noise_std=2.200e-01 psnr_full=28.36 psnr_sub=31.52 lr=7.22e-05 0.49s/it
+  train: loss=0.00411 full=0.00312 sub=0.00096 reg=0.02814 psnr_full=28.361dB psnr_sub=31.524dB
+
+--- Epoch 153/400 ---
+  [153/400][50/50] loss=0.00365 full=0.00276 sub=0.00086 reg=0.02452 kl=5.71386*1.00e-06 noise_std=2.066e-01 psnr_full=28.93 psnr_sub=32.12 lr=7.18e-05 0.49s/it
+  train: loss=0.00365 full=0.00276 sub=0.00086 reg=0.02452 psnr_full=28.926dB psnr_sub=32.118dB
+
+--- Epoch 154/400 ---
+  [154/400][50/50] loss=0.00377 full=0.00285 sub=0.00090 reg=0.02376 kl=5.72858*1.00e-06 noise_std=2.036e-01 psnr_full=28.75 psnr_sub=31.87 lr=7.15e-05 0.49s/it
+  train: loss=0.00377 full=0.00285 sub=0.00090 reg=0.02376 psnr_full=28.747dB psnr_sub=31.871dB
+
+--- Epoch 155/400 ---
+  [155/400][50/50] loss=0.00388 full=0.00293 sub=0.00092 reg=0.02336 kl=5.75575*1.00e-06 noise_std=1.992e-01 psnr_full=28.66 psnr_sub=31.89 lr=7.11e-05 0.49s/it
+  train: loss=0.00388 full=0.00293 sub=0.00092 reg=0.02336 psnr_full=28.656dB psnr_sub=31.893dB
+
+--- Epoch 156/400 ---
+  [156/400][50/50] loss=0.00410 full=0.00314 sub=0.00094 reg=0.02259 kl=5.75546*1.00e-06 noise_std=1.968e-01 psnr_full=28.65 psnr_sub=31.77 lr=7.08e-05 0.50s/it
+  train: loss=0.00410 full=0.00314 sub=0.00094 reg=0.02259 psnr_full=28.647dB psnr_sub=31.773dB
+
+--- Epoch 157/400 ---
+  [157/400][50/50] loss=0.00437 full=0.00328 sub=0.00106 reg=0.02387 kl=5.73979*1.00e-06 noise_std=2.060e-01 psnr_full=27.76 psnr_sub=30.85 lr=7.04e-05 0.49s/it
+  train: loss=0.00437 full=0.00328 sub=0.00106 reg=0.02387 psnr_full=27.759dB psnr_sub=30.845dB
+
+--- Epoch 158/400 ---
+  [158/400][50/50] loss=0.00405 full=0.00306 sub=0.00096 reg=0.02515 kl=5.72654*1.00e-06 noise_std=2.105e-01 psnr_full=28.11 psnr_sub=31.37 lr=7.01e-05 0.50s/it
+  train: loss=0.00405 full=0.00306 sub=0.00096 reg=0.02515 psnr_full=28.107dB psnr_sub=31.366dB
+
+--- Epoch 159/400 ---
+  [159/400][50/50] loss=0.00415 full=0.00315 sub=0.00097 reg=0.02513 kl=5.72313*1.00e-06 noise_std=2.117e-01 psnr_full=28.17 psnr_sub=31.35 lr=6.97e-05 0.49s/it
+  train: loss=0.00415 full=0.00315 sub=0.00097 reg=0.02513 psnr_full=28.172dB psnr_sub=31.346dB
+
+--- Epoch 160/400 ---
+  [160/400][50/50] loss=0.00409 full=0.00313 sub=0.00092 reg=0.02479 kl=5.74686*1.00e-06 noise_std=2.087e-01 psnr_full=28.41 psnr_sub=31.70 lr=6.93e-05 0.50s/it
+  train: loss=0.00409 full=0.00313 sub=0.00092 reg=0.02479 psnr_full=28.411dB psnr_sub=31.701dB
+  val: loss=0.00497 full=0.00379 sub=0.00115 reg=0.02903 psnr_full=26.036dB psnr_sub=30.203dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004970 ***
+
+--- Epoch 161/400 ---
+  [161/400][50/50] loss=0.00406 full=0.00307 sub=0.00095 reg=0.02346 kl=5.74365*1.00e-06 noise_std=2.044e-01 psnr_full=28.30 psnr_sub=31.40 lr=6.90e-05 0.49s/it
+  train: loss=0.00406 full=0.00307 sub=0.00095 reg=0.02346 psnr_full=28.297dB psnr_sub=31.404dB
+
+--- Epoch 162/400 ---
+  [162/400][50/50] loss=0.00403 full=0.00306 sub=0.00094 reg=0.02410 kl=5.72562*1.00e-06 noise_std=2.075e-01 psnr_full=28.29 psnr_sub=31.53 lr=6.86e-05 0.49s/it
+  train: loss=0.00403 full=0.00306 sub=0.00094 reg=0.02410 psnr_full=28.293dB psnr_sub=31.526dB
+
+--- Epoch 163/400 ---
+  [163/400][50/50] loss=0.00411 full=0.00310 sub=0.00098 reg=0.02435 kl=5.74009*1.00e-06 noise_std=2.101e-01 psnr_full=28.37 psnr_sub=31.36 lr=6.83e-05 0.49s/it
+  train: loss=0.00411 full=0.00310 sub=0.00098 reg=0.02435 psnr_full=28.372dB psnr_sub=31.360dB
+
+--- Epoch 164/400 ---
+  [164/400][50/50] loss=0.00411 full=0.00311 sub=0.00097 reg=0.02448 kl=5.74254*1.00e-06 noise_std=2.100e-01 psnr_full=28.38 psnr_sub=31.44 lr=6.79e-05 0.50s/it
+  train: loss=0.00411 full=0.00311 sub=0.00097 reg=0.02448 psnr_full=28.385dB psnr_sub=31.441dB
+
+--- Epoch 165/400 ---
+  [165/400][50/50] loss=0.00412 full=0.00317 sub=0.00092 reg=0.02434 kl=5.75933*1.00e-06 noise_std=2.070e-01 psnr_full=28.44 psnr_sub=31.65 lr=6.75e-05 0.50s/it
+  train: loss=0.00412 full=0.00317 sub=0.00092 reg=0.02434 psnr_full=28.439dB psnr_sub=31.653dB
+
+--- Epoch 166/400 ---
+  [166/400][50/50] loss=0.00405 full=0.00309 sub=0.00093 reg=0.02313 kl=5.76132*1.00e-06 noise_std=2.026e-01 psnr_full=28.63 psnr_sub=31.77 lr=6.72e-05 0.50s/it
+  train: loss=0.00405 full=0.00309 sub=0.00093 reg=0.02313 psnr_full=28.625dB psnr_sub=31.769dB
+
+--- Epoch 167/400 ---
+  [167/400][50/50] loss=0.00391 full=0.00299 sub=0.00089 reg=0.02245 kl=5.76437*1.00e-06 noise_std=2.010e-01 psnr_full=28.83 psnr_sub=31.97 lr=6.68e-05 0.49s/it
+  train: loss=0.00391 full=0.00299 sub=0.00089 reg=0.02245 psnr_full=28.828dB psnr_sub=31.969dB
+
+--- Epoch 168/400 ---
+  [168/400][50/50] loss=0.00429 full=0.00327 sub=0.00099 reg=0.02361 kl=5.75997*1.00e-06 noise_std=2.034e-01 psnr_full=28.05 psnr_sub=31.30 lr=6.64e-05 0.49s/it
+  train: loss=0.00429 full=0.00327 sub=0.00099 reg=0.02361 psnr_full=28.052dB psnr_sub=31.300dB
+
+--- Epoch 169/400 ---
+  [169/400][50/50] loss=0.00401 full=0.00303 sub=0.00095 reg=0.02358 kl=5.74628*1.00e-06 noise_std=2.047e-01 psnr_full=28.38 psnr_sub=31.55 lr=6.61e-05 0.49s/it
+  train: loss=0.00401 full=0.00303 sub=0.00095 reg=0.02358 psnr_full=28.381dB psnr_sub=31.547dB
+
+--- Epoch 170/400 ---
+  [170/400][50/50] loss=0.00390 full=0.00295 sub=0.00092 reg=0.02405 kl=5.74608*1.00e-06 noise_std=2.082e-01 psnr_full=28.46 psnr_sub=31.63 lr=6.57e-05 0.49s/it
+  train: loss=0.00390 full=0.00295 sub=0.00092 reg=0.02405 psnr_full=28.456dB psnr_sub=31.630dB
+  val: loss=0.00492 full=0.00376 sub=0.00112 reg=0.02950 psnr_full=26.083dB psnr_sub=30.355dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004922 ***
+
+--- Epoch 171/400 ---
+  [171/400][50/50] loss=0.00399 full=0.00303 sub=0.00093 reg=0.02357 kl=5.76228*1.00e-06 noise_std=2.041e-01 psnr_full=28.61 psnr_sub=31.76 lr=6.53e-05 0.49s/it
+  train: loss=0.00399 full=0.00303 sub=0.00093 reg=0.02357 psnr_full=28.614dB psnr_sub=31.759dB
+
+--- Epoch 172/400 ---
+  [172/400][50/50] loss=0.00392 full=0.00299 sub=0.00090 reg=0.02238 kl=5.77251*1.00e-06 noise_std=1.991e-01 psnr_full=28.66 psnr_sub=31.90 lr=6.50e-05 0.49s/it
+  train: loss=0.00392 full=0.00299 sub=0.00090 reg=0.02238 psnr_full=28.663dB psnr_sub=31.896dB
+
+--- Epoch 173/400 ---
+  [173/400][50/50] loss=0.00395 full=0.00302 sub=0.00090 reg=0.02221 kl=5.77306*1.00e-06 noise_std=1.971e-01 psnr_full=28.57 psnr_sub=31.88 lr=6.46e-05 0.50s/it
+  train: loss=0.00395 full=0.00302 sub=0.00090 reg=0.02221 psnr_full=28.565dB psnr_sub=31.876dB
+
+--- Epoch 174/400 ---
+  [174/400][50/50] loss=0.00395 full=0.00303 sub=0.00089 reg=0.02148 kl=5.78668*1.00e-06 noise_std=1.942e-01 psnr_full=28.86 psnr_sub=32.03 lr=6.42e-05 0.49s/it
+  train: loss=0.00395 full=0.00303 sub=0.00089 reg=0.02148 psnr_full=28.856dB psnr_sub=32.032dB
+
+--- Epoch 175/400 ---
+  [175/400][50/50] loss=0.00404 full=0.00310 sub=0.00091 reg=0.02159 kl=5.80092*1.00e-06 noise_std=1.939e-01 psnr_full=28.65 psnr_sub=31.88 lr=6.39e-05 0.50s/it
+  train: loss=0.00404 full=0.00310 sub=0.00091 reg=0.02159 psnr_full=28.649dB psnr_sub=31.879dB
+
+--- Epoch 176/400 ---
+  [176/400][50/50] loss=0.00408 full=0.00311 sub=0.00094 reg=0.02157 kl=5.79167*1.00e-06 noise_std=1.919e-01 psnr_full=28.43 psnr_sub=31.68 lr=6.35e-05 0.50s/it
+  train: loss=0.00408 full=0.00311 sub=0.00094 reg=0.02157 psnr_full=28.427dB psnr_sub=31.679dB
+
+--- Epoch 177/400 ---
+  [177/400][50/50] loss=0.00384 full=0.00293 sub=0.00088 reg=0.02123 kl=5.78158*1.00e-06 noise_std=1.927e-01 psnr_full=28.91 psnr_sub=32.06 lr=6.31e-05 0.50s/it
+  train: loss=0.00384 full=0.00293 sub=0.00088 reg=0.02123 psnr_full=28.907dB psnr_sub=32.058dB
+
+--- Epoch 178/400 ---
+  [178/400][50/50] loss=0.00387 full=0.00291 sub=0.00093 reg=0.02110 kl=5.78583*1.00e-06 noise_std=1.936e-01 psnr_full=28.64 psnr_sub=31.74 lr=6.27e-05 0.50s/it
+  train: loss=0.00387 full=0.00291 sub=0.00093 reg=0.02110 psnr_full=28.636dB psnr_sub=31.740dB
+
+--- Epoch 179/400 ---
+  [179/400][50/50] loss=0.00387 full=0.00288 sub=0.00096 reg=0.02181 kl=5.76991*1.00e-06 noise_std=1.992e-01 psnr_full=28.45 psnr_sub=31.44 lr=6.24e-05 0.50s/it
+  train: loss=0.00387 full=0.00288 sub=0.00096 reg=0.02181 psnr_full=28.451dB psnr_sub=31.441dB
+
+--- Epoch 180/400 ---
+  [180/400][50/50] loss=0.00383 full=0.00287 sub=0.00093 reg=0.02210 kl=5.75505*1.00e-06 noise_std=2.001e-01 psnr_full=28.55 psnr_sub=31.64 lr=6.20e-05 0.50s/it
+  train: loss=0.00383 full=0.00287 sub=0.00093 reg=0.02210 psnr_full=28.554dB psnr_sub=31.639dB
+  val: loss=0.00510 full=0.00387 sub=0.00119 reg=0.02712 psnr_full=25.822dB psnr_sub=29.901dB
+
+--- Epoch 181/400 ---
+  [181/400][50/50] loss=0.00409 full=0.00311 sub=0.00096 reg=0.02328 kl=5.75719*1.00e-06 noise_std=2.043e-01 psnr_full=28.43 psnr_sub=31.53 lr=6.16e-05 0.50s/it
+  train: loss=0.00409 full=0.00311 sub=0.00096 reg=0.02328 psnr_full=28.426dB psnr_sub=31.529dB
+
+--- Epoch 182/400 ---
+  [182/400][50/50] loss=0.00418 full=0.00320 sub=0.00095 reg=0.02331 kl=5.77965*1.00e-06 noise_std=2.004e-01 psnr_full=28.13 psnr_sub=31.49 lr=6.13e-05 0.50s/it
+  train: loss=0.00418 full=0.00320 sub=0.00095 reg=0.02331 psnr_full=28.128dB psnr_sub=31.490dB
+
+--- Epoch 183/400 ---
+  [183/400][50/50] loss=0.00397 full=0.00303 sub=0.00091 reg=0.02205 kl=5.78472*1.00e-06 noise_std=1.965e-01 psnr_full=28.57 psnr_sub=31.83 lr=6.09e-05 0.49s/it
+  train: loss=0.00397 full=0.00303 sub=0.00091 reg=0.02205 psnr_full=28.566dB psnr_sub=31.835dB
+
+--- Epoch 184/400 ---
+  [184/400][50/50] loss=0.00389 full=0.00298 sub=0.00088 reg=0.02144 kl=5.79272*1.00e-06 noise_std=1.953e-01 psnr_full=28.69 psnr_sub=31.91 lr=6.05e-05 0.49s/it
+  train: loss=0.00389 full=0.00298 sub=0.00088 reg=0.02144 psnr_full=28.691dB psnr_sub=31.907dB
+
+--- Epoch 185/400 ---
+  [185/400][50/50] loss=0.00377 full=0.00288 sub=0.00087 reg=0.02055 kl=5.79047*1.00e-06 noise_std=1.918e-01 psnr_full=29.08 psnr_sub=32.15 lr=6.01e-05 0.50s/it
+  train: loss=0.00377 full=0.00288 sub=0.00087 reg=0.02055 psnr_full=29.083dB psnr_sub=32.151dB
+
+--- Epoch 186/400 ---
+  [186/400][50/50] loss=0.00373 full=0.00283 sub=0.00087 reg=0.02014 kl=5.80070*1.00e-06 noise_std=1.891e-01 psnr_full=29.02 psnr_sub=32.18 lr=5.97e-05 0.49s/it
+  train: loss=0.00373 full=0.00283 sub=0.00087 reg=0.02014 psnr_full=29.025dB psnr_sub=32.182dB
+
+--- Epoch 187/400 ---
+  [187/400][50/50] loss=0.00402 full=0.00307 sub=0.00092 reg=0.02046 kl=5.82386*1.00e-06 noise_std=1.890e-01 psnr_full=28.38 psnr_sub=31.84 lr=5.94e-05 0.50s/it
+  train: loss=0.00402 full=0.00307 sub=0.00092 reg=0.02046 psnr_full=28.380dB psnr_sub=31.844dB
+
+--- Epoch 188/400 ---
+  [188/400][50/50] loss=0.00407 full=0.00311 sub=0.00093 reg=0.01996 kl=5.80670*1.00e-06 noise_std=1.895e-01 psnr_full=28.38 psnr_sub=31.64 lr=5.90e-05 0.50s/it
+  train: loss=0.00407 full=0.00311 sub=0.00093 reg=0.01996 psnr_full=28.385dB psnr_sub=31.644dB
+
+--- Epoch 189/400 ---
+  [189/400][50/50] loss=0.00387 full=0.00293 sub=0.00092 reg=0.02103 kl=5.80249*1.00e-06 noise_std=1.958e-01 psnr_full=28.82 psnr_sub=31.84 lr=5.86e-05 0.49s/it
+  train: loss=0.00387 full=0.00293 sub=0.00092 reg=0.02103 psnr_full=28.820dB psnr_sub=31.844dB
+
+--- Epoch 190/400 ---
+  [190/400][50/50] loss=0.00394 full=0.00304 sub=0.00088 reg=0.02045 kl=5.80170*1.00e-06 noise_std=1.908e-01 psnr_full=28.86 psnr_sub=32.10 lr=5.82e-05 0.49s/it
+  train: loss=0.00394 full=0.00304 sub=0.00088 reg=0.02045 psnr_full=28.859dB psnr_sub=32.100dB
+  val: loss=0.00486 full=0.00373 sub=0.00110 reg=0.02497 psnr_full=26.159dB psnr_sub=30.469dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004863 ***
+
+--- Epoch 191/400 ---
+  [191/400][50/50] loss=0.00392 full=0.00299 sub=0.00090 reg=0.02035 kl=5.80517*1.00e-06 noise_std=1.912e-01 psnr_full=28.48 psnr_sub=31.80 lr=5.78e-05 0.49s/it
+  train: loss=0.00392 full=0.00299 sub=0.00090 reg=0.02035 psnr_full=28.478dB psnr_sub=31.799dB
+
+--- Epoch 192/400 ---
+  [192/400][50/50] loss=0.00451 full=0.00336 sub=0.00112 reg=0.02326 kl=5.75794*1.00e-06 noise_std=2.065e-01 psnr_full=27.53 psnr_sub=30.63 lr=5.75e-05 0.49s/it
+  train: loss=0.00451 full=0.00336 sub=0.00112 reg=0.02326 psnr_full=27.531dB psnr_sub=30.625dB
+
+--- Epoch 193/400 ---
+  [193/400][50/50] loss=0.00413 full=0.00312 sub=0.00098 reg=0.02440 kl=5.74518*1.00e-06 noise_std=2.100e-01 psnr_full=28.09 psnr_sub=31.26 lr=5.71e-05 0.49s/it
+  train: loss=0.00413 full=0.00312 sub=0.00098 reg=0.02440 psnr_full=28.094dB psnr_sub=31.257dB
+
+--- Epoch 194/400 ---
+  [194/400][50/50] loss=0.00386 full=0.00293 sub=0.00091 reg=0.02301 kl=5.75652*1.00e-06 noise_std=2.034e-01 psnr_full=28.71 psnr_sub=31.81 lr=5.67e-05 0.49s/it
+  train: loss=0.00386 full=0.00293 sub=0.00091 reg=0.02301 psnr_full=28.713dB psnr_sub=31.812dB
+
+--- Epoch 195/400 ---
+  [195/400][50/50] loss=0.00387 full=0.00296 sub=0.00088 reg=0.02174 kl=5.78493*1.00e-06 noise_std=1.954e-01 psnr_full=29.00 psnr_sub=32.17 lr=5.63e-05 0.49s/it
+  train: loss=0.00387 full=0.00296 sub=0.00088 reg=0.02174 psnr_full=28.997dB psnr_sub=32.174dB
+
+--- Epoch 196/400 ---
+  [196/400][50/50] loss=0.00386 full=0.00296 sub=0.00087 reg=0.02049 kl=5.78981*1.00e-06 noise_std=1.918e-01 psnr_full=28.99 psnr_sub=32.19 lr=5.59e-05 0.49s/it
+  train: loss=0.00386 full=0.00296 sub=0.00087 reg=0.02049 psnr_full=28.986dB psnr_sub=32.186dB
+
+--- Epoch 197/400 ---
+  [197/400][50/50] loss=0.00399 full=0.00306 sub=0.00090 reg=0.02056 kl=5.80051*1.00e-06 noise_std=1.919e-01 psnr_full=28.74 psnr_sub=31.96 lr=5.56e-05 0.49s/it
+  train: loss=0.00399 full=0.00306 sub=0.00090 reg=0.02056 psnr_full=28.744dB psnr_sub=31.961dB
+
+--- Epoch 198/400 ---
+  [198/400][50/50] loss=0.00387 full=0.00296 sub=0.00088 reg=0.01963 kl=5.81348*1.00e-06 noise_std=1.882e-01 psnr_full=28.97 psnr_sub=32.08 lr=5.52e-05 0.49s/it
+  train: loss=0.00387 full=0.00296 sub=0.00088 reg=0.01963 psnr_full=28.973dB psnr_sub=32.082dB
+
+--- Epoch 199/400 ---
+  [199/400][50/50] loss=0.00399 full=0.00306 sub=0.00091 reg=0.01989 kl=5.80649*1.00e-06 noise_std=1.880e-01 psnr_full=28.50 psnr_sub=31.82 lr=5.48e-05 0.49s/it
+  train: loss=0.00399 full=0.00306 sub=0.00091 reg=0.01989 psnr_full=28.498dB psnr_sub=31.821dB
+
+--- Epoch 200/400 ---
+  [200/400][50/50] loss=0.00392 full=0.00296 sub=0.00094 reg=0.02037 kl=5.77575*1.00e-06 noise_std=1.944e-01 psnr_full=28.43 psnr_sub=31.54 lr=5.44e-05 0.49s/it
+  train: loss=0.00392 full=0.00296 sub=0.00094 reg=0.02037 psnr_full=28.427dB psnr_sub=31.542dB
+  val: loss=0.00501 full=0.00379 sub=0.00119 reg=0.02625 psnr_full=25.994dB psnr_sub=29.983dB
+
+--- Epoch 201/400 ---
+  [201/400][50/50] loss=0.00388 full=0.00296 sub=0.00090 reg=0.02130 kl=5.77998*1.00e-06 noise_std=1.972e-01 psnr_full=28.73 psnr_sub=31.86 lr=5.40e-05 0.49s/it
+  train: loss=0.00388 full=0.00296 sub=0.00090 reg=0.02130 psnr_full=28.733dB psnr_sub=31.862dB
+
+--- Epoch 202/400 ---
+  [202/400][50/50] loss=0.00391 full=0.00300 sub=0.00088 reg=0.02089 kl=5.79670*1.00e-06 noise_std=1.933e-01 psnr_full=28.77 psnr_sub=32.01 lr=5.36e-05 0.49s/it
+  train: loss=0.00391 full=0.00300 sub=0.00088 reg=0.02089 psnr_full=28.769dB psnr_sub=32.007dB
+
+--- Epoch 203/400 ---
+  [203/400][50/50] loss=0.00369 full=0.00277 sub=0.00090 reg=0.01980 kl=5.78548*1.00e-06 noise_std=1.912e-01 psnr_full=28.82 psnr_sub=31.92 lr=5.33e-05 0.49s/it
+  train: loss=0.00369 full=0.00277 sub=0.00090 reg=0.01980 psnr_full=28.818dB psnr_sub=31.923dB
+
+--- Epoch 204/400 ---
+  [204/400][50/50] loss=0.00399 full=0.00306 sub=0.00090 reg=0.02060 kl=5.80254*1.00e-06 noise_std=1.928e-01 psnr_full=28.46 psnr_sub=31.82 lr=5.29e-05 0.49s/it
+  train: loss=0.00399 full=0.00306 sub=0.00090 reg=0.02060 psnr_full=28.457dB psnr_sub=31.818dB
+
+--- Epoch 205/400 ---
+  [205/400][50/50] loss=0.00400 full=0.00310 sub=0.00087 reg=0.02021 kl=5.80127*1.00e-06 noise_std=1.917e-01 psnr_full=28.61 psnr_sub=32.05 lr=5.25e-05 0.49s/it
+  train: loss=0.00400 full=0.00310 sub=0.00087 reg=0.02021 psnr_full=28.615dB psnr_sub=32.045dB
+
+--- Epoch 206/400 ---
+  [206/400][50/50] loss=0.00382 full=0.00293 sub=0.00086 reg=0.01964 kl=5.81088*1.00e-06 noise_std=1.877e-01 psnr_full=29.01 psnr_sub=32.21 lr=5.21e-05 0.49s/it
+  train: loss=0.00382 full=0.00293 sub=0.00086 reg=0.01964 psnr_full=29.011dB psnr_sub=32.210dB
+
+--- Epoch 207/400 ---
+  [207/400][50/50] loss=0.00393 full=0.00305 sub=0.00085 reg=0.01883 kl=5.81894*1.00e-06 noise_std=1.843e-01 psnr_full=28.78 psnr_sub=32.24 lr=5.17e-05 0.49s/it
+  train: loss=0.00393 full=0.00305 sub=0.00085 reg=0.01883 psnr_full=28.778dB psnr_sub=32.236dB
+
+--- Epoch 208/400 ---
+  [208/400][50/50] loss=0.00370 full=0.00282 sub=0.00085 reg=0.01867 kl=5.81318*1.00e-06 noise_std=1.849e-01 psnr_full=29.22 psnr_sub=32.30 lr=5.14e-05 0.49s/it
+  train: loss=0.00370 full=0.00282 sub=0.00085 reg=0.01867 psnr_full=29.225dB psnr_sub=32.298dB
+
+--- Epoch 209/400 ---
+  [209/400][50/50] loss=0.00372 full=0.00283 sub=0.00086 reg=0.01857 kl=5.83063*1.00e-06 noise_std=1.810e-01 psnr_full=28.90 psnr_sub=32.15 lr=5.10e-05 0.49s/it
+  train: loss=0.00372 full=0.00283 sub=0.00086 reg=0.01857 psnr_full=28.898dB psnr_sub=32.148dB
+
+--- Epoch 210/400 ---
+  [210/400][50/50] loss=0.00379 full=0.00291 sub=0.00085 reg=0.01810 kl=5.82392*1.00e-06 noise_std=1.812e-01 psnr_full=29.01 psnr_sub=32.31 lr=5.06e-05 0.49s/it
+  train: loss=0.00379 full=0.00291 sub=0.00085 reg=0.01810 psnr_full=29.010dB psnr_sub=32.312dB
+  val: loss=0.00496 full=0.00379 sub=0.00114 reg=0.02344 psnr_full=25.966dB psnr_sub=30.262dB
+
+--- Epoch 211/400 ---
+  [211/400][50/50] loss=0.00396 full=0.00303 sub=0.00091 reg=0.01878 kl=5.83100*1.00e-06 noise_std=1.846e-01 psnr_full=28.46 psnr_sub=31.76 lr=5.02e-05 0.49s/it
+  train: loss=0.00396 full=0.00303 sub=0.00091 reg=0.01878 psnr_full=28.462dB psnr_sub=31.762dB
+
+--- Epoch 212/400 ---
+  [212/400][50/50] loss=0.00391 full=0.00296 sub=0.00092 reg=0.01929 kl=5.81471*1.00e-06 noise_std=1.879e-01 psnr_full=28.51 psnr_sub=31.76 lr=4.98e-05 0.49s/it
+  train: loss=0.00391 full=0.00296 sub=0.00092 reg=0.01929 psnr_full=28.509dB psnr_sub=31.755dB
+
+--- Epoch 213/400 ---
+  [213/400][50/50] loss=0.00378 full=0.00285 sub=0.00091 reg=0.01899 kl=5.79416*1.00e-06 noise_std=1.893e-01 psnr_full=28.57 psnr_sub=31.71 lr=4.94e-05 0.49s/it
+  train: loss=0.00378 full=0.00285 sub=0.00091 reg=0.01899 psnr_full=28.568dB psnr_sub=31.711dB
+
+--- Epoch 214/400 ---
+  [214/400][50/50] loss=0.00395 full=0.00302 sub=0.00090 reg=0.02009 kl=5.82096*1.00e-06 noise_std=1.890e-01 psnr_full=28.77 psnr_sub=32.03 lr=4.91e-05 0.49s/it
+  train: loss=0.00395 full=0.00302 sub=0.00090 reg=0.02009 psnr_full=28.771dB psnr_sub=32.035dB
+
+--- Epoch 215/400 ---
+  [215/400][50/50] loss=0.00382 full=0.00290 sub=0.00089 reg=0.01876 kl=5.82513*1.00e-06 noise_std=1.854e-01 psnr_full=28.86 psnr_sub=32.01 lr=4.87e-05 0.49s/it
+  train: loss=0.00382 full=0.00290 sub=0.00089 reg=0.01876 psnr_full=28.858dB psnr_sub=32.013dB
+
+--- Epoch 216/400 ---
+  [216/400][50/50] loss=0.00405 full=0.00310 sub=0.00092 reg=0.01919 kl=5.83608*1.00e-06 noise_std=1.858e-01 psnr_full=28.58 psnr_sub=31.83 lr=4.83e-05 0.49s/it
+  train: loss=0.00405 full=0.00310 sub=0.00092 reg=0.01919 psnr_full=28.578dB psnr_sub=31.826dB
+
+--- Epoch 217/400 ---
+  [217/400][50/50] loss=0.00377 full=0.00289 sub=0.00086 reg=0.01873 kl=5.82874*1.00e-06 noise_std=1.843e-01 psnr_full=29.13 psnr_sub=32.35 lr=4.79e-05 0.49s/it
+  train: loss=0.00377 full=0.00289 sub=0.00086 reg=0.01873 psnr_full=29.128dB psnr_sub=32.354dB
+
+--- Epoch 218/400 ---
+  [218/400][50/50] loss=0.00398 full=0.00307 sub=0.00089 reg=0.01864 kl=5.83535*1.00e-06 noise_std=1.821e-01 psnr_full=28.91 psnr_sub=32.16 lr=4.75e-05 0.49s/it
+  train: loss=0.00398 full=0.00307 sub=0.00089 reg=0.01864 psnr_full=28.913dB psnr_sub=32.164dB
+
+--- Epoch 219/400 ---
+  [219/400][50/50] loss=0.00367 full=0.00281 sub=0.00083 reg=0.01735 kl=5.83128*1.00e-06 noise_std=1.794e-01 psnr_full=28.98 psnr_sub=32.34 lr=4.72e-05 0.49s/it
+  train: loss=0.00367 full=0.00281 sub=0.00083 reg=0.01735 psnr_full=28.981dB psnr_sub=32.342dB
+
+--- Epoch 220/400 ---
+  [220/400][50/50] loss=0.00397 full=0.00306 sub=0.00088 reg=0.01823 kl=5.84717*1.00e-06 noise_std=1.816e-01 psnr_full=28.48 psnr_sub=31.91 lr=4.68e-05 0.49s/it
+  train: loss=0.00397 full=0.00306 sub=0.00088 reg=0.01823 psnr_full=28.475dB psnr_sub=31.912dB
+  val: loss=0.00482 full=0.00370 sub=0.00110 reg=0.02247 psnr_full=26.167dB psnr_sub=30.473dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004825 ***
+
+--- Epoch 221/400 ---
+  [221/400][50/50] loss=0.00401 full=0.00305 sub=0.00093 reg=0.01912 kl=5.83714*1.00e-06 noise_std=1.864e-01 psnr_full=28.30 psnr_sub=31.62 lr=4.64e-05 0.49s/it
+  train: loss=0.00401 full=0.00305 sub=0.00093 reg=0.01912 psnr_full=28.304dB psnr_sub=31.619dB
+
+--- Epoch 222/400 ---
+  [222/400][50/50] loss=0.00364 full=0.00278 sub=0.00083 reg=0.01792 kl=5.81138*1.00e-06 noise_std=1.861e-01 psnr_full=29.16 psnr_sub=32.29 lr=4.60e-05 0.49s/it
+  train: loss=0.00364 full=0.00278 sub=0.00083 reg=0.01792 psnr_full=29.158dB psnr_sub=32.288dB
+
+--- Epoch 223/400 ---
+  [223/400][50/50] loss=0.00385 full=0.00293 sub=0.00090 reg=0.01878 kl=5.83809*1.00e-06 noise_std=1.865e-01 psnr_full=28.75 psnr_sub=31.94 lr=4.56e-05 0.49s/it
+  train: loss=0.00385 full=0.00293 sub=0.00090 reg=0.01878 psnr_full=28.755dB psnr_sub=31.943dB
+
+--- Epoch 224/400 ---
+  [224/400][50/50] loss=0.00376 full=0.00290 sub=0.00084 reg=0.01792 kl=5.84903*1.00e-06 noise_std=1.824e-01 psnr_full=29.11 psnr_sub=32.33 lr=4.53e-05 0.49s/it
+  train: loss=0.00376 full=0.00290 sub=0.00084 reg=0.01792 psnr_full=29.105dB psnr_sub=32.333dB
+
+--- Epoch 225/400 ---
+  [225/400][50/50] loss=0.00388 full=0.00298 sub=0.00087 reg=0.01814 kl=5.85578*1.00e-06 noise_std=1.818e-01 psnr_full=28.73 psnr_sub=32.10 lr=4.49e-05 0.49s/it
+  train: loss=0.00388 full=0.00298 sub=0.00087 reg=0.01814 psnr_full=28.734dB psnr_sub=32.097dB
+
+--- Epoch 226/400 ---
+  [226/400][50/50] loss=0.00374 full=0.00287 sub=0.00084 reg=0.01714 kl=5.86038*1.00e-06 noise_std=1.770e-01 psnr_full=28.94 psnr_sub=32.27 lr=4.45e-05 0.49s/it
+  train: loss=0.00374 full=0.00287 sub=0.00084 reg=0.01714 psnr_full=28.939dB psnr_sub=32.275dB
+
+--- Epoch 227/400 ---
+  [227/400][50/50] loss=0.00362 full=0.00278 sub=0.00082 reg=0.01698 kl=5.85328*1.00e-06 noise_std=1.769e-01 psnr_full=29.36 psnr_sub=32.61 lr=4.41e-05 0.49s/it
+  train: loss=0.00362 full=0.00278 sub=0.00082 reg=0.01698 psnr_full=29.361dB psnr_sub=32.609dB
+
+--- Epoch 228/400 ---
+  [228/400][50/50] loss=0.00389 full=0.00300 sub=0.00086 reg=0.01743 kl=5.86730*1.00e-06 noise_std=1.777e-01 psnr_full=29.12 psnr_sub=32.27 lr=4.37e-05 0.49s/it
+  train: loss=0.00389 full=0.00300 sub=0.00086 reg=0.01743 psnr_full=29.120dB psnr_sub=32.268dB
+
+--- Epoch 229/400 ---
+  [229/400][50/50] loss=0.00383 full=0.00294 sub=0.00086 reg=0.01745 kl=5.87179*1.00e-06 noise_std=1.784e-01 psnr_full=29.00 psnr_sub=32.24 lr=4.34e-05 0.49s/it
+  train: loss=0.00383 full=0.00294 sub=0.00086 reg=0.01745 psnr_full=28.997dB psnr_sub=32.240dB
+
+--- Epoch 230/400 ---
+  [230/400][50/50] loss=0.00394 full=0.00304 sub=0.00088 reg=0.01741 kl=5.87043*1.00e-06 noise_std=1.781e-01 psnr_full=28.49 psnr_sub=31.94 lr=4.30e-05 0.50s/it
+  train: loss=0.00394 full=0.00304 sub=0.00088 reg=0.01741 psnr_full=28.492dB psnr_sub=31.943dB
+  val: loss=0.00482 full=0.00371 sub=0.00108 reg=0.02182 psnr_full=26.095dB psnr_sub=30.429dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004821 ***
+
+--- Epoch 231/400 ---
+  [231/400][50/50] loss=0.00388 full=0.00300 sub=0.00086 reg=0.01749 kl=5.86871*1.00e-06 noise_std=1.784e-01 psnr_full=28.73 psnr_sub=32.11 lr=4.26e-05 0.49s/it
+  train: loss=0.00388 full=0.00300 sub=0.00086 reg=0.01749 psnr_full=28.731dB psnr_sub=32.110dB
+
+--- Epoch 232/400 ---
+  [232/400][50/50] loss=0.00381 full=0.00293 sub=0.00086 reg=0.01712 kl=5.87347*1.00e-06 noise_std=1.763e-01 psnr_full=29.09 psnr_sub=32.30 lr=4.23e-05 0.49s/it
+  train: loss=0.00381 full=0.00293 sub=0.00086 reg=0.01712 psnr_full=29.089dB psnr_sub=32.301dB
+
+--- Epoch 233/400 ---
+  [233/400][50/50] loss=0.00383 full=0.00293 sub=0.00088 reg=0.01712 kl=5.87991*1.00e-06 noise_std=1.762e-01 psnr_full=28.73 psnr_sub=32.14 lr=4.19e-05 0.49s/it
+  train: loss=0.00383 full=0.00293 sub=0.00088 reg=0.01712 psnr_full=28.727dB psnr_sub=32.140dB
+
+--- Epoch 234/400 ---
+  [234/400][50/50] loss=0.00388 full=0.00298 sub=0.00087 reg=0.01728 kl=5.87563*1.00e-06 noise_std=1.765e-01 psnr_full=28.43 psnr_sub=31.98 lr=4.15e-05 0.49s/it
+  train: loss=0.00388 full=0.00298 sub=0.00087 reg=0.01728 psnr_full=28.430dB psnr_sub=31.975dB
+
+--- Epoch 235/400 ---
+  [235/400][50/50] loss=0.00354 full=0.00271 sub=0.00080 reg=0.01631 kl=5.86806*1.00e-06 noise_std=1.740e-01 psnr_full=29.32 psnr_sub=32.54 lr=4.11e-05 0.49s/it
+  train: loss=0.00354 full=0.00271 sub=0.00080 reg=0.01631 psnr_full=29.324dB psnr_sub=32.543dB
+
+--- Epoch 236/400 ---
+  [236/400][50/50] loss=0.00383 full=0.00298 sub=0.00083 reg=0.01644 kl=5.88343*1.00e-06 noise_std=1.725e-01 psnr_full=29.06 psnr_sub=32.44 lr=4.08e-05 0.49s/it
+  train: loss=0.00383 full=0.00298 sub=0.00083 reg=0.01644 psnr_full=29.062dB psnr_sub=32.439dB
+
+--- Epoch 237/400 ---
+  [237/400][50/50] loss=0.00404 full=0.00314 sub=0.00088 reg=0.01644 kl=5.88957*1.00e-06 noise_std=1.717e-01 psnr_full=28.56 psnr_sub=32.05 lr=4.04e-05 0.49s/it
+  train: loss=0.00404 full=0.00314 sub=0.00088 reg=0.01644 psnr_full=28.564dB psnr_sub=32.052dB
+
+--- Epoch 238/400 ---
+  [238/400][50/50] loss=0.00375 full=0.00285 sub=0.00088 reg=0.01665 kl=5.89100*1.00e-06 noise_std=1.732e-01 psnr_full=28.64 psnr_sub=32.05 lr=4.00e-05 0.49s/it
+  train: loss=0.00375 full=0.00285 sub=0.00088 reg=0.01665 psnr_full=28.635dB psnr_sub=32.053dB
+
+--- Epoch 239/400 ---
+  [239/400][50/50] loss=0.00396 full=0.00305 sub=0.00089 reg=0.01670 kl=5.88721*1.00e-06 noise_std=1.732e-01 psnr_full=28.96 psnr_sub=32.17 lr=3.97e-05 0.49s/it
+  train: loss=0.00396 full=0.00305 sub=0.00089 reg=0.01670 psnr_full=28.964dB psnr_sub=32.168dB
+
+--- Epoch 240/400 ---
+  [240/400][50/50] loss=0.00374 full=0.00287 sub=0.00086 reg=0.01642 kl=5.88269*1.00e-06 noise_std=1.737e-01 psnr_full=28.98 psnr_sub=32.25 lr=3.93e-05 0.49s/it
+  train: loss=0.00374 full=0.00287 sub=0.00086 reg=0.01642 psnr_full=28.977dB psnr_sub=32.251dB
+  val: loss=0.00471 full=0.00364 sub=0.00104 reg=0.02045 psnr_full=26.308dB psnr_sub=30.792dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004708 ***
+
+--- Epoch 241/400 ---
+  [241/400][50/50] loss=0.00386 full=0.00300 sub=0.00084 reg=0.01660 kl=5.89243*1.00e-06 noise_std=1.706e-01 psnr_full=28.84 psnr_sub=32.36 lr=3.89e-05 0.50s/it
+  train: loss=0.00386 full=0.00300 sub=0.00084 reg=0.01660 psnr_full=28.843dB psnr_sub=32.362dB
+
+--- Epoch 242/400 ---
+  [242/400][50/50] loss=0.00390 full=0.00299 sub=0.00089 reg=0.01644 kl=5.88336*1.00e-06 noise_std=1.728e-01 psnr_full=28.53 psnr_sub=31.92 lr=3.86e-05 0.49s/it
+  train: loss=0.00390 full=0.00299 sub=0.00089 reg=0.01644 psnr_full=28.530dB psnr_sub=31.919dB
+
+--- Epoch 243/400 ---
+  [243/400][50/50] loss=0.00405 full=0.00313 sub=0.00090 reg=0.01731 kl=5.87497*1.00e-06 noise_std=1.780e-01 psnr_full=28.59 psnr_sub=32.02 lr=3.82e-05 0.49s/it
+  train: loss=0.00405 full=0.00313 sub=0.00090 reg=0.01731 psnr_full=28.587dB psnr_sub=32.020dB
+
+--- Epoch 244/400 ---
+  [244/400][50/50] loss=0.00386 full=0.00298 sub=0.00086 reg=0.01666 kl=5.87174*1.00e-06 noise_std=1.741e-01 psnr_full=28.77 psnr_sub=32.20 lr=3.78e-05 0.50s/it
+  train: loss=0.00386 full=0.00298 sub=0.00086 reg=0.01666 psnr_full=28.768dB psnr_sub=32.199dB
+
+--- Epoch 245/400 ---
+  [245/400][50/50] loss=0.00363 full=0.00277 sub=0.00084 reg=0.01618 kl=5.88315*1.00e-06 noise_std=1.734e-01 psnr_full=29.33 psnr_sub=32.49 lr=3.75e-05 0.50s/it
+  train: loss=0.00363 full=0.00277 sub=0.00084 reg=0.01618 psnr_full=29.332dB psnr_sub=32.493dB
+
+--- Epoch 246/400 ---
+  [246/400][50/50] loss=0.00386 full=0.00298 sub=0.00086 reg=0.01623 kl=5.89191*1.00e-06 noise_std=1.710e-01 psnr_full=28.88 psnr_sub=32.29 lr=3.71e-05 0.50s/it
+  train: loss=0.00386 full=0.00298 sub=0.00086 reg=0.01623 psnr_full=28.877dB psnr_sub=32.294dB
+
+--- Epoch 247/400 ---
+  [247/400][50/50] loss=0.00384 full=0.00296 sub=0.00086 reg=0.01640 kl=5.88589*1.00e-06 noise_std=1.734e-01 psnr_full=28.80 psnr_sub=32.15 lr=3.67e-05 0.50s/it
+  train: loss=0.00384 full=0.00296 sub=0.00086 reg=0.01640 psnr_full=28.797dB psnr_sub=32.150dB
+
+--- Epoch 248/400 ---
+  [248/400][50/50] loss=0.00396 full=0.00305 sub=0.00089 reg=0.01672 kl=5.89435*1.00e-06 noise_std=1.730e-01 psnr_full=28.39 psnr_sub=31.93 lr=3.64e-05 0.50s/it
+  train: loss=0.00396 full=0.00305 sub=0.00089 reg=0.01672 psnr_full=28.385dB psnr_sub=31.929dB
+
+--- Epoch 249/400 ---
+  [249/400][50/50] loss=0.00384 full=0.00296 sub=0.00086 reg=0.01629 kl=5.89803*1.00e-06 noise_std=1.734e-01 psnr_full=28.58 psnr_sub=32.06 lr=3.60e-05 0.50s/it
+  train: loss=0.00384 full=0.00296 sub=0.00086 reg=0.01629 psnr_full=28.582dB psnr_sub=32.063dB
+
+--- Epoch 250/400 ---
+  [250/400][50/50] loss=0.00388 full=0.00297 sub=0.00089 reg=0.01699 kl=5.88216*1.00e-06 noise_std=1.781e-01 psnr_full=28.77 psnr_sub=32.06 lr=3.57e-05 0.50s/it
+  train: loss=0.00388 full=0.00297 sub=0.00089 reg=0.01699 psnr_full=28.772dB psnr_sub=32.061dB
+  val: loss=0.00474 full=0.00366 sub=0.00105 reg=0.02053 psnr_full=26.259dB psnr_sub=30.722dB
+
+--- Epoch 251/400 ---
+  [251/400][50/50] loss=0.00402 full=0.00313 sub=0.00087 reg=0.01703 kl=5.89178*1.00e-06 noise_std=1.752e-01 psnr_full=28.61 psnr_sub=32.15 lr=3.53e-05 0.49s/it
+  train: loss=0.00402 full=0.00313 sub=0.00087 reg=0.01703 psnr_full=28.608dB psnr_sub=32.150dB
+
+--- Epoch 252/400 ---
+  [252/400][50/50] loss=0.00388 full=0.00299 sub=0.00088 reg=0.01622 kl=5.88564*1.00e-06 noise_std=1.731e-01 psnr_full=28.82 psnr_sub=32.23 lr=3.49e-05 0.49s/it
+  train: loss=0.00388 full=0.00299 sub=0.00088 reg=0.01622 psnr_full=28.816dB psnr_sub=32.227dB
+
+--- Epoch 253/400 ---
+  [253/400][50/50] loss=0.00392 full=0.00305 sub=0.00085 reg=0.01653 kl=5.88307*1.00e-06 noise_std=1.750e-01 psnr_full=28.94 psnr_sub=32.29 lr=3.46e-05 0.49s/it
+  train: loss=0.00392 full=0.00305 sub=0.00085 reg=0.01653 psnr_full=28.937dB psnr_sub=32.291dB
+
+--- Epoch 254/400 ---
+  [254/400][50/50] loss=0.00382 full=0.00297 sub=0.00083 reg=0.01637 kl=5.89745*1.00e-06 noise_std=1.732e-01 psnr_full=29.21 psnr_sub=32.43 lr=3.42e-05 0.50s/it
+  train: loss=0.00382 full=0.00297 sub=0.00083 reg=0.01637 psnr_full=29.213dB psnr_sub=32.434dB
+
+--- Epoch 255/400 ---
+  [255/400][50/50] loss=0.00366 full=0.00281 sub=0.00082 reg=0.01584 kl=5.88891*1.00e-06 noise_std=1.711e-01 psnr_full=29.07 psnr_sub=32.41 lr=3.39e-05 0.50s/it
+  train: loss=0.00366 full=0.00281 sub=0.00082 reg=0.01584 psnr_full=29.073dB psnr_sub=32.408dB
+
+--- Epoch 256/400 ---
+  [256/400][50/50] loss=0.00363 full=0.00277 sub=0.00085 reg=0.01598 kl=5.88286*1.00e-06 noise_std=1.721e-01 psnr_full=28.94 psnr_sub=32.24 lr=3.35e-05 0.50s/it
+  train: loss=0.00363 full=0.00277 sub=0.00085 reg=0.01598 psnr_full=28.942dB psnr_sub=32.245dB
+
+--- Epoch 257/400 ---
+  [257/400][50/50] loss=0.00375 full=0.00288 sub=0.00085 reg=0.01627 kl=5.88842*1.00e-06 noise_std=1.733e-01 psnr_full=28.75 psnr_sub=32.12 lr=3.32e-05 0.50s/it
+  train: loss=0.00375 full=0.00288 sub=0.00085 reg=0.01627 psnr_full=28.750dB psnr_sub=32.123dB
+
+--- Epoch 258/400 ---
+  [258/400][50/50] loss=0.00372 full=0.00285 sub=0.00084 reg=0.01579 kl=5.89860*1.00e-06 noise_std=1.696e-01 psnr_full=29.04 psnr_sub=32.40 lr=3.28e-05 0.50s/it
+  train: loss=0.00372 full=0.00285 sub=0.00084 reg=0.01579 psnr_full=29.045dB psnr_sub=32.402dB
+
+--- Epoch 259/400 ---
+  [259/400][50/50] loss=0.00391 full=0.00301 sub=0.00088 reg=0.01608 kl=5.89378*1.00e-06 noise_std=1.698e-01 psnr_full=28.93 psnr_sub=32.23 lr=3.25e-05 0.50s/it
+  train: loss=0.00391 full=0.00301 sub=0.00088 reg=0.01608 psnr_full=28.929dB psnr_sub=32.235dB
+
+--- Epoch 260/400 ---
+  [260/400][50/50] loss=0.00377 full=0.00294 sub=0.00081 reg=0.01562 kl=5.89006*1.00e-06 noise_std=1.710e-01 psnr_full=29.16 psnr_sub=32.56 lr=3.21e-05 0.50s/it
+  train: loss=0.00377 full=0.00294 sub=0.00081 reg=0.01562 psnr_full=29.164dB psnr_sub=32.563dB
+  val: loss=0.00469 full=0.00363 sub=0.00104 reg=0.01929 psnr_full=26.309dB psnr_sub=30.785dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004694 ***
+
+--- Epoch 261/400 ---
+  [261/400][50/50] loss=0.00400 full=0.00312 sub=0.00085 reg=0.01608 kl=5.90850*1.00e-06 noise_std=1.699e-01 psnr_full=28.86 psnr_sub=32.36 lr=3.18e-05 0.50s/it
+  train: loss=0.00400 full=0.00312 sub=0.00085 reg=0.01608 psnr_full=28.860dB psnr_sub=32.355dB
+
+--- Epoch 262/400 ---
+  [262/400][50/50] loss=0.00379 full=0.00294 sub=0.00083 reg=0.01530 kl=5.91479*1.00e-06 noise_std=1.665e-01 psnr_full=29.17 psnr_sub=32.48 lr=3.14e-05 0.50s/it
+  train: loss=0.00379 full=0.00294 sub=0.00083 reg=0.01530 psnr_full=29.172dB psnr_sub=32.484dB
+
+--- Epoch 263/400 ---
+  [263/400][50/50] loss=0.00372 full=0.00287 sub=0.00084 reg=0.01518 kl=5.91162*1.00e-06 noise_std=1.665e-01 psnr_full=29.11 psnr_sub=32.49 lr=3.11e-05 0.50s/it
+  train: loss=0.00372 full=0.00287 sub=0.00084 reg=0.01518 psnr_full=29.106dB psnr_sub=32.491dB
+
+--- Epoch 264/400 ---
+  [264/400][50/50] loss=0.00395 full=0.00309 sub=0.00085 reg=0.01539 kl=5.91536*1.00e-06 noise_std=1.669e-01 psnr_full=29.01 psnr_sub=32.36 lr=3.08e-05 0.50s/it
+  train: loss=0.00395 full=0.00309 sub=0.00085 reg=0.01539 psnr_full=29.014dB psnr_sub=32.363dB
+
+--- Epoch 265/400 ---
+  [265/400][50/50] loss=0.00382 full=0.00296 sub=0.00084 reg=0.01500 kl=5.90970*1.00e-06 noise_std=1.675e-01 psnr_full=28.89 psnr_sub=32.33 lr=3.04e-05 0.50s/it
+  train: loss=0.00382 full=0.00296 sub=0.00084 reg=0.01500 psnr_full=28.895dB psnr_sub=32.328dB
+
+--- Epoch 266/400 ---
+  [266/400][50/50] loss=0.00360 full=0.00277 sub=0.00081 reg=0.01473 kl=5.90632*1.00e-06 noise_std=1.669e-01 psnr_full=29.20 psnr_sub=32.57 lr=3.01e-05 0.50s/it
+  train: loss=0.00360 full=0.00277 sub=0.00081 reg=0.01473 psnr_full=29.202dB psnr_sub=32.567dB
+
+--- Epoch 267/400 ---
+  [267/400][50/50] loss=0.00364 full=0.00280 sub=0.00082 reg=0.01536 kl=5.92063*1.00e-06 noise_std=1.679e-01 psnr_full=29.08 psnr_sub=32.43 lr=2.98e-05 0.50s/it
+  train: loss=0.00364 full=0.00280 sub=0.00082 reg=0.01536 psnr_full=29.075dB psnr_sub=32.427dB
+
+--- Epoch 268/400 ---
+  [268/400][50/50] loss=0.00391 full=0.00303 sub=0.00085 reg=0.01546 kl=5.93100*1.00e-06 noise_std=1.677e-01 psnr_full=28.55 psnr_sub=32.15 lr=2.94e-05 0.50s/it
+  train: loss=0.00391 full=0.00303 sub=0.00085 reg=0.01546 psnr_full=28.546dB psnr_sub=32.153dB
+
+--- Epoch 269/400 ---
+  [269/400][50/50] loss=0.00382 full=0.00298 sub=0.00082 reg=0.01497 kl=5.91425*1.00e-06 noise_std=1.659e-01 psnr_full=29.30 psnr_sub=32.65 lr=2.91e-05 0.49s/it
+  train: loss=0.00382 full=0.00298 sub=0.00082 reg=0.01497 psnr_full=29.297dB psnr_sub=32.651dB
+
+--- Epoch 270/400 ---
+  [270/400][50/50] loss=0.00373 full=0.00287 sub=0.00084 reg=0.01493 kl=5.92435*1.00e-06 noise_std=1.661e-01 psnr_full=29.12 psnr_sub=32.47 lr=2.88e-05 0.50s/it
+  train: loss=0.00373 full=0.00287 sub=0.00084 reg=0.01493 psnr_full=29.123dB psnr_sub=32.471dB
+  val: loss=0.00468 full=0.00361 sub=0.00104 reg=0.01820 psnr_full=26.338dB psnr_sub=30.774dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004676 ***
+
+--- Epoch 271/400 ---
+  [271/400][50/50] loss=0.00385 full=0.00297 sub=0.00086 reg=0.01506 kl=5.93034*1.00e-06 noise_std=1.657e-01 psnr_full=28.70 psnr_sub=32.20 lr=2.84e-05 0.50s/it
+  train: loss=0.00385 full=0.00297 sub=0.00086 reg=0.01506 psnr_full=28.698dB psnr_sub=32.201dB
+
+--- Epoch 272/400 ---
+  [272/400][50/50] loss=0.00383 full=0.00296 sub=0.00085 reg=0.01487 kl=5.92777*1.00e-06 noise_std=1.664e-01 psnr_full=29.06 psnr_sub=32.42 lr=2.81e-05 0.50s/it
+  train: loss=0.00383 full=0.00296 sub=0.00085 reg=0.01487 psnr_full=29.057dB psnr_sub=32.421dB
+
+--- Epoch 273/400 ---
+  [273/400][50/50] loss=0.00379 full=0.00293 sub=0.00085 reg=0.01502 kl=5.93412*1.00e-06 noise_std=1.676e-01 psnr_full=29.17 psnr_sub=32.41 lr=2.78e-05 0.50s/it
+  train: loss=0.00379 full=0.00293 sub=0.00085 reg=0.01502 psnr_full=29.166dB psnr_sub=32.412dB
+
+--- Epoch 274/400 ---
+  [274/400][50/50] loss=0.00388 full=0.00300 sub=0.00085 reg=0.01489 kl=5.92801*1.00e-06 noise_std=1.662e-01 psnr_full=28.96 psnr_sub=32.26 lr=2.74e-05 0.50s/it
+  train: loss=0.00388 full=0.00300 sub=0.00085 reg=0.01489 psnr_full=28.962dB psnr_sub=32.265dB
+
+--- Epoch 275/400 ---
+  [275/400][50/50] loss=0.00390 full=0.00303 sub=0.00085 reg=0.01476 kl=5.93122*1.00e-06 noise_std=1.660e-01 psnr_full=28.84 psnr_sub=32.24 lr=2.71e-05 0.50s/it
+  train: loss=0.00390 full=0.00303 sub=0.00085 reg=0.01476 psnr_full=28.844dB psnr_sub=32.241dB
+
+--- Epoch 276/400 ---
+  [276/400][50/50] loss=0.00368 full=0.00283 sub=0.00083 reg=0.01475 kl=5.93408*1.00e-06 noise_std=1.654e-01 psnr_full=29.15 psnr_sub=32.48 lr=2.68e-05 0.50s/it
+  train: loss=0.00368 full=0.00283 sub=0.00083 reg=0.01475 psnr_full=29.153dB psnr_sub=32.479dB
+
+--- Epoch 277/400 ---
+  [277/400][50/50] loss=0.00376 full=0.00290 sub=0.00084 reg=0.01482 kl=5.94180*1.00e-06 noise_std=1.640e-01 psnr_full=29.08 psnr_sub=32.43 lr=2.65e-05 0.50s/it
+  train: loss=0.00376 full=0.00290 sub=0.00084 reg=0.01482 psnr_full=29.082dB psnr_sub=32.434dB
+
+--- Epoch 278/400 ---
+  [278/400][50/50] loss=0.00397 full=0.00310 sub=0.00085 reg=0.01483 kl=5.94579*1.00e-06 noise_std=1.644e-01 psnr_full=28.90 psnr_sub=32.39 lr=2.62e-05 0.50s/it
+  train: loss=0.00397 full=0.00310 sub=0.00085 reg=0.01483 psnr_full=28.901dB psnr_sub=32.387dB
+
+--- Epoch 279/400 ---
+  [279/400][50/50] loss=0.00356 full=0.00274 sub=0.00081 reg=0.01398 kl=5.94492*1.00e-06 noise_std=1.614e-01 psnr_full=29.45 psnr_sub=32.78 lr=2.58e-05 0.50s/it
+  train: loss=0.00356 full=0.00274 sub=0.00081 reg=0.01398 psnr_full=29.448dB psnr_sub=32.776dB
+
+--- Epoch 280/400 ---
+  [280/400][50/50] loss=0.00367 full=0.00281 sub=0.00084 reg=0.01444 kl=5.94772*1.00e-06 noise_std=1.633e-01 psnr_full=29.18 psnr_sub=32.42 lr=2.55e-05 0.50s/it
+  train: loss=0.00367 full=0.00281 sub=0.00084 reg=0.01444 psnr_full=29.176dB psnr_sub=32.420dB
+  val: loss=0.00466 full=0.00360 sub=0.00103 reg=0.01766 psnr_full=26.362dB psnr_sub=30.797dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004662 ***
+
+--- Epoch 281/400 ---
+  [281/400][50/50] loss=0.00386 full=0.00300 sub=0.00084 reg=0.01436 kl=5.94994*1.00e-06 noise_std=1.622e-01 psnr_full=28.89 psnr_sub=32.40 lr=2.52e-05 0.50s/it
+  train: loss=0.00386 full=0.00300 sub=0.00084 reg=0.01436 psnr_full=28.886dB psnr_sub=32.396dB
+
+--- Epoch 282/400 ---
+  [282/400][50/50] loss=0.00369 full=0.00286 sub=0.00081 reg=0.01388 kl=5.93581*1.00e-06 noise_std=1.628e-01 psnr_full=29.34 psnr_sub=32.67 lr=2.49e-05 0.50s/it
+  train: loss=0.00369 full=0.00286 sub=0.00081 reg=0.01388 psnr_full=29.341dB psnr_sub=32.666dB
+
+--- Epoch 283/400 ---
+  [283/400][50/50] loss=0.00383 full=0.00297 sub=0.00084 reg=0.01451 kl=5.94949*1.00e-06 noise_std=1.617e-01 psnr_full=29.01 psnr_sub=32.50 lr=2.46e-05 0.50s/it
+  train: loss=0.00383 full=0.00297 sub=0.00084 reg=0.01451 psnr_full=29.006dB psnr_sub=32.495dB
+
+--- Epoch 284/400 ---
+  [284/400][50/50] loss=0.00387 full=0.00299 sub=0.00085 reg=0.01446 kl=5.94897*1.00e-06 noise_std=1.623e-01 psnr_full=28.94 psnr_sub=32.41 lr=2.43e-05 0.50s/it
+  train: loss=0.00387 full=0.00299 sub=0.00085 reg=0.01446 psnr_full=28.943dB psnr_sub=32.412dB
+
+--- Epoch 285/400 ---
+  [285/400][50/50] loss=0.00373 full=0.00291 sub=0.00081 reg=0.01392 kl=5.95236*1.00e-06 noise_std=1.593e-01 psnr_full=29.30 psnr_sub=32.68 lr=2.40e-05 0.50s/it
+  train: loss=0.00373 full=0.00291 sub=0.00081 reg=0.01392 psnr_full=29.301dB psnr_sub=32.680dB
+
+--- Epoch 286/400 ---
+  [286/400][50/50] loss=0.00372 full=0.00286 sub=0.00083 reg=0.01405 kl=5.95936*1.00e-06 noise_std=1.599e-01 psnr_full=29.20 psnr_sub=32.53 lr=2.37e-05 0.50s/it
+  train: loss=0.00372 full=0.00286 sub=0.00083 reg=0.01405 psnr_full=29.196dB psnr_sub=32.530dB
+
+--- Epoch 287/400 ---
+  [287/400][50/50] loss=0.00374 full=0.00290 sub=0.00082 reg=0.01393 kl=5.96091*1.00e-06 noise_std=1.602e-01 psnr_full=29.15 psnr_sub=32.51 lr=2.34e-05 0.50s/it
+  train: loss=0.00374 full=0.00290 sub=0.00082 reg=0.01393 psnr_full=29.146dB psnr_sub=32.515dB
+
+--- Epoch 288/400 ---
+  [288/400][50/50] loss=0.00377 full=0.00293 sub=0.00081 reg=0.01402 kl=5.97528*1.00e-06 noise_std=1.577e-01 psnr_full=28.79 psnr_sub=32.41 lr=2.31e-05 0.50s/it
+  train: loss=0.00377 full=0.00293 sub=0.00081 reg=0.01402 psnr_full=28.792dB psnr_sub=32.410dB
+
+--- Epoch 289/400 ---
+  [289/400][50/50] loss=0.00383 full=0.00297 sub=0.00084 reg=0.01407 kl=5.96637*1.00e-06 noise_std=1.592e-01 psnr_full=29.03 psnr_sub=32.39 lr=2.28e-05 0.50s/it
+  train: loss=0.00383 full=0.00297 sub=0.00084 reg=0.01407 psnr_full=29.030dB psnr_sub=32.387dB
+
+--- Epoch 290/400 ---
+  [290/400][50/50] loss=0.00379 full=0.00296 sub=0.00082 reg=0.01372 kl=5.96766*1.00e-06 noise_std=1.583e-01 psnr_full=29.28 psnr_sub=32.62 lr=2.25e-05 0.50s/it
+  train: loss=0.00379 full=0.00296 sub=0.00082 reg=0.01372 psnr_full=29.276dB psnr_sub=32.625dB
+  val: loss=0.00466 full=0.00360 sub=0.00103 reg=0.01675 psnr_full=26.358dB psnr_sub=30.856dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004656 ***
+
+--- Epoch 291/400 ---
+  [291/400][50/50] loss=0.00397 full=0.00308 sub=0.00087 reg=0.01421 kl=5.97790*1.00e-06 noise_std=1.590e-01 psnr_full=28.88 psnr_sub=32.35 lr=2.22e-05 0.50s/it
+  train: loss=0.00397 full=0.00308 sub=0.00087 reg=0.01421 psnr_full=28.878dB psnr_sub=32.355dB
+
+--- Epoch 292/400 ---
+  [292/400][50/50] loss=0.00380 full=0.00293 sub=0.00085 reg=0.01368 kl=5.97541*1.00e-06 noise_std=1.591e-01 psnr_full=28.91 psnr_sub=32.33 lr=2.19e-05 0.50s/it
+  train: loss=0.00380 full=0.00293 sub=0.00085 reg=0.01368 psnr_full=28.910dB psnr_sub=32.327dB
+
+--- Epoch 293/400 ---
+  [293/400][50/50] loss=0.00366 full=0.00283 sub=0.00081 reg=0.01345 kl=5.97243*1.00e-06 noise_std=1.584e-01 psnr_full=29.31 psnr_sub=32.57 lr=2.16e-05 0.50s/it
+  train: loss=0.00366 full=0.00283 sub=0.00081 reg=0.01345 psnr_full=29.315dB psnr_sub=32.574dB
+
+--- Epoch 294/400 ---
+  [294/400][50/50] loss=0.00365 full=0.00280 sub=0.00083 reg=0.01355 kl=5.98035*1.00e-06 noise_std=1.577e-01 psnr_full=28.97 psnr_sub=32.39 lr=2.13e-05 0.50s/it
+  train: loss=0.00365 full=0.00280 sub=0.00083 reg=0.01355 psnr_full=28.974dB psnr_sub=32.385dB
+
+--- Epoch 295/400 ---
+  [295/400][50/50] loss=0.00360 full=0.00278 sub=0.00080 reg=0.01317 kl=5.97098*1.00e-06 noise_std=1.568e-01 psnr_full=29.48 psnr_sub=32.69 lr=2.10e-05 0.50s/it
+  train: loss=0.00360 full=0.00278 sub=0.00080 reg=0.01317 psnr_full=29.477dB psnr_sub=32.687dB
+
+--- Epoch 296/400 ---
+  [296/400][50/50] loss=0.00350 full=0.00271 sub=0.00077 reg=0.01287 kl=5.97506*1.00e-06 noise_std=1.549e-01 psnr_full=29.63 psnr_sub=32.81 lr=2.07e-05 0.50s/it
+  train: loss=0.00350 full=0.00271 sub=0.00077 reg=0.01287 psnr_full=29.628dB psnr_sub=32.810dB
+
+--- Epoch 297/400 ---
+  [297/400][50/50] loss=0.00380 full=0.00296 sub=0.00082 reg=0.01344 kl=5.97966*1.00e-06 noise_std=1.564e-01 psnr_full=29.16 psnr_sub=32.61 lr=2.04e-05 0.50s/it
+  train: loss=0.00380 full=0.00296 sub=0.00082 reg=0.01344 psnr_full=29.163dB psnr_sub=32.607dB
+
+--- Epoch 298/400 ---
+  [298/400][50/50] loss=0.00358 full=0.00277 sub=0.00079 reg=0.01304 kl=5.97642*1.00e-06 noise_std=1.560e-01 psnr_full=29.31 psnr_sub=32.67 lr=2.02e-05 0.50s/it
+  train: loss=0.00358 full=0.00277 sub=0.00079 reg=0.01304 psnr_full=29.310dB psnr_sub=32.666dB
+
+--- Epoch 299/400 ---
+  [299/400][50/50] loss=0.00387 full=0.00302 sub=0.00083 reg=0.01324 kl=5.98349*1.00e-06 noise_std=1.558e-01 psnr_full=29.01 psnr_sub=32.50 lr=1.99e-05 0.50s/it
+  train: loss=0.00387 full=0.00302 sub=0.00083 reg=0.01324 psnr_full=29.008dB psnr_sub=32.503dB
+
+--- Epoch 300/400 ---
+  [300/400][50/50] loss=0.00370 full=0.00283 sub=0.00085 reg=0.01345 kl=5.98258*1.00e-06 noise_std=1.583e-01 psnr_full=28.83 psnr_sub=32.25 lr=1.96e-05 0.50s/it
+  train: loss=0.00370 full=0.00283 sub=0.00085 reg=0.01345 psnr_full=28.832dB psnr_sub=32.253dB
+  val: loss=0.00463 full=0.00359 sub=0.00102 reg=0.01635 psnr_full=26.396dB psnr_sub=30.874dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004631 ***
+
+--- Epoch 301/400 ---
+  [301/400][50/50] loss=0.00367 full=0.00285 sub=0.00080 reg=0.01304 kl=5.98542*1.00e-06 noise_std=1.544e-01 psnr_full=29.20 psnr_sub=32.65 lr=1.93e-05 0.50s/it
+  train: loss=0.00367 full=0.00285 sub=0.00080 reg=0.01304 psnr_full=29.200dB psnr_sub=32.651dB
+
+--- Epoch 302/400 ---
+  [302/400][50/50] loss=0.00378 full=0.00293 sub=0.00083 reg=0.01326 kl=5.98865*1.00e-06 noise_std=1.554e-01 psnr_full=29.13 psnr_sub=32.58 lr=1.90e-05 0.50s/it
+  train: loss=0.00378 full=0.00293 sub=0.00083 reg=0.01326 psnr_full=29.132dB psnr_sub=32.576dB
+
+--- Epoch 303/400 ---
+  [303/400][50/50] loss=0.00383 full=0.00299 sub=0.00082 reg=0.01297 kl=5.99403*1.00e-06 noise_std=1.541e-01 psnr_full=28.92 psnr_sub=32.54 lr=1.88e-05 0.50s/it
+  train: loss=0.00383 full=0.00299 sub=0.00082 reg=0.01297 psnr_full=28.921dB psnr_sub=32.535dB
+
+--- Epoch 304/400 ---
+  [304/400][50/50] loss=0.00388 full=0.00301 sub=0.00084 reg=0.01311 kl=6.00604*1.00e-06 noise_std=1.547e-01 psnr_full=29.26 psnr_sub=32.51 lr=1.85e-05 0.50s/it
+  train: loss=0.00388 full=0.00301 sub=0.00084 reg=0.01311 psnr_full=29.256dB psnr_sub=32.508dB
+
+--- Epoch 305/400 ---
+  [305/400][50/50] loss=0.00357 full=0.00277 sub=0.00078 reg=0.01262 kl=5.99142*1.00e-06 noise_std=1.523e-01 psnr_full=29.51 psnr_sub=32.86 lr=1.82e-05 0.50s/it
+  train: loss=0.00357 full=0.00277 sub=0.00078 reg=0.01262 psnr_full=29.514dB psnr_sub=32.856dB
+
+--- Epoch 306/400 ---
+  [306/400][50/50] loss=0.00374 full=0.00289 sub=0.00083 reg=0.01304 kl=5.99779*1.00e-06 noise_std=1.546e-01 psnr_full=29.05 psnr_sub=32.43 lr=1.80e-05 0.50s/it
+  train: loss=0.00374 full=0.00289 sub=0.00083 reg=0.01304 psnr_full=29.046dB psnr_sub=32.429dB
+
+--- Epoch 307/400 ---
+  [307/400][50/50] loss=0.00366 full=0.00283 sub=0.00081 reg=0.01283 kl=5.99853*1.00e-06 noise_std=1.526e-01 psnr_full=29.42 psnr_sub=32.69 lr=1.77e-05 0.50s/it
+  train: loss=0.00366 full=0.00283 sub=0.00081 reg=0.01283 psnr_full=29.419dB psnr_sub=32.691dB
+
+--- Epoch 308/400 ---
+  [308/400][50/50] loss=0.00356 full=0.00274 sub=0.00079 reg=0.01244 kl=5.99635*1.00e-06 noise_std=1.521e-01 psnr_full=29.29 psnr_sub=32.76 lr=1.75e-05 0.50s/it
+  train: loss=0.00356 full=0.00274 sub=0.00079 reg=0.01244 psnr_full=29.289dB psnr_sub=32.758dB
+
+--- Epoch 309/400 ---
+  [309/400][50/50] loss=0.00358 full=0.00278 sub=0.00079 reg=0.01236 kl=5.99771*1.00e-06 noise_std=1.515e-01 psnr_full=29.47 psnr_sub=32.81 lr=1.72e-05 0.50s/it
+  train: loss=0.00358 full=0.00278 sub=0.00079 reg=0.01236 psnr_full=29.466dB psnr_sub=32.806dB
+
+--- Epoch 310/400 ---
+  [310/400][50/50] loss=0.00377 full=0.00294 sub=0.00081 reg=0.01270 kl=6.00656*1.00e-06 noise_std=1.523e-01 psnr_full=29.15 psnr_sub=32.63 lr=1.69e-05 0.50s/it
+  train: loss=0.00377 full=0.00294 sub=0.00081 reg=0.01270 psnr_full=29.146dB psnr_sub=32.626dB
+  val: loss=0.00465 full=0.00360 sub=0.00103 reg=0.01566 psnr_full=26.327dB psnr_sub=30.785dB
+
+--- Epoch 311/400 ---
+  [311/400][50/50] loss=0.00378 full=0.00292 sub=0.00085 reg=0.01288 kl=6.01195*1.00e-06 noise_std=1.529e-01 psnr_full=29.01 psnr_sub=32.43 lr=1.67e-05 0.50s/it
+  train: loss=0.00378 full=0.00292 sub=0.00085 reg=0.01288 psnr_full=29.008dB psnr_sub=32.426dB
+
+--- Epoch 312/400 ---
+  [312/400][50/50] loss=0.00358 full=0.00276 sub=0.00080 reg=0.01251 kl=6.00326*1.00e-06 noise_std=1.523e-01 psnr_full=29.49 psnr_sub=32.80 lr=1.64e-05 0.50s/it
+  train: loss=0.00358 full=0.00276 sub=0.00080 reg=0.01251 psnr_full=29.494dB psnr_sub=32.805dB
+
+--- Epoch 313/400 ---
+  [313/400][50/50] loss=0.00386 full=0.00302 sub=0.00082 reg=0.01277 kl=6.01490*1.00e-06 noise_std=1.517e-01 psnr_full=29.14 psnr_sub=32.61 lr=1.62e-05 0.50s/it
+  train: loss=0.00386 full=0.00302 sub=0.00082 reg=0.01277 psnr_full=29.140dB psnr_sub=32.608dB
+
+--- Epoch 314/400 ---
+  [314/400][50/50] loss=0.00374 full=0.00291 sub=0.00082 reg=0.01262 kl=6.01433*1.00e-06 noise_std=1.523e-01 psnr_full=29.08 psnr_sub=32.56 lr=1.59e-05 0.50s/it
+  train: loss=0.00374 full=0.00291 sub=0.00082 reg=0.01262 psnr_full=29.075dB psnr_sub=32.558dB
+
+--- Epoch 315/400 ---
+  [315/400][50/50] loss=0.00383 full=0.00297 sub=0.00084 reg=0.01287 kl=6.01461*1.00e-06 noise_std=1.532e-01 psnr_full=29.17 psnr_sub=32.49 lr=1.57e-05 0.50s/it
+  train: loss=0.00383 full=0.00297 sub=0.00084 reg=0.01287 psnr_full=29.169dB psnr_sub=32.493dB
+
+--- Epoch 316/400 ---
+  [316/400][50/50] loss=0.00363 full=0.00281 sub=0.00081 reg=0.01259 kl=6.01241*1.00e-06 noise_std=1.513e-01 psnr_full=29.20 psnr_sub=32.64 lr=1.55e-05 0.50s/it
+  train: loss=0.00363 full=0.00281 sub=0.00081 reg=0.01259 psnr_full=29.203dB psnr_sub=32.645dB
+
+--- Epoch 317/400 ---
+  [317/400][50/50] loss=0.00381 full=0.00298 sub=0.00081 reg=0.01251 kl=6.02032*1.00e-06 noise_std=1.512e-01 psnr_full=29.09 psnr_sub=32.56 lr=1.52e-05 0.50s/it
+  train: loss=0.00381 full=0.00298 sub=0.00081 reg=0.01251 psnr_full=29.090dB psnr_sub=32.564dB
+
+--- Epoch 318/400 ---
+  [318/400][50/50] loss=0.00373 full=0.00289 sub=0.00082 reg=0.01265 kl=6.02637*1.00e-06 noise_std=1.509e-01 psnr_full=29.02 psnr_sub=32.58 lr=1.50e-05 0.50s/it
+  train: loss=0.00373 full=0.00289 sub=0.00082 reg=0.01265 psnr_full=29.018dB psnr_sub=32.578dB
+
+--- Epoch 319/400 ---
+  [319/400][50/50] loss=0.00360 full=0.00278 sub=0.00080 reg=0.01221 kl=6.01552*1.00e-06 noise_std=1.493e-01 psnr_full=29.33 psnr_sub=32.80 lr=1.48e-05 0.50s/it
+  train: loss=0.00360 full=0.00278 sub=0.00080 reg=0.01221 psnr_full=29.328dB psnr_sub=32.797dB
+
+--- Epoch 320/400 ---
+  [320/400][50/50] loss=0.00355 full=0.00274 sub=0.00079 reg=0.01204 kl=6.01789*1.00e-06 noise_std=1.492e-01 psnr_full=29.46 psnr_sub=32.79 lr=1.45e-05 0.49s/it
+  train: loss=0.00355 full=0.00274 sub=0.00079 reg=0.01204 psnr_full=29.461dB psnr_sub=32.787dB
+  val: loss=0.00460 full=0.00357 sub=0.00101 reg=0.01527 psnr_full=26.414dB psnr_sub=30.980dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004601 ***
+
+--- Epoch 321/400 ---
+  [321/400][50/50] loss=0.00369 full=0.00285 sub=0.00082 reg=0.01242 kl=6.02527*1.00e-06 noise_std=1.501e-01 psnr_full=29.10 psnr_sub=32.55 lr=1.43e-05 0.50s/it
+  train: loss=0.00369 full=0.00285 sub=0.00082 reg=0.01242 psnr_full=29.099dB psnr_sub=32.546dB
+
+--- Epoch 322/400 ---
+  [322/400][50/50] loss=0.00361 full=0.00280 sub=0.00079 reg=0.01212 kl=6.02165*1.00e-06 noise_std=1.484e-01 psnr_full=29.66 psnr_sub=32.80 lr=1.41e-05 0.50s/it
+  train: loss=0.00361 full=0.00280 sub=0.00079 reg=0.01212 psnr_full=29.660dB psnr_sub=32.797dB
+
+--- Epoch 323/400 ---
+  [323/400][50/50] loss=0.00371 full=0.00289 sub=0.00080 reg=0.01225 kl=6.02731*1.00e-06 noise_std=1.483e-01 psnr_full=29.34 psnr_sub=32.71 lr=1.38e-05 0.50s/it
+  train: loss=0.00371 full=0.00289 sub=0.00080 reg=0.01225 psnr_full=29.340dB psnr_sub=32.715dB
+
+--- Epoch 324/400 ---
+  [324/400][50/50] loss=0.00387 full=0.00303 sub=0.00083 reg=0.01243 kl=6.03471*1.00e-06 noise_std=1.491e-01 psnr_full=28.90 psnr_sub=32.52 lr=1.36e-05 0.49s/it
+  train: loss=0.00387 full=0.00303 sub=0.00083 reg=0.01243 psnr_full=28.904dB psnr_sub=32.519dB
+
+--- Epoch 325/400 ---
+  [325/400][50/50] loss=0.00367 full=0.00284 sub=0.00081 reg=0.01201 kl=6.02673*1.00e-06 noise_std=1.485e-01 psnr_full=29.32 psnr_sub=32.76 lr=1.34e-05 0.50s/it
+  train: loss=0.00367 full=0.00284 sub=0.00081 reg=0.01201 psnr_full=29.315dB psnr_sub=32.764dB
+
+--- Epoch 326/400 ---
+  [326/400][50/50] loss=0.00370 full=0.00286 sub=0.00082 reg=0.01216 kl=6.03143*1.00e-06 noise_std=1.489e-01 psnr_full=29.30 psnr_sub=32.70 lr=1.32e-05 0.50s/it
+  train: loss=0.00370 full=0.00286 sub=0.00082 reg=0.01216 psnr_full=29.300dB psnr_sub=32.699dB
+
+--- Epoch 327/400 ---
+  [327/400][50/50] loss=0.00372 full=0.00288 sub=0.00082 reg=0.01219 kl=6.03205*1.00e-06 noise_std=1.484e-01 psnr_full=29.34 psnr_sub=32.69 lr=1.30e-05 0.50s/it
+  train: loss=0.00372 full=0.00288 sub=0.00082 reg=0.01219 psnr_full=29.339dB psnr_sub=32.691dB
+
+--- Epoch 328/400 ---
+  [328/400][50/50] loss=0.00379 full=0.00296 sub=0.00081 reg=0.01221 kl=6.03826*1.00e-06 noise_std=1.483e-01 psnr_full=29.05 psnr_sub=32.54 lr=1.28e-05 0.45s/it
+  train: loss=0.00379 full=0.00296 sub=0.00081 reg=0.01221 psnr_full=29.047dB psnr_sub=32.539dB
+
+--- Epoch 329/400 ---
+  [329/400][50/50] loss=0.00378 full=0.00294 sub=0.00082 reg=0.01200 kl=6.03161*1.00e-06 noise_std=1.478e-01 psnr_full=29.21 psnr_sub=32.63 lr=1.26e-05 0.31s/it
+  train: loss=0.00378 full=0.00294 sub=0.00082 reg=0.01200 psnr_full=29.208dB psnr_sub=32.632dB
+
+--- Epoch 330/400 ---
+  [330/400][50/50] loss=0.00372 full=0.00291 sub=0.00080 reg=0.01205 kl=6.03382*1.00e-06 noise_std=1.472e-01 psnr_full=29.32 psnr_sub=32.83 lr=1.24e-05 0.42s/it
+  train: loss=0.00372 full=0.00291 sub=0.00080 reg=0.01205 psnr_full=29.325dB psnr_sub=32.827dB
+  val: loss=0.00460 full=0.00357 sub=0.00101 reg=0.01496 psnr_full=26.416dB psnr_sub=30.947dB
+
+--- Epoch 331/400 ---
+  [331/400][50/50] loss=0.00352 full=0.00270 sub=0.00080 reg=0.01179 kl=6.03018*1.00e-06 noise_std=1.463e-01 psnr_full=29.72 psnr_sub=32.92 lr=1.22e-05 0.42s/it
+  train: loss=0.00352 full=0.00270 sub=0.00080 reg=0.01179 psnr_full=29.719dB psnr_sub=32.915dB
+
+--- Epoch 332/400 ---
+  [332/400][50/50] loss=0.00364 full=0.00283 sub=0.00080 reg=0.01193 kl=6.03619*1.00e-06 noise_std=1.477e-01 psnr_full=29.26 psnr_sub=32.67 lr=1.19e-05 0.42s/it
+  train: loss=0.00364 full=0.00283 sub=0.00080 reg=0.01193 psnr_full=29.261dB psnr_sub=32.670dB
+
+--- Epoch 333/400 ---
+  [333/400][50/50] loss=0.00380 full=0.00295 sub=0.00083 reg=0.01218 kl=6.04678*1.00e-06 noise_std=1.483e-01 psnr_full=29.02 psnr_sub=32.50 lr=1.18e-05 0.42s/it
+  train: loss=0.00380 full=0.00295 sub=0.00083 reg=0.01218 psnr_full=29.017dB psnr_sub=32.499dB
+
+--- Epoch 334/400 ---
+  [334/400][50/50] loss=0.00389 full=0.00305 sub=0.00083 reg=0.01196 kl=6.03729*1.00e-06 noise_std=1.475e-01 psnr_full=29.37 psnr_sub=32.76 lr=1.16e-05 0.42s/it
+  train: loss=0.00389 full=0.00305 sub=0.00083 reg=0.01196 psnr_full=29.371dB psnr_sub=32.756dB
+
+--- Epoch 335/400 ---
+  [335/400][50/50] loss=0.00363 full=0.00283 sub=0.00078 reg=0.01162 kl=6.04150*1.00e-06 noise_std=1.448e-01 psnr_full=29.47 psnr_sub=32.91 lr=1.14e-05 0.42s/it
+  train: loss=0.00363 full=0.00283 sub=0.00078 reg=0.01162 psnr_full=29.467dB psnr_sub=32.914dB
+
+--- Epoch 336/400 ---
+  [336/400][50/50] loss=0.00369 full=0.00289 sub=0.00078 reg=0.01163 kl=6.03986*1.00e-06 noise_std=1.439e-01 psnr_full=29.57 psnr_sub=32.98 lr=1.12e-05 0.42s/it
+  train: loss=0.00369 full=0.00289 sub=0.00078 reg=0.01163 psnr_full=29.568dB psnr_sub=32.976dB
+
+--- Epoch 337/400 ---
+  [337/400][50/50] loss=0.00348 full=0.00270 sub=0.00076 reg=0.01117 kl=6.03717*1.00e-06 noise_std=1.441e-01 psnr_full=29.94 psnr_sub=33.11 lr=1.10e-05 0.42s/it
+  train: loss=0.00348 full=0.00270 sub=0.00076 reg=0.01117 psnr_full=29.939dB psnr_sub=33.113dB
+
+--- Epoch 338/400 ---
+  [338/400][50/50] loss=0.00367 full=0.00285 sub=0.00080 reg=0.01168 kl=6.04369*1.00e-06 noise_std=1.457e-01 psnr_full=29.46 psnr_sub=32.80 lr=1.08e-05 0.42s/it
+  train: loss=0.00367 full=0.00285 sub=0.00080 reg=0.01168 psnr_full=29.464dB psnr_sub=32.799dB
+
+--- Epoch 339/400 ---
+  [339/400][50/50] loss=0.00378 full=0.00294 sub=0.00082 reg=0.01177 kl=6.04736*1.00e-06 noise_std=1.463e-01 psnr_full=29.19 psnr_sub=32.68 lr=1.06e-05 0.42s/it
+  train: loss=0.00378 full=0.00294 sub=0.00082 reg=0.01177 psnr_full=29.193dB psnr_sub=32.676dB
+
+--- Epoch 340/400 ---
+  [340/400][50/50] loss=0.00366 full=0.00283 sub=0.00081 reg=0.01162 kl=6.04568*1.00e-06 noise_std=1.452e-01 psnr_full=29.44 psnr_sub=32.78 lr=1.04e-05 0.42s/it
+  train: loss=0.00366 full=0.00283 sub=0.00081 reg=0.01162 psnr_full=29.444dB psnr_sub=32.775dB
+  val: loss=0.00458 full=0.00356 sub=0.00100 reg=0.01433 psnr_full=26.430dB psnr_sub=30.965dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004583 ***
+
+--- Epoch 341/400 ---
+  [341/400][50/50] loss=0.00347 full=0.00265 sub=0.00081 reg=0.01164 kl=6.04798*1.00e-06 noise_std=1.459e-01 psnr_full=29.26 psnr_sub=32.64 lr=1.03e-05 0.42s/it
+  train: loss=0.00347 full=0.00265 sub=0.00081 reg=0.01164 psnr_full=29.259dB psnr_sub=32.641dB
+
+--- Epoch 342/400 ---
+  [342/400][50/50] loss=0.00360 full=0.00279 sub=0.00079 reg=0.01145 kl=6.04712*1.00e-06 noise_std=1.445e-01 psnr_full=29.36 psnr_sub=32.76 lr=1.01e-05 0.42s/it
+  train: loss=0.00360 full=0.00279 sub=0.00079 reg=0.01145 psnr_full=29.364dB psnr_sub=32.763dB
+
+--- Epoch 343/400 ---
+  [343/400][50/50] loss=0.00356 full=0.00274 sub=0.00079 reg=0.01144 kl=6.04635*1.00e-06 noise_std=1.444e-01 psnr_full=29.50 psnr_sub=32.80 lr=9.92e-06 0.42s/it
+  train: loss=0.00356 full=0.00274 sub=0.00079 reg=0.01144 psnr_full=29.503dB psnr_sub=32.798dB
+
+--- Epoch 344/400 ---
+  [344/400][50/50] loss=0.00356 full=0.00275 sub=0.00080 reg=0.01138 kl=6.04379*1.00e-06 noise_std=1.449e-01 psnr_full=29.50 psnr_sub=32.79 lr=9.75e-06 0.42s/it
+  train: loss=0.00356 full=0.00275 sub=0.00080 reg=0.01138 psnr_full=29.496dB psnr_sub=32.793dB
+
+--- Epoch 345/400 ---
+  [345/400][50/50] loss=0.00381 full=0.00298 sub=0.00081 reg=0.01161 kl=6.05662*1.00e-06 noise_std=1.450e-01 psnr_full=29.11 psnr_sub=32.67 lr=9.59e-06 0.42s/it
+  train: loss=0.00381 full=0.00298 sub=0.00081 reg=0.01161 psnr_full=29.110dB psnr_sub=32.671dB
+
+--- Epoch 346/400 ---
+  [346/400][50/50] loss=0.00370 full=0.00288 sub=0.00079 reg=0.01141 kl=6.04974*1.00e-06 noise_std=1.447e-01 psnr_full=29.21 psnr_sub=32.76 lr=9.42e-06 0.42s/it
+  train: loss=0.00370 full=0.00288 sub=0.00079 reg=0.01141 psnr_full=29.209dB psnr_sub=32.759dB
+
+--- Epoch 347/400 ---
+  [347/400][50/50] loss=0.00372 full=0.00287 sub=0.00083 reg=0.01148 kl=6.04796*1.00e-06 noise_std=1.443e-01 psnr_full=29.26 psnr_sub=32.67 lr=9.26e-06 0.42s/it
+  train: loss=0.00372 full=0.00287 sub=0.00083 reg=0.01148 psnr_full=29.259dB psnr_sub=32.674dB
+
+--- Epoch 348/400 ---
+  [348/400][50/50] loss=0.00367 full=0.00285 sub=0.00080 reg=0.01154 kl=6.04887*1.00e-06 noise_std=1.451e-01 psnr_full=29.40 psnr_sub=32.70 lr=9.11e-06 0.43s/it
+  train: loss=0.00367 full=0.00285 sub=0.00080 reg=0.01154 psnr_full=29.402dB psnr_sub=32.697dB
+
+--- Epoch 349/400 ---
+  [349/400][50/50] loss=0.00367 full=0.00288 sub=0.00078 reg=0.01123 kl=6.04799*1.00e-06 noise_std=1.434e-01 psnr_full=29.67 psnr_sub=33.00 lr=8.95e-06 0.42s/it
+  train: loss=0.00367 full=0.00288 sub=0.00078 reg=0.01123 psnr_full=29.674dB psnr_sub=33.000dB
+
+--- Epoch 350/400 ---
+  [350/400][50/50] loss=0.00365 full=0.00282 sub=0.00081 reg=0.01165 kl=6.06159*1.00e-06 noise_std=1.451e-01 psnr_full=29.16 psnr_sub=32.58 lr=8.80e-06 0.42s/it
+  train: loss=0.00365 full=0.00282 sub=0.00081 reg=0.01165 psnr_full=29.158dB psnr_sub=32.577dB
+  val: loss=0.00459 full=0.00356 sub=0.00101 reg=0.01419 psnr_full=26.428dB psnr_sub=30.945dB
+
+--- Epoch 351/400 ---
+  [351/400][50/50] loss=0.00372 full=0.00286 sub=0.00084 reg=0.01179 kl=6.06229*1.00e-06 noise_std=1.455e-01 psnr_full=29.10 psnr_sub=32.51 lr=8.65e-06 0.42s/it
+  train: loss=0.00372 full=0.00286 sub=0.00084 reg=0.01179 psnr_full=29.105dB psnr_sub=32.513dB
+
+--- Epoch 352/400 ---
+  [352/400][50/50] loss=0.00374 full=0.00293 sub=0.00079 reg=0.01134 kl=6.05360*1.00e-06 noise_std=1.441e-01 psnr_full=29.42 psnr_sub=32.82 lr=8.51e-06 0.42s/it
+  train: loss=0.00374 full=0.00293 sub=0.00079 reg=0.01134 psnr_full=29.419dB psnr_sub=32.824dB
+
+--- Epoch 353/400 ---
+  [353/400][50/50] loss=0.00365 full=0.00283 sub=0.00080 reg=0.01138 kl=6.06080*1.00e-06 noise_std=1.430e-01 psnr_full=29.39 psnr_sub=32.84 lr=8.36e-06 0.42s/it
+  train: loss=0.00365 full=0.00283 sub=0.00080 reg=0.01138 psnr_full=29.391dB psnr_sub=32.840dB
+
+--- Epoch 354/400 ---
+  [354/400][50/50] loss=0.00379 full=0.00297 sub=0.00081 reg=0.01153 kl=6.06090*1.00e-06 noise_std=1.444e-01 psnr_full=29.33 psnr_sub=32.71 lr=8.22e-06 0.42s/it
+  train: loss=0.00379 full=0.00297 sub=0.00081 reg=0.01153 psnr_full=29.328dB psnr_sub=32.705dB
+
+--- Epoch 355/400 ---
+  [355/400][50/50] loss=0.00369 full=0.00285 sub=0.00083 reg=0.01153 kl=6.06213*1.00e-06 noise_std=1.433e-01 psnr_full=28.98 psnr_sub=32.59 lr=8.09e-06 0.42s/it
+  train: loss=0.00369 full=0.00285 sub=0.00083 reg=0.01153 psnr_full=28.982dB psnr_sub=32.595dB
+
+--- Epoch 356/400 ---
+  [356/400][50/50] loss=0.00376 full=0.00295 sub=0.00080 reg=0.01149 kl=6.06093*1.00e-06 noise_std=1.437e-01 psnr_full=29.05 psnr_sub=32.69 lr=7.95e-06 0.42s/it
+  train: loss=0.00376 full=0.00295 sub=0.00080 reg=0.01149 psnr_full=29.051dB psnr_sub=32.687dB
+
+--- Epoch 357/400 ---
+  [357/400][50/50] loss=0.00365 full=0.00283 sub=0.00080 reg=0.01128 kl=6.06269*1.00e-06 noise_std=1.432e-01 psnr_full=29.44 psnr_sub=32.80 lr=7.82e-06 0.42s/it
+  train: loss=0.00365 full=0.00283 sub=0.00080 reg=0.01128 psnr_full=29.444dB psnr_sub=32.797dB
+
+--- Epoch 358/400 ---
+  [358/400][50/50] loss=0.00375 full=0.00289 sub=0.00084 reg=0.01161 kl=6.07453*1.00e-06 noise_std=1.443e-01 psnr_full=28.90 psnr_sub=32.54 lr=7.69e-06 0.42s/it
+  train: loss=0.00375 full=0.00289 sub=0.00084 reg=0.01161 psnr_full=28.899dB psnr_sub=32.536dB
+
+--- Epoch 359/400 ---
+  [359/400][50/50] loss=0.00372 full=0.00287 sub=0.00083 reg=0.01155 kl=6.07273*1.00e-06 noise_std=1.441e-01 psnr_full=28.88 psnr_sub=32.48 lr=7.57e-06 0.42s/it
+  train: loss=0.00372 full=0.00287 sub=0.00083 reg=0.01155 psnr_full=28.881dB psnr_sub=32.485dB
+
+--- Epoch 360/400 ---
+  [360/400][50/50] loss=0.00366 full=0.00285 sub=0.00080 reg=0.01120 kl=6.06916*1.00e-06 noise_std=1.432e-01 psnr_full=29.51 psnr_sub=32.84 lr=7.44e-06 0.43s/it
+  train: loss=0.00366 full=0.00285 sub=0.00080 reg=0.01120 psnr_full=29.509dB psnr_sub=32.839dB
+  val: loss=0.00458 full=0.00355 sub=0.00100 reg=0.01389 psnr_full=26.441dB psnr_sub=31.021dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004577 ***
+
+--- Epoch 361/400 ---
+  [361/400][50/50] loss=0.00368 full=0.00287 sub=0.00079 reg=0.01115 kl=6.07763*1.00e-06 noise_std=1.421e-01 psnr_full=29.23 psnr_sub=32.76 lr=7.32e-06 0.42s/it
+  train: loss=0.00368 full=0.00287 sub=0.00079 reg=0.01115 psnr_full=29.229dB psnr_sub=32.759dB
+
+--- Epoch 362/400 ---
+  [362/400][50/50] loss=0.00379 full=0.00297 sub=0.00080 reg=0.01129 kl=6.08241*1.00e-06 noise_std=1.424e-01 psnr_full=28.99 psnr_sub=32.67 lr=7.21e-06 0.42s/it
+  train: loss=0.00379 full=0.00297 sub=0.00080 reg=0.01129 psnr_full=28.986dB psnr_sub=32.673dB
+
+--- Epoch 363/400 ---
+  [363/400][50/50] loss=0.00375 full=0.00292 sub=0.00081 reg=0.01125 kl=6.08262*1.00e-06 noise_std=1.416e-01 psnr_full=29.24 psnr_sub=32.78 lr=7.09e-06 0.43s/it
+  train: loss=0.00375 full=0.00292 sub=0.00081 reg=0.01125 psnr_full=29.236dB psnr_sub=32.781dB
+
+--- Epoch 364/400 ---
+  [364/400][50/50] loss=0.00353 full=0.00275 sub=0.00076 reg=0.01077 kl=6.07711*1.00e-06 noise_std=1.403e-01 psnr_full=29.48 psnr_sub=32.94 lr=6.98e-06 0.42s/it
+  train: loss=0.00353 full=0.00275 sub=0.00076 reg=0.01077 psnr_full=29.485dB psnr_sub=32.937dB
+
+--- Epoch 365/400 ---
+  [365/400][50/50] loss=0.00357 full=0.00274 sub=0.00081 reg=0.01106 kl=6.07632*1.00e-06 noise_std=1.415e-01 psnr_full=29.44 psnr_sub=32.86 lr=6.88e-06 0.42s/it
+  train: loss=0.00357 full=0.00274 sub=0.00081 reg=0.01106 psnr_full=29.444dB psnr_sub=32.855dB
+
+--- Epoch 366/400 ---
+  [366/400][50/50] loss=0.00367 full=0.00285 sub=0.00080 reg=0.01110 kl=6.08012*1.00e-06 noise_std=1.414e-01 psnr_full=29.42 psnr_sub=32.84 lr=6.77e-06 0.42s/it
+  train: loss=0.00367 full=0.00285 sub=0.00080 reg=0.01110 psnr_full=29.420dB psnr_sub=32.840dB
+
+--- Epoch 367/400 ---
+  [367/400][50/50] loss=0.00361 full=0.00281 sub=0.00078 reg=0.01073 kl=6.07334*1.00e-06 noise_std=1.399e-01 psnr_full=29.57 psnr_sub=33.05 lr=6.67e-06 0.42s/it
+  train: loss=0.00361 full=0.00281 sub=0.00078 reg=0.01073 psnr_full=29.565dB psnr_sub=33.047dB
+
+--- Epoch 368/400 ---
+  [368/400][50/50] loss=0.00368 full=0.00286 sub=0.00080 reg=0.01096 kl=6.08009*1.00e-06 noise_std=1.412e-01 psnr_full=29.46 psnr_sub=32.81 lr=6.57e-06 0.42s/it
+  train: loss=0.00368 full=0.00286 sub=0.00080 reg=0.01096 psnr_full=29.463dB psnr_sub=32.810dB
+
+--- Epoch 369/400 ---
+  [369/400][50/50] loss=0.00367 full=0.00284 sub=0.00081 reg=0.01110 kl=6.08595*1.00e-06 noise_std=1.423e-01 psnr_full=29.21 psnr_sub=32.67 lr=6.47e-06 0.43s/it
+  train: loss=0.00367 full=0.00284 sub=0.00081 reg=0.01110 psnr_full=29.207dB psnr_sub=32.672dB
+
+--- Epoch 370/400 ---
+  [370/400][50/50] loss=0.00345 full=0.00265 sub=0.00078 reg=0.01076 kl=6.07978*1.00e-06 noise_std=1.406e-01 psnr_full=29.60 psnr_sub=32.90 lr=6.38e-06 0.42s/it
+  train: loss=0.00345 full=0.00265 sub=0.00078 reg=0.01076 psnr_full=29.596dB psnr_sub=32.898dB
+  val: loss=0.00458 full=0.00355 sub=0.00101 reg=0.01370 psnr_full=26.455dB psnr_sub=30.924dB
+
+--- Epoch 371/400 ---
+  [371/400][50/50] loss=0.00366 full=0.00284 sub=0.00080 reg=0.01103 kl=6.08667*1.00e-06 noise_std=1.411e-01 psnr_full=29.33 psnr_sub=32.82 lr=6.29e-06 0.42s/it
+  train: loss=0.00366 full=0.00284 sub=0.00080 reg=0.01103 psnr_full=29.334dB psnr_sub=32.816dB
+
+--- Epoch 372/400 ---
+  [372/400][50/50] loss=0.00351 full=0.00271 sub=0.00079 reg=0.01068 kl=6.07780*1.00e-06 noise_std=1.399e-01 psnr_full=29.49 psnr_sub=32.87 lr=6.20e-06 0.42s/it
+  train: loss=0.00351 full=0.00271 sub=0.00079 reg=0.01068 psnr_full=29.486dB psnr_sub=32.871dB
+
+--- Epoch 373/400 ---
+  [373/400][50/50] loss=0.00346 full=0.00266 sub=0.00078 reg=0.01076 kl=6.08123*1.00e-06 noise_std=1.406e-01 psnr_full=29.42 psnr_sub=32.88 lr=6.12e-06 0.42s/it
+  train: loss=0.00346 full=0.00266 sub=0.00078 reg=0.01076 psnr_full=29.424dB psnr_sub=32.878dB
+
+--- Epoch 374/400 ---
+  [374/400][50/50] loss=0.00344 full=0.00267 sub=0.00075 reg=0.01048 kl=6.07602*1.00e-06 noise_std=1.381e-01 psnr_full=29.89 psnr_sub=33.20 lr=6.04e-06 0.42s/it
+  train: loss=0.00344 full=0.00267 sub=0.00075 reg=0.01048 psnr_full=29.889dB psnr_sub=33.203dB
+
+--- Epoch 375/400 ---
+  [375/400][50/50] loss=0.00367 full=0.00286 sub=0.00080 reg=0.01096 kl=6.08658*1.00e-06 noise_std=1.401e-01 psnr_full=29.51 psnr_sub=32.87 lr=5.96e-06 0.42s/it
+  train: loss=0.00367 full=0.00286 sub=0.00080 reg=0.01096 psnr_full=29.506dB psnr_sub=32.866dB
+
+--- Epoch 376/400 ---
+  [376/400][50/50] loss=0.00362 full=0.00281 sub=0.00080 reg=0.01096 kl=6.08701*1.00e-06 noise_std=1.411e-01 psnr_full=29.62 psnr_sub=32.89 lr=5.88e-06 0.41s/it
+  train: loss=0.00362 full=0.00281 sub=0.00080 reg=0.01096 psnr_full=29.624dB psnr_sub=32.892dB
+
+--- Epoch 377/400 ---
+  [377/400][50/50] loss=0.00354 full=0.00275 sub=0.00078 reg=0.01075 kl=6.08513*1.00e-06 noise_std=1.400e-01 psnr_full=29.58 psnr_sub=32.89 lr=5.81e-06 0.42s/it
+  train: loss=0.00354 full=0.00275 sub=0.00078 reg=0.01075 psnr_full=29.584dB psnr_sub=32.893dB
+
+--- Epoch 378/400 ---
+  [378/400][50/50] loss=0.00355 full=0.00275 sub=0.00079 reg=0.01078 kl=6.08630*1.00e-06 noise_std=1.384e-01 psnr_full=29.61 psnr_sub=32.92 lr=5.74e-06 0.42s/it
+  train: loss=0.00355 full=0.00275 sub=0.00079 reg=0.01078 psnr_full=29.613dB psnr_sub=32.922dB
+
+--- Epoch 379/400 ---
+  [379/400][50/50] loss=0.00348 full=0.00268 sub=0.00078 reg=0.01049 kl=6.08027*1.00e-06 noise_std=1.389e-01 psnr_full=29.72 psnr_sub=33.02 lr=5.68e-06 0.42s/it
+  train: loss=0.00348 full=0.00268 sub=0.00078 reg=0.01049 psnr_full=29.715dB psnr_sub=33.019dB
+
+--- Epoch 380/400 ---
+  [380/400][50/50] loss=0.00372 full=0.00290 sub=0.00080 reg=0.01074 kl=6.08656*1.00e-06 noise_std=1.394e-01 psnr_full=29.32 psnr_sub=32.74 lr=5.62e-06 0.42s/it
+  train: loss=0.00372 full=0.00290 sub=0.00080 reg=0.01074 psnr_full=29.316dB psnr_sub=32.735dB
+  val: loss=0.00458 full=0.00355 sub=0.00101 reg=0.01341 psnr_full=26.445dB psnr_sub=30.951dB
+
+--- Epoch 381/400 ---
+  [381/400][50/50] loss=0.00350 full=0.00272 sub=0.00076 reg=0.01036 kl=6.08150*1.00e-06 noise_std=1.377e-01 psnr_full=29.81 psnr_sub=33.03 lr=5.56e-06 0.42s/it
+  train: loss=0.00350 full=0.00272 sub=0.00076 reg=0.01036 psnr_full=29.806dB psnr_sub=33.033dB
+
+--- Epoch 382/400 ---
+  [382/400][50/50] loss=0.00385 full=0.00300 sub=0.00083 reg=0.01104 kl=6.09501*1.00e-06 noise_std=1.404e-01 psnr_full=29.21 psnr_sub=32.63 lr=5.50e-06 0.42s/it
+  train: loss=0.00385 full=0.00300 sub=0.00083 reg=0.01104 psnr_full=29.210dB psnr_sub=32.627dB
+
+--- Epoch 383/400 ---
+  [383/400][50/50] loss=0.00357 full=0.00278 sub=0.00077 reg=0.01041 kl=6.07972*1.00e-06 noise_std=1.384e-01 psnr_full=29.74 psnr_sub=33.04 lr=5.44e-06 0.42s/it
+  train: loss=0.00357 full=0.00278 sub=0.00077 reg=0.01041 psnr_full=29.740dB psnr_sub=33.038dB
+
+--- Epoch 384/400 ---
+  [384/400][50/50] loss=0.00370 full=0.00289 sub=0.00080 reg=0.01074 kl=6.09002*1.00e-06 noise_std=1.375e-01 psnr_full=29.54 psnr_sub=32.92 lr=5.39e-06 0.42s/it
+  train: loss=0.00370 full=0.00289 sub=0.00080 reg=0.01074 psnr_full=29.539dB psnr_sub=32.920dB
+
+--- Epoch 385/400 ---
+  [385/400][50/50] loss=0.00360 full=0.00280 sub=0.00079 reg=0.01063 kl=6.08422*1.00e-06 noise_std=1.380e-01 psnr_full=29.38 psnr_sub=32.91 lr=5.35e-06 0.42s/it
+  train: loss=0.00360 full=0.00280 sub=0.00079 reg=0.01063 psnr_full=29.376dB psnr_sub=32.905dB
+
+--- Epoch 386/400 ---
+  [386/400][50/50] loss=0.00357 full=0.00276 sub=0.00079 reg=0.01056 kl=6.08612*1.00e-06 noise_std=1.388e-01 psnr_full=29.59 psnr_sub=32.88 lr=5.30e-06 0.42s/it
+  train: loss=0.00357 full=0.00276 sub=0.00079 reg=0.01056 psnr_full=29.590dB psnr_sub=32.879dB
+
+--- Epoch 387/400 ---
+  [387/400][50/50] loss=0.00361 full=0.00278 sub=0.00080 reg=0.01076 kl=6.09204*1.00e-06 noise_std=1.396e-01 psnr_full=29.29 psnr_sub=32.76 lr=5.26e-06 0.42s/it
+  train: loss=0.00361 full=0.00278 sub=0.00080 reg=0.01076 psnr_full=29.290dB psnr_sub=32.762dB
+
+--- Epoch 388/400 ---
+  [388/400][50/50] loss=0.00363 full=0.00283 sub=0.00078 reg=0.01058 kl=6.08830*1.00e-06 noise_std=1.390e-01 psnr_full=29.59 psnr_sub=32.93 lr=5.22e-06 0.42s/it
+  train: loss=0.00363 full=0.00283 sub=0.00078 reg=0.01058 psnr_full=29.586dB psnr_sub=32.933dB
+
+--- Epoch 389/400 ---
+  [389/400][50/50] loss=0.00372 full=0.00290 sub=0.00081 reg=0.01086 kl=6.09752*1.00e-06 noise_std=1.390e-01 psnr_full=29.30 psnr_sub=32.77 lr=5.19e-06 0.42s/it
+  train: loss=0.00372 full=0.00290 sub=0.00081 reg=0.01086 psnr_full=29.304dB psnr_sub=32.772dB
+
+--- Epoch 390/400 ---
+  [390/400][50/50] loss=0.00372 full=0.00290 sub=0.00080 reg=0.01072 kl=6.09343*1.00e-06 noise_std=1.383e-01 psnr_full=29.23 psnr_sub=32.83 lr=5.15e-06 0.42s/it
+  train: loss=0.00372 full=0.00290 sub=0.00080 reg=0.01072 psnr_full=29.232dB psnr_sub=32.829dB
+  val: loss=0.00457 full=0.00355 sub=0.00100 reg=0.01326 psnr_full=26.442dB psnr_sub=30.988dB
+  *** save best -> checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth  val_loss=0.004573 ***
+
+--- Epoch 391/400 ---
+  [391/400][50/50] loss=0.00369 full=0.00287 sub=0.00080 reg=0.01058 kl=6.09148*1.00e-06 noise_std=1.387e-01 psnr_full=29.47 psnr_sub=32.90 lr=5.12e-06 0.42s/it
+  train: loss=0.00369 full=0.00287 sub=0.00080 reg=0.01058 psnr_full=29.475dB psnr_sub=32.897dB
+
+--- Epoch 392/400 ---
+  [392/400][50/50] loss=0.00385 full=0.00301 sub=0.00082 reg=0.01089 kl=6.10144*1.00e-06 noise_std=1.390e-01 psnr_full=29.25 psnr_sub=32.72 lr=5.10e-06 0.42s/it
+  train: loss=0.00385 full=0.00301 sub=0.00082 reg=0.01089 psnr_full=29.252dB psnr_sub=32.722dB
+
+--- Epoch 393/400 ---
+  [393/400][50/50] loss=0.00359 full=0.00278 sub=0.00080 reg=0.01055 kl=6.09501*1.00e-06 noise_std=1.391e-01 psnr_full=29.66 psnr_sub=32.87 lr=5.08e-06 0.41s/it
+  train: loss=0.00359 full=0.00278 sub=0.00080 reg=0.01055 psnr_full=29.662dB psnr_sub=32.874dB
+
+--- Epoch 394/400 ---
+  [394/400][50/50] loss=0.00362 full=0.00281 sub=0.00079 reg=0.01043 kl=6.09377*1.00e-06 noise_std=1.388e-01 psnr_full=29.41 psnr_sub=32.87 lr=5.06e-06 0.41s/it
+  train: loss=0.00362 full=0.00281 sub=0.00079 reg=0.01043 psnr_full=29.410dB psnr_sub=32.872dB
+
+--- Epoch 395/400 ---
+  [395/400][50/50] loss=0.00355 full=0.00274 sub=0.00080 reg=0.01053 kl=6.09616*1.00e-06 noise_std=1.380e-01 psnr_full=29.35 psnr_sub=32.76 lr=5.04e-06 0.41s/it
+  train: loss=0.00355 full=0.00274 sub=0.00080 reg=0.01053 psnr_full=29.346dB psnr_sub=32.757dB
+
+--- Epoch 396/400 ---
+  [396/400][50/50] loss=0.00363 full=0.00280 sub=0.00081 reg=0.01059 kl=6.09179*1.00e-06 noise_std=1.393e-01 psnr_full=29.66 psnr_sub=32.91 lr=5.02e-06 0.41s/it
+  train: loss=0.00363 full=0.00280 sub=0.00081 reg=0.01059 psnr_full=29.663dB psnr_sub=32.909dB
+
+--- Epoch 397/400 ---
+  [397/400][50/50] loss=0.00379 full=0.00295 sub=0.00082 reg=0.01070 kl=6.09647*1.00e-06 noise_std=1.392e-01 psnr_full=29.21 psnr_sub=32.73 lr=5.01e-06 0.41s/it
+  train: loss=0.00379 full=0.00295 sub=0.00082 reg=0.01070 psnr_full=29.215dB psnr_sub=32.726dB
+
+--- Epoch 398/400 ---
+  [398/400][50/50] loss=0.00366 full=0.00285 sub=0.00079 reg=0.01054 kl=6.10150*1.00e-06 noise_std=1.381e-01 psnr_full=29.24 psnr_sub=32.73 lr=5.01e-06 0.41s/it
+  train: loss=0.00366 full=0.00285 sub=0.00079 reg=0.01054 psnr_full=29.236dB psnr_sub=32.734dB
+
+--- Epoch 399/400 ---
+  [399/400][50/50] loss=0.00360 full=0.00278 sub=0.00080 reg=0.01051 kl=6.09621*1.00e-06 noise_std=1.386e-01 psnr_full=29.37 psnr_sub=32.81 lr=5.00e-06 0.42s/it
+  train: loss=0.00360 full=0.00278 sub=0.00080 reg=0.01051 psnr_full=29.367dB psnr_sub=32.806dB
+
+--- Epoch 400/400 ---
+  [400/400][50/50] loss=0.00364 full=0.00281 sub=0.00081 reg=0.01062 kl=6.10075*1.00e-06 noise_std=1.382e-01 psnr_full=29.42 psnr_sub=32.78 lr=5.00e-06 0.41s/it
+  train: loss=0.00364 full=0.00281 sub=0.00081 reg=0.01062 psnr_full=29.422dB psnr_sub=32.783dB
+  val: loss=0.00457 full=0.00355 sub=0.00101 reg=0.01316 psnr_full=26.445dB psnr_sub=30.979dB
+================================================================================
+Done. elapsed=162.0 min best_val_loss=0.004573
+best=checkpoints-val-v2/route_a/sc_dct_c4_awgn12/route_a_sc_div2k_c16_best.pth
+split encoder=checkpoints-val-v2/route_a/sc_dct_c4_awgn12/sc_encoder_div2k_c16.pth
+split decoder=checkpoints-val-v2/route_a/sc_dct_c4_awgn12/sc_decoder_div2k_c16.pth
+================================================================================

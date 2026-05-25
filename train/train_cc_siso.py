@@ -27,6 +27,7 @@ import time
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -36,7 +37,7 @@ if PROJECT_ROOT not in sys.path:
 
 from src.cddm_mimo_ddnm import SystemConfig, get_cifar10_config, get_div2k_config
 from src.cddm_mimo_ddnm.datasets import get_cifar10_loaders, get_div2k_loaders
-from src.cddm_mimo_ddnm.loss import semantic_codec_loss
+from src.cddm_mimo_ddnm.loss import kl_loss, semantic_codec_loss
 from src.cddm_mimo_ddnm.modules.semantic_codec import SemanticDecoder, SemanticEncoder
 from src.cddm_mimo_ddnm.modules.siso_channel import SISOChannel
 
@@ -97,10 +98,9 @@ class AverageMeter:
 
 
 def compute_psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
-    mse_val = torch.mean((pred - target) ** 2).item()
-    if mse_val < 1e-12:
-        return float("inf")
-    return 10.0 * math.log10(1.0 / mse_val)
+    mse = torch.mean((pred - target) ** 2, dim=(1, 2, 3)).clamp_min(1e-12)
+    psnr = 10.0 * torch.log10(1.0 / mse)
+    return float(psnr.mean().item())
 
 
 def parse_args() -> argparse.Namespace:
@@ -117,6 +117,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cache_decoded", action="store_true", default=True)
 
     p.add_argument("--embed_dim", type=int, default=36, help="语义瓶颈 C（须为偶数）")
+    p.add_argument("--sc_encoder_ckpt", type=str, default="", help="可选：已有 SemanticEncoder split 权重")
+    p.add_argument("--sc_decoder_ckpt", type=str, default="", help="可选：已有 SemanticDecoder split 权重")
     p.add_argument("--snr_db", type=float, default=12.0, help="SISO AWGN 信噪比（dB）")
     p.add_argument(
         "--fading",
@@ -133,6 +135,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--warmup_steps", type=int, default=200)
     p.add_argument("--min_lr_ratio", type=float, default=0.05)
     p.add_argument("--clip_grad_norm", type=float, default=1.0)
+    p.add_argument("--loss_type", type=str, default="smooth_l1", choices=["smooth_l1", "mse", "psnr"])
+    p.add_argument("--lambda_kl", type=float, default=-1.0, help="<0 使用 config；>=0 覆盖 VAE KL 权重")
+    p.add_argument("--deterministic_latent", action="store_true", help="训练时也使用 VAE 均值 latent，不做重参数采样")
+    p.add_argument("--noise_repeats", type=int, default=1, help="每个 batch 平均多少次独立 AWGN")
     p.add_argument("--amp_dtype", type=str, default="bfloat16", choices=["bfloat16", "float16", "none"])
     p.add_argument("--num_workers", type=int, default=8)
     p.add_argument("--val_num_workers", type=int, default=4)
@@ -219,21 +225,69 @@ class SISOSemanticCodec(nn.Module):
         sc_dec: SemanticDecoder,
         snr_db: float,
         fading: str,
+        deterministic_latent: bool = False,
     ) -> None:
         super().__init__()
         self.sc_enc = sc_enc
         self.sc_dec = sc_dec
         self.snr_db = float(snr_db)
         self.fading = fading
+        self.deterministic_latent = bool(deterministic_latent)
         self.channel = SISOChannel(snr_db=self.snr_db, fading=self.fading)
 
     def forward(
         self, x: torch.Tensor
     ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
-        z_sem, mu, logvar = self.sc_enc.encode(x, sample=self.training)
+        sample = self.training and not self.deterministic_latent
+        z_sem, mu, logvar = self.sc_enc.encode(x, sample=sample)
         z_rx, _, _ = self.channel.forward(z_sem)
         x_hat = self.sc_dec(z_rx)
         return x_hat, mu, logvar
+
+
+def load_state_dict_from_ckpt(module: nn.Module, ckpt_path: str, name: str) -> None:
+    if not ckpt_path:
+        return
+    if not os.path.isfile(ckpt_path):
+        raise FileNotFoundError(f"{name} checkpoint not found: {ckpt_path}")
+    obj = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    sd = obj.get("state_dict", obj) if isinstance(obj, dict) else obj
+    missing, unexpected = module.load_state_dict(sd, strict=False)
+    print(f"  [{name}] loaded {ckpt_path}")
+    if missing:
+        print(f"    missing={len(missing)}: {missing[:5]}{' ...' if len(missing) > 5 else ''}")
+    if unexpected:
+        print(f"    unexpected={len(unexpected)}: {unexpected[:5]}{' ...' if len(unexpected) > 5 else ''}")
+
+
+def image_loss(
+    x_hat: torch.Tensor,
+    x: torch.Tensor,
+    mu: torch.Tensor | None,
+    logvar: torch.Tensor | None,
+    *,
+    loss_type: str,
+    lambda_kl: float,
+    use_vae: bool,
+) -> torch.Tensor:
+    if loss_type == "mse":
+        loss = F.mse_loss(x_hat, x)
+    elif loss_type == "psnr":
+        mse = torch.mean((x_hat - x) ** 2, dim=(1, 2, 3)).clamp_min(1e-8)
+        loss = torch.log(mse).mean()
+    else:
+        loss = semantic_codec_loss(
+            x_hat=x_hat,
+            x=x,
+            mu=mu,
+            logvar=logvar,
+            lambda_kl=lambda_kl,
+            use_vae=use_vae,
+        )
+        return loss
+    if use_vae and mu is not None and logvar is not None and lambda_kl > 0:
+        loss = loss + lambda_kl * kl_loss(mu, logvar)
+    return loss
 
 
 @torch.no_grad()
@@ -244,9 +298,10 @@ def evaluate(
     amp_enabled: bool,
     amp_dtype: torch.dtype,
     cfg: SystemConfig,
+    args: argparse.Namespace,
 ) -> dict:
     model.eval()
-    lam_kl = cfg.semantic.lambda_kl
+    lam_kl = cfg.semantic.lambda_kl if args.lambda_kl < 0 else float(args.lambda_kl)
     use_vae = cfg.semantic.use_vae
     loss_m = AverageMeter()
     psnr_m = AverageMeter()
@@ -256,11 +311,9 @@ def evaluate(
         images = images.to(device, non_blocking=True)
         with torch.autocast("cuda", **autocast_kw):
             x_hat, mu, logvar = model(images)
-            loss = semantic_codec_loss(
-                x_hat=x_hat,
-                x=images,
-                mu=mu,
-                logvar=logvar,
+            loss = image_loss(
+                x_hat, images, mu, logvar,
+                loss_type=args.loss_type,
                 lambda_kl=lam_kl,
                 use_vae=use_vae,
             )
@@ -285,7 +338,7 @@ def train_loop(
     total_steps = max(1, len(train_loader) * args.epochs)
     warmup = min(args.warmup_steps, max(1, total_steps - 1))
     min_ratio = max(0.0, args.min_lr_ratio)
-    lam_kl = cfg.semantic.lambda_kl
+    lam_kl = cfg.semantic.lambda_kl if args.lambda_kl < 0 else float(args.lambda_kl)
     use_vae = cfg.semantic.use_vae
 
     def lr_lambda(step: int) -> float:
@@ -324,16 +377,19 @@ def train_loop(
             images = batch[0] if isinstance(batch, (tuple, list)) else batch
             images = images.to(device, non_blocking=True)
             optimizer.zero_grad(set_to_none=True)
+            noise_repeats = max(1, int(args.noise_repeats))
+            loss = images.new_tensor(0.0)
+            x_hat = mu = logvar = None
             with torch.autocast("cuda", **autocast_kw):
-                x_hat, mu, logvar = model(images)
-                loss = semantic_codec_loss(
-                    x_hat=x_hat,
-                    x=images,
-                    mu=mu,
-                    logvar=logvar,
-                    lambda_kl=lam_kl,
-                    use_vae=use_vae,
-                )
+                for _ in range(noise_repeats):
+                    x_hat, mu, logvar = model(images)
+                    loss = loss + image_loss(
+                        x_hat, images, mu, logvar,
+                        loss_type=args.loss_type,
+                        lambda_kl=lam_kl,
+                        use_vae=use_vae,
+                    )
+                loss = loss / noise_repeats
             if scaler.is_enabled():
                 scaler.scale(loss).backward()
                 scaler.unscale_(optimizer)
@@ -363,7 +419,7 @@ def train_loop(
 
         nepoch = epoch + 1
         if nepoch % max(1, args.eval_every_epochs) == 0 or nepoch == args.epochs:
-            metrics = evaluate(model, val_loader, device, amp_enabled, amp_dtype, cfg)
+            metrics = evaluate(model, val_loader, device, amp_enabled, amp_dtype, cfg, args)
             print(
                 f"  [eval@epoch {nepoch}]  val_loss={metrics['loss']:.4f}  "
                 f"val_PSNR={metrics['psnr']:.4f}dB"
@@ -393,6 +449,10 @@ def save_sc_checkpoint(
         "fading": args.fading,
         "metrics": metrics,
         "epoch": epoch,
+        "loss_type": args.loss_type,
+        "lambda_kl": args.lambda_kl,
+        "deterministic_latent": bool(args.deterministic_latent),
+        "noise_repeats": int(args.noise_repeats),
     }
     torch.save({"state_dict": model.sc_enc.state_dict(), **meta}, enc_path)
     torch.save({"state_dict": model.sc_dec.state_dict(), **meta}, dec_path)
@@ -449,7 +509,16 @@ def main():
         stage_downsample=sc.stage_downsample,
     ).to(device)
 
-    model = SISOSemanticCodec(sc_enc, sc_dec, snr_db=args.snr_db, fading=args.fading).to(device)
+    load_state_dict_from_ckpt(sc_enc, args.sc_encoder_ckpt, "sc_encoder")
+    load_state_dict_from_ckpt(sc_dec, args.sc_decoder_ckpt, "sc_decoder")
+
+    model = SISOSemanticCodec(
+        sc_enc,
+        sc_dec,
+        snr_db=args.snr_db,
+        fading=args.fading,
+        deterministic_latent=bool(args.deterministic_latent),
+    ).to(device)
 
     train_loader, val_loader = build_dataloaders(args)
     print(f"  train batches/epoch: {len(train_loader)}")

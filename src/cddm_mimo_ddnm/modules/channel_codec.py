@@ -4,12 +4,54 @@ import torch
 import torch.nn as nn
 
 
+class Residual1x1Codec(nn.Module):
+    """Linear 1x1 base plus a zero-initialized nonlinear residual branch."""
+
+    def __init__(self, in_channels: int, out_channels: int, hidden_channels: int) -> None:
+        super().__init__()
+        self.base = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.res = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_channels, kernel_size=1, bias=True),
+            nn.GELU(),
+            nn.Conv2d(hidden_channels, out_channels, kernel_size=1, bias=True),
+        )
+        nn.init.zeros_(self.res[-1].weight)
+        nn.init.zeros_(self.res[-1].bias)
+        self.res_scale = nn.Parameter(torch.tensor(0.1, dtype=torch.float32))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.base(x) + self.res_scale.to(dtype=x.dtype) * self.res(x)
+
+
+class ResidualSpatialCodec(nn.Module):
+    """Linear 1x1 base plus a zero-initialized spatial residual branch."""
+
+    def __init__(self, in_channels: int, out_channels: int, hidden_channels: int) -> None:
+        super().__init__()
+        self.base = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        self.res = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_channels, kernel_size=3, padding=1, bias=True),
+            nn.GELU(),
+            nn.Conv2d(hidden_channels, hidden_channels, kernel_size=3, padding=1, bias=True),
+            nn.GELU(),
+            nn.Conv2d(hidden_channels, out_channels, kernel_size=3, padding=1, bias=True),
+        )
+        nn.init.zeros_(self.res[-1].weight)
+        nn.init.zeros_(self.res[-1].bias)
+        self.res_scale = nn.Parameter(torch.tensor(0.1, dtype=torch.float32))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.base(x) + self.res_scale.to(dtype=x.dtype) * self.res(x)
+
+
 def composed_1x1_weight(net: nn.Conv2d | nn.Sequential) -> torch.Tensor:
     """将 1×1 Conv 链折叠为矩阵 W，满足 y = W @ x（列向量 x，通道维）。"""
 
     def _w(conv: nn.Conv2d) -> torch.Tensor:
         return conv.weight.squeeze(-1).squeeze(-1)
 
+    if isinstance(net, (Residual1x1Codec, ResidualSpatialCodec)):
+        return _w(net.base)
     if isinstance(net, nn.Conv2d):
         return _w(net)
     if isinstance(net, nn.Sequential):
@@ -66,10 +108,24 @@ class ChannelEncoder(nn.Module):
         bottleneck_dim: int | None = None,
         linear_depth: int = 1,
         hidden_channels: int | None = None,
+        codec_mode: str = "linear",
+        residual_hidden_channels: int | None = None,
     ) -> None:
         super().__init__()
         hidden = int(hidden_channels or in_channels)
-        if linear_depth > 1:
+        if codec_mode == "residual_gelu":
+            self.net = Residual1x1Codec(
+                in_channels,
+                out_channels,
+                hidden_channels=int(residual_hidden_channels or hidden),
+            )
+        elif codec_mode == "residual_spatial":
+            self.net = ResidualSpatialCodec(
+                in_channels,
+                out_channels,
+                hidden_channels=int(residual_hidden_channels or hidden),
+            )
+        elif linear_depth > 1:
             self.net = _make_linear_1x1_stack(
                 in_channels,
                 out_channels,
@@ -99,10 +155,24 @@ class ChannelDecoder(nn.Module):
         bottleneck_dim: int | None = None,
         linear_depth: int = 1,
         hidden_channels: int | None = None,
+        codec_mode: str = "linear",
+        residual_hidden_channels: int | None = None,
     ) -> None:
         super().__init__()
         hidden = int(hidden_channels or out_channels)
-        if linear_depth > 1:
+        if codec_mode == "residual_gelu":
+            self.net = Residual1x1Codec(
+                in_channels,
+                out_channels,
+                hidden_channels=int(residual_hidden_channels or hidden),
+            )
+        elif codec_mode == "residual_spatial":
+            self.net = ResidualSpatialCodec(
+                in_channels,
+                out_channels,
+                hidden_channels=int(residual_hidden_channels or hidden),
+            )
+        elif linear_depth > 1:
             self.net = _make_linear_1x1_stack(
                 in_channels,
                 out_channels,

@@ -1,0 +1,33 @@
+
+=== Route A SC session @ 2026-05-21 23:42:06 ===
+Log file: /workspace/yongjia/paper_code/log-c16/route_a/sc_dct_c16_awgn12_smoke.txt
+================================================================================
+Route A Stage 2: fixed orthogonal DCT A + dual-branch Swin-VAE
+  dataset        : div2k
+  data_dir       : /workspace/yongjia/datasets/DIV2K
+  device         : cuda
+  gpu            : NVIDIA GeForce RTX 4090 D
+  latent C       : 32
+  A shape        : 16 x 32
+  A init         : dct
+  A orth error   : 4.141e-07
+  channel_noise  : awgn
+  train/test SNR : 12 dB
+  lambdas        : sub=1, reg=0.001, kl_max=1e-06
+  KL anneal      : 50 epochs
+  blur           : kernel=15, sigma=3
+  batches        : train=200, val=25
+  save_dir       : checkpoints-val-c16/route_a/sc_dct_c16_awgn12_smoke
+================================================================================
+
+--- Epoch 1/1 ---
+  [1/1][1/200] loss=1.38250 full=0.70888 sub=0.67302 reg=0.59472 kl=0.07765*2.00e-08 noise_std=2.769e-01 psnr_full=5.50 psnr_sub=5.78 lr=1.00e-04 1.95s/it
+  train: loss=1.38250 full=0.70888 sub=0.67302 reg=0.59472 psnr_full=5.499dB psnr_sub=5.784dB
+  val: loss=0.80777 full=0.41887 sub=0.38878 reg=0.12376 psnr_full=6.328dB psnr_sub=6.678dB
+  *** save best -> checkpoints-val-c16/route_a/sc_dct_c16_awgn12_smoke/route_a_sc_div2k_c32_best.pth  val_loss=0.807774 ***
+================================================================================
+Done. elapsed=0.1 min best_val_loss=0.807774
+best=checkpoints-val-c16/route_a/sc_dct_c16_awgn12_smoke/route_a_sc_div2k_c32_best.pth
+split encoder=checkpoints-val-c16/route_a/sc_dct_c16_awgn12_smoke/sc_encoder_div2k_c32.pth
+split decoder=checkpoints-val-c16/route_a/sc_dct_c16_awgn12_smoke/sc_decoder_div2k_c32.pth
+================================================================================

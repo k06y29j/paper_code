@@ -61,6 +61,7 @@ from src.cddm_mimo_ddnm import (
     get_div2k_config,
 )
 from src.cddm_mimo_ddnm.datasets import (
+    DIV2KDataset,
     get_cifar10_loaders,
     get_div2k_loaders,
 )
@@ -82,6 +83,8 @@ def parse_args() -> argparse.Namespace:
                    help="数据集根目录。DIV2K 默认 /workspace/yongjia/datasets/DIV2K；CIFAR10 必填。")
     p.add_argument("--crop_size", type=int, default=256)
     p.add_argument("--use_lmdb", action="store_true")
+    p.add_argument("--valid_from_images", action="store_true",
+                   help="DIV2K only: use LMDB for train but image-file CenterCrop valid for eval.")
     p.add_argument("--train_lmdb_path", type=str, default=None)
     p.add_argument("--val_lmdb_path", type=str, default=None)
     p.add_argument("--cache_decoded", action="store_true", default=True)
@@ -98,6 +101,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--batch_size", type=int, default=32)
     p.add_argument("--grad_accum_steps", type=int, default=1)
     p.add_argument("--epochs", type=int, default=600)
+    p.add_argument("--train_max_batches", type=int, default=0,
+                   help="每个 epoch 只训练前 N 个 batch；0 表示完整训练集。")
     p.add_argument("--lr", type=float, default=1e-4)
     p.add_argument("--weight_decay", type=float, default=1e-4)
     p.add_argument("--warmup_steps", type=int, default=1000)
@@ -156,6 +161,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--log_freq", type=int, default=50)
     p.add_argument("--save_dir", type=str,
                    default=os.path.join(PROJECT_ROOT, "checkpoints-val/unet_un"))
+    p.add_argument("--init_unet_ckpt", type=str, default=None,
+                   help="仅初始化 U-Net 权重，不恢复 optimizer/scheduler/latent_norm；用于换 semantic encoder 后微调先验。")
+    p.add_argument("--init_no_ema", action="store_true",
+                   help="配合 --init_unet_ckpt：加载 unet_state_dict 而不是 EMA shadow。")
     p.add_argument("--resume", type=str, default=None)
 
     args = p.parse_args()
@@ -238,6 +247,24 @@ def load_state_dict_from_ckpt(model: nn.Module, ckpt_path: str, name: str) -> No
         print(f"    unexpected keys ({len(unexpected)}): {unexpected[:5]}{' ...' if len(unexpected) > 5 else ''}")
 
 
+def init_unet_from_ckpt(model: nn.Module, ckpt_path: str, use_ema: bool = True) -> None:
+    if not ckpt_path:
+        return
+    if not os.path.isfile(ckpt_path):
+        raise FileNotFoundError(f"init_unet_ckpt 不存在：{ckpt_path}")
+    obj = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    if use_ema and "ema_state_dict" in obj and "shadow" in obj["ema_state_dict"]:
+        sd = obj["ema_state_dict"]["shadow"]
+        src = "EMA shadow"
+    else:
+        sd = obj["unet_state_dict"]
+        src = "unet_state_dict"
+    missing, unexpected = model.load_state_dict(sd, strict=False)
+    print(f"  初始化 unet: {ckpt_path} ({src})")
+    if missing or unexpected:
+        print(f"    missing={len(missing)}, unexpected={len(unexpected)}")
+
+
 def build_dataloaders(args: argparse.Namespace):
     if args.dataset == "div2k":
         train_loader, val_loader, _ = get_div2k_loaders(
@@ -253,6 +280,24 @@ def build_dataloaders(args: argparse.Namespace):
             prefetch_factor=args.prefetch_factor,
             cache_decoded=bool(args.cache_decoded),
         )
+        if args.use_lmdb and args.valid_from_images:
+            val_ds = DIV2KDataset(
+                args.data_dir or "",
+                crop_size=args.crop_size,
+                split="valid",
+                cache_decoded=bool(args.cache_decoded),
+            )
+            val_kw = {
+                "batch_size": args.batch_size,
+                "shuffle": False,
+                "num_workers": args.val_num_workers,
+                "pin_memory": True,
+                "persistent_workers": False,
+            }
+            if args.val_num_workers > 0:
+                val_kw["prefetch_factor"] = max(2, int(args.prefetch_factor))
+            val_loader = DataLoader(val_ds, **val_kw)
+            print("  valid loader: image files (CenterCrop), train loader: LMDB")
     else:
         train_loader, val_loader, _ = get_cifar10_loaders(
             data_dir=args.data_dir,
@@ -753,6 +798,7 @@ def main():
         load_state_dict_from_ckpt(system.semantic_decoder, args.sc_decoder_ckpt, "semantic_decoder")
     else:
         print(f"  [WARN] 未提供 sc_decoder_ckpt，将跳过 decoded_psnr 评估。")
+    init_unet_from_ckpt(system.unet_denoiser, args.init_unet_ckpt, use_ema=not args.init_no_ema)
 
     # 冻结 SC encoder/decoder + 信道 + MIMO；仅训练 unet_denoiser
     for p in system.parameters():
@@ -779,7 +825,8 @@ def main():
         lr=args.lr, weight_decay=args.weight_decay, betas=(0.9, 0.999),
     )
     accum = max(1, int(args.grad_accum_steps))
-    steps_per_epoch = max(1, len(train_loader) // accum)
+    effective_len = args.train_max_batches if args.train_max_batches > 0 else len(train_loader)
+    steps_per_epoch = max(1, effective_len // accum)
     total_steps = steps_per_epoch * args.epochs
     warmup = min(args.warmup_steps, max(1, total_steps - 1))
     min_ratio = max(0.0, args.min_lr_ratio)
@@ -847,6 +894,8 @@ def main():
 
         optimizer.zero_grad(set_to_none=True)
         for i, batch in enumerate(train_loader):
+            if args.train_max_batches > 0 and i >= args.train_max_batches:
+                break
             images = batch[0] if isinstance(batch, (tuple, list)) else batch
             images = images.to(device, non_blocking=True)
             z0 = normalizer.normalize(encode_latent(system, images))
@@ -872,7 +921,7 @@ def main():
             else:
                 loss_for_back.backward()
 
-            should_step = ((i + 1) % accum == 0) or (i + 1 == len(train_loader))
+            should_step = ((i + 1) % accum == 0) or (i + 1 == effective_len)
             if should_step:
                 if scaler.is_enabled():
                     scaler.unscale_(optimizer)
@@ -912,11 +961,11 @@ def main():
 
             loss_sum += loss.item() * bsz
             loss_n += bsz
-            if (i + 1) % args.log_freq == 0 or i + 1 == len(train_loader):
+            if (i + 1) % args.log_freq == 0 or i + 1 == effective_len:
                 lr_now = optimizer.param_groups[0]["lr"]
                 elapsed = time.time() - t_epoch
                 it_s = elapsed / (i + 1)
-                eta = it_s * (len(train_loader) - i - 1)
+                eta = it_s * (effective_len - i - 1)
                 print(
                     f"  [{epoch+1}/{args.epochs}][{i+1}/{len(train_loader)}]  "
                     f"loss={loss_sum/loss_n:.4f}  LR={lr_now:.2e}  step={global_step}  "

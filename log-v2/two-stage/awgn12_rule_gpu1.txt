@@ -1,0 +1,434 @@
+
+=== Route-A two-stage session @ 2026-05-23 16:03:26 ===
+Log file: /workspace/yongjia/paper_code/log-v2/two-stage/awgn12_rule_gpu1.txt
+device=cuda, amp=torch.bfloat16
+save_dir=/workspace/yongjia/paper_code/checkpoints-val-v2/two-stage/awgn12_rule
+rule: train/test SNR=12 dB, PSNR=per-image mean
+train=800 valid=100
+
+=== 装配 ratio=0.25（c16to4: 16→4） ===
+  [sc_encoder] 载入 checkpoints-val-v2/route_a/sc_dct_c4_awgn12/sc_encoder_div2k_c16.pth
+    metrics: {'loss': 0.003718158467672765, 'loss_full': 0.0029026839043945073, 'loss_sub': 0.0007986594806425274, 'loss_reg': 0.010721656214445829, 'kl_raw': 6.093431339263916, 'channel_noise_std': 0.1383306884765625, 'psnr_full': 29.23249008178711, 'psnr_sub': 32.82893165588379, 'kl_weight': 1e-06, 'v_loss': 0.00457279859110713, 'v_loss_full': 0.003548641577363014, 'v_loss_sub': 0.001004737955518067, 'v_loss_reg': 0.013258313536643982, 'v_kl_raw': 6.160684471130371, 'v_channel_noise_std': 0.149833984375, 'v_psnr_full': 26.441749420166015, 'v_psnr_sub': 30.988123245239258, 'v_kl_weight': 1e-06}
+  [sc_decoder] 载入 checkpoints-val-v2/route_a/sc_dct_c4_awgn12/sc_decoder_div2k_c16.pth
+    metrics: {'loss': 0.003718158467672765, 'loss_full': 0.0029026839043945073, 'loss_sub': 0.0007986594806425274, 'loss_reg': 0.010721656214445829, 'kl_raw': 6.093431339263916, 'channel_noise_std': 0.1383306884765625, 'psnr_full': 29.23249008178711, 'psnr_sub': 32.82893165588379, 'kl_weight': 1e-06, 'v_loss': 0.00457279859110713, 'v_loss_full': 0.003548641577363014, 'v_loss_sub': 0.001004737955518067, 'v_loss_reg': 0.013258313536643982, 'v_kl_raw': 6.160684471130371, 'v_channel_noise_std': 0.149833984375, 'v_psnr_full': 26.441749420166015, 'v_psnr_sub': 30.988123245239258, 'v_kl_weight': 1e-06}
+  [cc arch] mode=linear, linear_depth=1, hidden=16, residual_hidden=16
+  [cc_encoder(c16to4)] 载入 checkpoints-val-v2/route_a/cc_dct_c4/cc_encoder_div2k_c16to4.pth
+    meta: {'in_channels': 16, 'out_channels': 4, 'compression_ratio': 0.25, 'linear_depth': 1, 'linear_hidden_channels': 16, 'codec_mode': 'linear', 'metrics': {'loss': 0.003482671114616096, 'loss_full': 0.003032960300333798, 'loss_sub': 0.00043322984536644073, 'loss_reg': 0.010277841063216329, 'kl_raw': 6.203178949356079, 'psnr_full': 29.079802017211914, 'psnr_sub': 36.28843101501465, 'kl_weight': 1e-06, 'v_loss': 0.0042765246145427226, 'v_loss_full': 0.0037318841740489007, 'v_loss_sub': 0.0005260139470919967, 'v_loss_reg': 0.012353189662098885, 'v_kl_raw': 6.273242225646973, 'v_psnr_full': 26.264791793823242, 'v_psnr_sub': 34.262110290527346, 'v_kl_weight': 1e-06}}
+  [cc_decoder(c16to4)] 载入 checkpoints-val-v2/route_a/cc_dct_c4/cc_decoder_div2k_c16to4.pth
+    meta: {'in_channels': 16, 'out_channels': 4, 'compression_ratio': 0.25, 'linear_depth': 1, 'linear_hidden_channels': 16, 'codec_mode': 'linear', 'metrics': {'loss': 0.003482671114616096, 'loss_full': 0.003032960300333798, 'loss_sub': 0.00043322984536644073, 'loss_reg': 0.010277841063216329, 'kl_raw': 6.203178949356079, 'psnr_full': 29.079802017211914, 'psnr_sub': 36.28843101501465, 'kl_weight': 1e-06, 'v_loss': 0.0042765246145427226, 'v_loss_full': 0.0037318841740489007, 'v_loss_sub': 0.0005260139470919967, 'v_loss_reg': 0.012353189662098885, 'v_kl_raw': 6.273242225646973, 'v_psnr_full': 26.264791793823242, 'v_psnr_sub': 34.262110290527346, 'v_kl_weight': 1e-06}}
+  [unet] 载入 EMA shadow (checkpoints-val-v2/route_a/unet_un/unet_un_div2k_c16_best.pth)
+channel_matrix_shape=(4, 16) tag=c16to4
+Pre-caching frozen SC/CC latents ...
+  cached train: 10 batches
+  cached train: 20 batches
+cached train=800 valid=100
+
+--- Stage 1: conditional low denoiser ---
+train_snr_values=[12.0], eval_snr=12, hidden=64, depth=4
+[low 001/160] loss=0.022060 feat=0.019681 img=0.008208 | raw=20.7472 clean=20.9447 den=20.6894 gain=-0.0579 BEST
+[low 002/160] loss=0.020241 feat=0.018023 noise=0.018023 img=0.008312
+[low 003/160] loss=0.019080 feat=0.016963 noise=0.016963 img=0.008412
+[low 004/160] loss=0.018550 feat=0.016479 noise=0.016479 img=0.008454
+[low 005/160] loss=0.018313 feat=0.016264 img=0.008453 | raw=20.7472 clean=20.9447 den=20.5559 gain=-0.1913 
+[low 006/160] loss=0.018043 feat=0.016018 noise=0.016018 img=0.008455
+[low 007/160] loss=0.017881 feat=0.015870 noise=0.015870 img=0.008462
+[low 008/160] loss=0.017778 feat=0.015777 noise=0.015777 img=0.008463
+[low 009/160] loss=0.017586 feat=0.015603 noise=0.015603 img=0.008463
+[low 010/160] loss=0.017535 feat=0.015556 img=0.008465 | raw=20.7472 clean=20.9447 den=20.5451 gain=-0.2022 
+[low 011/160] loss=0.017449 feat=0.015477 noise=0.015477 img=0.008472
+[low 012/160] loss=0.017342 feat=0.015381 noise=0.015381 img=0.008463
+[low 013/160] loss=0.017251 feat=0.015298 noise=0.015298 img=0.008464
+[low 014/160] loss=0.017217 feat=0.015267 noise=0.015267 img=0.008467
+[low 015/160] loss=0.017147 feat=0.015203 img=0.008470 | raw=20.7472 clean=20.9447 den=20.5596 gain=-0.1876 
+[low 016/160] loss=0.017029 feat=0.015096 noise=0.015096 img=0.008465
+[low 017/160] loss=0.016962 feat=0.015035 noise=0.015035 img=0.008466
+[low 018/160] loss=0.016894 feat=0.014973 noise=0.014973 img=0.008459
+[low 019/160] loss=0.016833 feat=0.014918 noise=0.014918 img=0.008465
+[low 020/160] loss=0.016850 feat=0.014934 img=0.008464 | raw=20.7472 clean=20.9447 den=20.5746 gain=-0.1726 
+[low 021/160] loss=0.016770 feat=0.014861 noise=0.014861 img=0.008455
+[low 022/160] loss=0.016721 feat=0.014816 noise=0.014816 img=0.008459
+[low 023/160] loss=0.016687 feat=0.014785 noise=0.014785 img=0.008461
+[low 024/160] loss=0.016575 feat=0.014684 noise=0.014684 img=0.008456
+[low 025/160] loss=0.016561 feat=0.014671 img=0.008455 | raw=20.7472 clean=20.9447 den=20.5485 gain=-0.1987 
+[low 026/160] loss=0.016574 feat=0.014683 noise=0.014683 img=0.008457
+[low 027/160] loss=0.016548 feat=0.014660 noise=0.014660 img=0.008460
+[low 028/160] loss=0.016421 feat=0.014544 noise=0.014544 img=0.008451
+[low 029/160] loss=0.016421 feat=0.014544 noise=0.014544 img=0.008450
+[low 030/160] loss=0.016403 feat=0.014528 img=0.008450 | raw=20.7472 clean=20.9447 den=20.5693 gain=-0.1779 
+[low 031/160] loss=0.016385 feat=0.014511 noise=0.014511 img=0.008449
+[low 032/160] loss=0.016341 feat=0.014471 noise=0.014471 img=0.008449
+[low 033/160] loss=0.016328 feat=0.014459 noise=0.014459 img=0.008446
+[low 034/160] loss=0.016293 feat=0.014428 noise=0.014428 img=0.008452
+[low 035/160] loss=0.016264 feat=0.014402 img=0.008448 | raw=20.7472 clean=20.9447 den=20.5586 gain=-0.1886 
+[low 036/160] loss=0.016193 feat=0.014337 noise=0.014337 img=0.008449
+[low 037/160] loss=0.016157 feat=0.014304 noise=0.014304 img=0.008441
+[low 038/160] loss=0.016192 feat=0.014336 noise=0.014336 img=0.008449
+[low 039/160] loss=0.016202 feat=0.014345 noise=0.014345 img=0.008446
+[low 040/160] loss=0.016122 feat=0.014273 img=0.008440 | raw=20.7472 clean=20.9447 den=20.5499 gain=-0.1973 
+[low 041/160] loss=0.016131 feat=0.014281 noise=0.014281 img=0.008446
+[low 042/160] loss=0.016052 feat=0.014208 noise=0.014208 img=0.008447
+[low 043/160] loss=0.016069 feat=0.014224 noise=0.014224 img=0.008443
+[low 044/160] loss=0.016060 feat=0.014216 noise=0.014216 img=0.008443
+[low 045/160] loss=0.015984 feat=0.014148 img=0.008435 | raw=20.7472 clean=20.9447 den=20.5698 gain=-0.1774 
+[low 046/160] loss=0.015984 feat=0.014147 noise=0.014147 img=0.008437
+[low 047/160] loss=0.015970 feat=0.014134 noise=0.014134 img=0.008443
+[low 048/160] loss=0.015963 feat=0.014128 noise=0.014128 img=0.008442
+[low 049/160] loss=0.015960 feat=0.014126 noise=0.014126 img=0.008437
+[low 050/160] loss=0.015862 feat=0.014036 img=0.008439 | raw=20.7472 clean=20.9447 den=20.5741 gain=-0.1732 
+[low 051/160] loss=0.015907 feat=0.014077 noise=0.014077 img=0.008437
+[low 052/160] loss=0.015897 feat=0.014068 noise=0.014068 img=0.008432
+[low 053/160] loss=0.015904 feat=0.014074 noise=0.014074 img=0.008437
+[low 054/160] loss=0.015923 feat=0.014092 noise=0.014092 img=0.008441
+[low 055/160] loss=0.015871 feat=0.014045 img=0.008437 | raw=20.7472 clean=20.9447 den=20.5505 gain=-0.1967 
+[low 056/160] loss=0.015802 feat=0.013982 noise=0.013982 img=0.008433
+[low 057/160] loss=0.015811 feat=0.013990 noise=0.013990 img=0.008436
+[low 058/160] loss=0.015785 feat=0.013967 noise=0.013967 img=0.008437
+[low 059/160] loss=0.015719 feat=0.013907 noise=0.013907 img=0.008437
+[low 060/160] loss=0.015745 feat=0.013931 img=0.008434 | raw=20.7472 clean=20.9447 den=20.5650 gain=-0.1822 
+[low 061/160] loss=0.015743 feat=0.013929 noise=0.013929 img=0.008432
+[low 062/160] loss=0.015716 feat=0.013904 noise=0.013904 img=0.008433
+[low 063/160] loss=0.015694 feat=0.013884 noise=0.013884 img=0.008433
+[low 064/160] loss=0.015695 feat=0.013885 noise=0.013885 img=0.008432
+[low 065/160] loss=0.015649 feat=0.013843 img=0.008433 | raw=20.7472 clean=20.9447 den=20.5641 gain=-0.1831 
+[low 066/160] loss=0.015708 feat=0.013897 noise=0.013897 img=0.008433
+[low 067/160] loss=0.015620 feat=0.013817 noise=0.013817 img=0.008433
+[low 068/160] loss=0.015708 feat=0.013896 noise=0.013896 img=0.008435
+[low 069/160] loss=0.015666 feat=0.013859 noise=0.013859 img=0.008430
+[low 070/160] loss=0.015629 feat=0.013825 img=0.008429 | raw=20.7472 clean=20.9447 den=20.5776 gain=-0.1696 
+[low 071/160] loss=0.015628 feat=0.013824 noise=0.013824 img=0.008428
+[low 072/160] loss=0.015620 feat=0.013817 noise=0.013817 img=0.008432
+[low 073/160] loss=0.015589 feat=0.013789 noise=0.013789 img=0.008428
+[low 074/160] loss=0.015528 feat=0.013733 noise=0.013733 img=0.008427
+[low 075/160] loss=0.015572 feat=0.013773 img=0.008428 | raw=20.7472 clean=20.9447 den=20.5629 gain=-0.1843 
+[low 076/160] loss=0.015582 feat=0.013782 noise=0.013782 img=0.008430
+[low 077/160] loss=0.015530 feat=0.013735 noise=0.013735 img=0.008425
+[low 078/160] loss=0.015599 feat=0.013797 noise=0.013797 img=0.008427
+[low 079/160] loss=0.015580 feat=0.013781 noise=0.013781 img=0.008426
+[low 080/160] loss=0.015539 feat=0.013743 img=0.008430 | raw=20.7472 clean=20.9447 den=20.5492 gain=-0.1981 
+[low 081/160] loss=0.015511 feat=0.013718 noise=0.013718 img=0.008428
+[low 082/160] loss=0.015476 feat=0.013686 noise=0.013686 img=0.008425
+[low 083/160] loss=0.015492 feat=0.013701 noise=0.013701 img=0.008422
+[low 084/160] loss=0.015483 feat=0.013693 noise=0.013693 img=0.008427
+[low 085/160] loss=0.015460 feat=0.013672 img=0.008428 | raw=20.7472 clean=20.9447 den=20.5611 gain=-0.1862 
+[low 086/160] loss=0.015453 feat=0.013665 noise=0.013665 img=0.008428
+[low 087/160] loss=0.015436 feat=0.013650 noise=0.013650 img=0.008417
+[low 088/160] loss=0.015411 feat=0.013627 noise=0.013627 img=0.008425
+[low 089/160] loss=0.015429 feat=0.013643 noise=0.013643 img=0.008420
+[low 090/160] loss=0.015392 feat=0.013610 img=0.008421 | raw=20.7472 clean=20.9447 den=20.5675 gain=-0.1797 
+[low 091/160] loss=0.015378 feat=0.013597 noise=0.013597 img=0.008426
+[low 092/160] loss=0.015414 feat=0.013630 noise=0.013630 img=0.008424
+[low 093/160] loss=0.015358 feat=0.013579 noise=0.013579 img=0.008421
+[low 094/160] loss=0.015355 feat=0.013576 noise=0.013576 img=0.008419
+[low 095/160] loss=0.015345 feat=0.013567 img=0.008421 | raw=20.7472 clean=20.9447 den=20.5679 gain=-0.1793 
+[low 096/160] loss=0.015270 feat=0.013499 noise=0.013499 img=0.008417
+[low 097/160] loss=0.015348 feat=0.013569 noise=0.013569 img=0.008425
+[low 098/160] loss=0.015310 feat=0.013536 noise=0.013536 img=0.008419
+[low 099/160] loss=0.015262 feat=0.013492 noise=0.013492 img=0.008420
+[low 100/160] loss=0.015303 feat=0.013529 img=0.008423 | raw=20.7472 clean=20.9447 den=20.5597 gain=-0.1875 
+[low 101/160] loss=0.015315 feat=0.013540 noise=0.013540 img=0.008416
+[low 102/160] loss=0.015300 feat=0.013526 noise=0.013526 img=0.008423
+[low 103/160] loss=0.015289 feat=0.013517 noise=0.013517 img=0.008421
+[low 104/160] loss=0.015256 feat=0.013487 noise=0.013487 img=0.008418
+[low 105/160] loss=0.015281 feat=0.013509 img=0.008423 | raw=20.7472 clean=20.9447 den=20.5602 gain=-0.1870 
+[low 106/160] loss=0.015237 feat=0.013469 noise=0.013469 img=0.008420
+[low 107/160] loss=0.015242 feat=0.013474 noise=0.013474 img=0.008415
+[low 108/160] loss=0.015212 feat=0.013447 noise=0.013447 img=0.008414
+[low 109/160] loss=0.015207 feat=0.013442 noise=0.013442 img=0.008417
+[low 110/160] loss=0.015215 feat=0.013449 img=0.008417 | raw=20.7472 clean=20.9447 den=20.5598 gain=-0.1874 
+[low 111/160] loss=0.015176 feat=0.013414 noise=0.013414 img=0.008415
+[low 112/160] loss=0.015244 feat=0.013475 noise=0.013475 img=0.008423
+[low 113/160] loss=0.015196 feat=0.013432 noise=0.013432 img=0.008419
+[low 114/160] loss=0.015217 feat=0.013451 noise=0.013451 img=0.008419
+[low 115/160] loss=0.015212 feat=0.013446 img=0.008419 | raw=20.7472 clean=20.9447 den=20.5628 gain=-0.1844 
+[low 116/160] loss=0.015177 feat=0.013415 noise=0.013415 img=0.008418
+[low 117/160] loss=0.015138 feat=0.013379 noise=0.013379 img=0.008417
+[low 118/160] loss=0.015191 feat=0.013427 noise=0.013427 img=0.008418
+[low 119/160] loss=0.015171 feat=0.013409 noise=0.013409 img=0.008422
+[low 120/160] loss=0.015111 feat=0.013354 img=0.008416 | raw=20.7472 clean=20.9447 den=20.5617 gain=-0.1855 
+[low 121/160] loss=0.015163 feat=0.013401 noise=0.013401 img=0.008420
+[low 122/160] loss=0.015091 feat=0.013336 noise=0.013336 img=0.008414
+[low 123/160] loss=0.015084 feat=0.013330 noise=0.013330 img=0.008412
+[low 124/160] loss=0.015064 feat=0.013312 noise=0.013312 img=0.008415
+[low 125/160] loss=0.015052 feat=0.013301 img=0.008417 | raw=20.7472 clean=20.9447 den=20.5583 gain=-0.1890 
+[low 126/160] loss=0.015114 feat=0.013358 noise=0.013358 img=0.008417
+[low 127/160] loss=0.015153 feat=0.013393 noise=0.013393 img=0.008417
+[low 128/160] loss=0.015054 feat=0.013303 noise=0.013303 img=0.008410
+[low 129/160] loss=0.015107 feat=0.013351 noise=0.013351 img=0.008414
+[low 130/160] loss=0.015094 feat=0.013340 img=0.008417 | raw=20.7472 clean=20.9447 den=20.5675 gain=-0.1797 
+[low 131/160] loss=0.015055 feat=0.013303 noise=0.013303 img=0.008417
+[low 132/160] loss=0.015010 feat=0.013263 noise=0.013263 img=0.008412
+[low 133/160] loss=0.014993 feat=0.013248 noise=0.013248 img=0.008410
+[low 134/160] loss=0.015032 feat=0.013283 noise=0.013283 img=0.008410
+[low 135/160] loss=0.014993 feat=0.013248 img=0.008411 | raw=20.7472 clean=20.9447 den=20.5671 gain=-0.1801 
+[low 136/160] loss=0.015011 feat=0.013264 noise=0.013264 img=0.008415
+[low 137/160] loss=0.015017 feat=0.013270 noise=0.013270 img=0.008406
+[low 138/160] loss=0.015002 feat=0.013256 noise=0.013256 img=0.008415
+[low 139/160] loss=0.014954 feat=0.013212 noise=0.013212 img=0.008408
+[low 140/160] loss=0.015036 feat=0.013287 img=0.008416 | raw=20.7472 clean=20.9447 den=20.5628 gain=-0.1844 
+[low 141/160] loss=0.014936 feat=0.013195 noise=0.013195 img=0.008411
+[low 142/160] loss=0.014942 feat=0.013202 noise=0.013202 img=0.008406
+[low 143/160] loss=0.014917 feat=0.013178 noise=0.013178 img=0.008410
+[low 144/160] loss=0.014900 feat=0.013163 noise=0.013163 img=0.008406
+[low 145/160] loss=0.014985 feat=0.013240 img=0.008415 | raw=20.7472 clean=20.9447 den=20.5796 gain=-0.1677 
+[low 146/160] loss=0.014985 feat=0.013241 noise=0.013241 img=0.008415
+[low 147/160] loss=0.015021 feat=0.013273 noise=0.013273 img=0.008415
+[low 148/160] loss=0.014917 feat=0.013179 noise=0.013179 img=0.008408
+[low 149/160] loss=0.014913 feat=0.013175 noise=0.013175 img=0.008403
+[low 150/160] loss=0.014902 feat=0.013165 img=0.008406 | raw=20.7472 clean=20.9447 den=20.5429 gain=-0.2043 
+[low 151/160] loss=0.014901 feat=0.013164 noise=0.013164 img=0.008409
+[low 152/160] loss=0.014935 feat=0.013194 noise=0.013194 img=0.008414
+[low 153/160] loss=0.014869 feat=0.013135 noise=0.013135 img=0.008410
+[low 154/160] loss=0.014858 feat=0.013125 noise=0.013125 img=0.008407
+[low 155/160] loss=0.014849 feat=0.013117 img=0.008402 | raw=20.7472 clean=20.9447 den=20.5519 gain=-0.1953 
+[low 156/160] loss=0.014863 feat=0.013129 noise=0.013129 img=0.008406
+[low 157/160] loss=0.014847 feat=0.013114 noise=0.013114 img=0.008412
+[low 158/160] loss=0.014908 feat=0.013170 noise=0.013170 img=0.008408
+[low 159/160] loss=0.014829 feat=0.013099 noise=0.013099 img=0.008405
+[low 160/160] loss=0.014877 feat=0.013143 img=0.008409 | raw=20.7472 clean=20.9447 den=20.5617 gain=-0.1855 
+stage1_best_psnr=20.6894 ckpt=/workspace/yongjia/paper_code/checkpoints-val-v2/two-stage/awgn12_rule/route_a_cond_low_denoiser_div2k_c16_awgn12_best.pth
+  [low_denoiser] loaded /workspace/yongjia/paper_code/checkpoints-val-v2/two-stage/awgn12_rule/route_a_cond_low_denoiser_div2k_c16_awgn12_best.pth
+    metrics={'train_low_loss': 0.022059823498129846, 'train_low_feat_mse': 0.019681288972496987, 'train_low_noise_mse': 0.019681288972496987, 'train_low_img_mse': 0.008208115957677365, 'val_low_feat_mse': 0.021653884053230286, 'val_psnr_low_raw': 20.747221565246583, 'val_psnr_low_clean': 20.94472728729248, 'val_psnr_low_denoised': 20.689357147216796, 'val_gain_low_vs_raw': -0.057864418029787146}
+
+--- Stage 2: conditional null-space refiner ---
+train_snr_values=[12.0], eval_snr=12, hidden=96, depth=6
+[ref 001/240] loss=0.021401 latent=0.014040 img=0.007361 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5335 gain_raw=+0.7862 gain_den=+0.8433 BEST
+[ref 002/240] loss=0.020214 latent=0.013039 img=0.007175 null=0.000000
+[ref 003/240] loss=0.019213 latent=0.012117 img=0.007096 null=0.000000
+[ref 004/240] loss=0.018616 latent=0.011607 img=0.007009 null=0.000000
+[ref 005/240] loss=0.018237 latent=0.011298 img=0.006939 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.7674 gain_raw=+1.0201 gain_den=+1.0772 BEST
+[ref 006/240] loss=0.018014 latent=0.011128 img=0.006886 null=0.000000
+[ref 007/240] loss=0.017839 latent=0.011001 img=0.006837 null=0.000000
+[ref 008/240] loss=0.017720 latent=0.010918 img=0.006802 null=0.000000
+[ref 009/240] loss=0.017584 latent=0.010822 img=0.006761 null=0.000000
+[ref 010/240] loss=0.017509 latent=0.010776 img=0.006733 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.8545 gain_raw=+1.1072 gain_den=+1.1642 BEST
+[ref 011/240] loss=0.017413 latent=0.010712 img=0.006701 null=0.000000
+[ref 012/240] loss=0.017330 latent=0.010663 img=0.006667 null=0.000000
+[ref 013/240] loss=0.017251 latent=0.010615 img=0.006635 null=0.000000
+[ref 014/240] loss=0.017187 latent=0.010580 img=0.006607 null=0.000000
+[ref 015/240] loss=0.017096 latent=0.010525 img=0.006571 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.8568 gain_raw=+1.1095 gain_den=+1.1666 BEST
+[ref 016/240] loss=0.017007 latent=0.010476 img=0.006530 null=0.000000
+[ref 017/240] loss=0.016882 latent=0.010396 img=0.006486 null=0.000000
+[ref 018/240] loss=0.016797 latent=0.010349 img=0.006448 null=0.000000
+[ref 019/240] loss=0.016705 latent=0.010298 img=0.006407 null=0.000000
+[ref 020/240] loss=0.016623 latent=0.010256 img=0.006367 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.8517 gain_raw=+1.1044 gain_den=+1.1615 
+[ref 021/240] loss=0.016464 latent=0.010153 img=0.006311 null=0.000000
+[ref 022/240] loss=0.016366 latent=0.010102 img=0.006264 null=0.000000
+[ref 023/240] loss=0.016268 latent=0.010049 img=0.006219 null=0.000000
+[ref 024/240] loss=0.016132 latent=0.009962 img=0.006171 null=0.000000
+[ref 025/240] loss=0.016040 latent=0.009911 img=0.006129 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.8535 gain_raw=+1.1062 gain_den=+1.1632 
+[ref 026/240] loss=0.015978 latent=0.009871 img=0.006106 null=0.000000
+[ref 027/240] loss=0.015881 latent=0.009820 img=0.006062 null=0.000000
+[ref 028/240] loss=0.015766 latent=0.009751 img=0.006015 null=0.000000
+[ref 029/240] loss=0.015667 latent=0.009687 img=0.005980 null=0.000000
+[ref 030/240] loss=0.015545 latent=0.009614 img=0.005931 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.7745 gain_raw=+1.0272 gain_den=+1.0843 
+[ref 031/240] loss=0.015500 latent=0.009585 img=0.005915 null=0.000000
+[ref 032/240] loss=0.015419 latent=0.009544 img=0.005875 null=0.000000
+[ref 033/240] loss=0.015339 latent=0.009492 img=0.005846 null=0.000000
+[ref 034/240] loss=0.015243 latent=0.009434 img=0.005809 null=0.000000
+[ref 035/240] loss=0.015180 latent=0.009400 img=0.005779 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.7224 gain_raw=+0.9751 gain_den=+1.0321 
+[ref 036/240] loss=0.015051 latent=0.009314 img=0.005737 null=0.000000
+[ref 037/240] loss=0.015000 latent=0.009286 img=0.005714 null=0.000000
+[ref 038/240] loss=0.014946 latent=0.009251 img=0.005695 null=0.000000
+[ref 039/240] loss=0.014896 latent=0.009224 img=0.005673 null=0.000000
+[ref 040/240] loss=0.014811 latent=0.009171 img=0.005640 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.7153 gain_raw=+0.9680 gain_den=+1.0251 
+[ref 041/240] loss=0.014735 latent=0.009126 img=0.005609 null=0.000000
+[ref 042/240] loss=0.014692 latent=0.009100 img=0.005592 null=0.000000
+[ref 043/240] loss=0.014606 latent=0.009047 img=0.005559 null=0.000000
+[ref 044/240] loss=0.014547 latent=0.009011 img=0.005536 null=0.000000
+[ref 045/240] loss=0.014478 latent=0.008968 img=0.005510 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.7048 gain_raw=+0.9575 gain_den=+1.0146 
+[ref 046/240] loss=0.014440 latent=0.008946 img=0.005494 null=0.000000
+[ref 047/240] loss=0.014418 latent=0.008937 img=0.005481 null=0.000000
+[ref 048/240] loss=0.014341 latent=0.008885 img=0.005456 null=0.000000
+[ref 049/240] loss=0.014332 latent=0.008885 img=0.005447 null=0.000000
+[ref 050/240] loss=0.014241 latent=0.008823 img=0.005418 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5528 gain_raw=+0.8055 gain_den=+0.8625 
+[ref 051/240] loss=0.014204 latent=0.008801 img=0.005403 null=0.000000
+[ref 052/240] loss=0.014145 latent=0.008763 img=0.005383 null=0.000000
+[ref 053/240] loss=0.014095 latent=0.008731 img=0.005363 null=0.000000
+[ref 054/240] loss=0.014066 latent=0.008712 img=0.005354 null=0.000000
+[ref 055/240] loss=0.014051 latent=0.008711 img=0.005340 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.6469 gain_raw=+0.8996 gain_den=+0.9566 
+[ref 056/240] loss=0.013990 latent=0.008670 img=0.005320 null=0.000000
+[ref 057/240] loss=0.013954 latent=0.008652 img=0.005302 null=0.000000
+[ref 058/240] loss=0.013888 latent=0.008608 img=0.005280 null=0.000000
+[ref 059/240] loss=0.013866 latent=0.008596 img=0.005270 null=0.000000
+[ref 060/240] loss=0.013811 latent=0.008559 img=0.005252 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.6075 gain_raw=+0.8602 gain_den=+0.9172 
+[ref 061/240] loss=0.013797 latent=0.008550 img=0.005247 null=0.000000
+[ref 062/240] loss=0.013763 latent=0.008537 img=0.005226 null=0.000000
+[ref 063/240] loss=0.013685 latent=0.008479 img=0.005206 null=0.000000
+[ref 064/240] loss=0.013676 latent=0.008479 img=0.005197 null=0.000000
+[ref 065/240] loss=0.013621 latent=0.008444 img=0.005178 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5739 gain_raw=+0.8266 gain_den=+0.8836 
+[ref 066/240] loss=0.013569 latent=0.008409 img=0.005160 null=0.000000
+[ref 067/240] loss=0.013579 latent=0.008418 img=0.005161 null=0.000000
+[ref 068/240] loss=0.013543 latent=0.008397 img=0.005147 null=0.000000
+[ref 069/240] loss=0.013508 latent=0.008375 img=0.005133 null=0.000000
+[ref 070/240] loss=0.013469 latent=0.008350 img=0.005120 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5790 gain_raw=+0.8317 gain_den=+0.8887 
+[ref 071/240] loss=0.013446 latent=0.008332 img=0.005114 null=0.000000
+[ref 072/240] loss=0.013426 latent=0.008326 img=0.005101 null=0.000000
+[ref 073/240] loss=0.013424 latent=0.008322 img=0.005103 null=0.000000
+[ref 074/240] loss=0.013436 latent=0.008337 img=0.005099 null=0.000000
+[ref 075/240] loss=0.013340 latent=0.008265 img=0.005076 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4520 gain_raw=+0.7047 gain_den=+0.7617 
+[ref 076/240] loss=0.013312 latent=0.008249 img=0.005062 null=0.000000
+[ref 077/240] loss=0.013291 latent=0.008244 img=0.005047 null=0.000000
+[ref 078/240] loss=0.013280 latent=0.008241 img=0.005039 null=0.000000
+[ref 079/240] loss=0.013224 latent=0.008194 img=0.005031 null=0.000000
+[ref 080/240] loss=0.013205 latent=0.008185 img=0.005020 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5748 gain_raw=+0.8275 gain_den=+0.8846 
+[ref 081/240] loss=0.013185 latent=0.008173 img=0.005011 null=0.000000
+[ref 082/240] loss=0.013156 latent=0.008153 img=0.005003 null=0.000000
+[ref 083/240] loss=0.013109 latent=0.008122 img=0.004987 null=0.000000
+[ref 084/240] loss=0.013150 latent=0.008154 img=0.004996 null=0.000000
+[ref 085/240] loss=0.013104 latent=0.008121 img=0.004983 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5652 gain_raw=+0.8179 gain_den=+0.8749 
+[ref 086/240] loss=0.013087 latent=0.008109 img=0.004978 null=0.000000
+[ref 087/240] loss=0.013078 latent=0.008107 img=0.004971 null=0.000000
+[ref 088/240] loss=0.013048 latent=0.008090 img=0.004958 null=0.000000
+[ref 089/240] loss=0.013064 latent=0.008098 img=0.004966 null=0.000000
+[ref 090/240] loss=0.012993 latent=0.008049 img=0.004944 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4599 gain_raw=+0.7126 gain_den=+0.7696 
+[ref 091/240] loss=0.013011 latent=0.008069 img=0.004942 null=0.000000
+[ref 092/240] loss=0.012978 latent=0.008042 img=0.004936 null=0.000000
+[ref 093/240] loss=0.012898 latent=0.007993 img=0.004906 null=0.000000
+[ref 094/240] loss=0.012910 latent=0.008000 img=0.004910 null=0.000000
+[ref 095/240] loss=0.012889 latent=0.007986 img=0.004903 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5606 gain_raw=+0.8133 gain_den=+0.8704 
+[ref 096/240] loss=0.012843 latent=0.007958 img=0.004885 null=0.000000
+[ref 097/240] loss=0.012849 latent=0.007965 img=0.004884 null=0.000000
+[ref 098/240] loss=0.012848 latent=0.007965 img=0.004883 null=0.000000
+[ref 099/240] loss=0.012836 latent=0.007962 img=0.004875 null=0.000000
+[ref 100/240] loss=0.012830 latent=0.007948 img=0.004881 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5240 gain_raw=+0.7767 gain_den=+0.8338 
+[ref 101/240] loss=0.012807 latent=0.007938 img=0.004868 null=0.000000
+[ref 102/240] loss=0.012754 latent=0.007902 img=0.004853 null=0.000000
+[ref 103/240] loss=0.012776 latent=0.007920 img=0.004856 null=0.000000
+[ref 104/240] loss=0.012737 latent=0.007899 img=0.004837 null=0.000000
+[ref 105/240] loss=0.012705 latent=0.007869 img=0.004836 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5290 gain_raw=+0.7817 gain_den=+0.8388 
+[ref 106/240] loss=0.012656 latent=0.007839 img=0.004817 null=0.000000
+[ref 107/240] loss=0.012664 latent=0.007845 img=0.004819 null=0.000000
+[ref 108/240] loss=0.012697 latent=0.007871 img=0.004826 null=0.000000
+[ref 109/240] loss=0.012678 latent=0.007858 img=0.004820 null=0.000000
+[ref 110/240] loss=0.012638 latent=0.007830 img=0.004808 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5330 gain_raw=+0.7857 gain_den=+0.8427 
+[ref 111/240] loss=0.012643 latent=0.007836 img=0.004807 null=0.000000
+[ref 112/240] loss=0.012628 latent=0.007821 img=0.004807 null=0.000000
+[ref 113/240] loss=0.012622 latent=0.007821 img=0.004800 null=0.000000
+[ref 114/240] loss=0.012590 latent=0.007800 img=0.004790 null=0.000000
+[ref 115/240] loss=0.012574 latent=0.007793 img=0.004781 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5135 gain_raw=+0.7662 gain_den=+0.8232 
+[ref 116/240] loss=0.012566 latent=0.007788 img=0.004777 null=0.000000
+[ref 117/240] loss=0.012547 latent=0.007774 img=0.004773 null=0.000000
+[ref 118/240] loss=0.012514 latent=0.007753 img=0.004761 null=0.000000
+[ref 119/240] loss=0.012523 latent=0.007763 img=0.004761 null=0.000000
+[ref 120/240] loss=0.012498 latent=0.007746 img=0.004752 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4729 gain_raw=+0.7256 gain_den=+0.7827 
+[ref 121/240] loss=0.012490 latent=0.007739 img=0.004751 null=0.000000
+[ref 122/240] loss=0.012552 latent=0.007778 img=0.004774 null=0.000000
+[ref 123/240] loss=0.012497 latent=0.007744 img=0.004753 null=0.000000
+[ref 124/240] loss=0.012464 latent=0.007721 img=0.004742 null=0.000000
+[ref 125/240] loss=0.012502 latent=0.007743 img=0.004759 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5151 gain_raw=+0.7678 gain_den=+0.8249 
+[ref 126/240] loss=0.012450 latent=0.007709 img=0.004741 null=0.000000
+[ref 127/240] loss=0.012432 latent=0.007706 img=0.004726 null=0.000000
+[ref 128/240] loss=0.012419 latent=0.007695 img=0.004724 null=0.000000
+[ref 129/240] loss=0.012386 latent=0.007673 img=0.004713 null=0.000000
+[ref 130/240] loss=0.012378 latent=0.007671 img=0.004707 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4430 gain_raw=+0.6957 gain_den=+0.7527 
+[ref 131/240] loss=0.012344 latent=0.007643 img=0.004701 null=0.000000
+[ref 132/240] loss=0.012356 latent=0.007658 img=0.004699 null=0.000000
+[ref 133/240] loss=0.012360 latent=0.007657 img=0.004703 null=0.000000
+[ref 134/240] loss=0.012412 latent=0.007690 img=0.004722 null=0.000000
+[ref 135/240] loss=0.012341 latent=0.007643 img=0.004697 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4776 gain_raw=+0.7303 gain_den=+0.7873 
+[ref 136/240] loss=0.012326 latent=0.007632 img=0.004694 null=0.000000
+[ref 137/240] loss=0.012322 latent=0.007632 img=0.004690 null=0.000000
+[ref 138/240] loss=0.012333 latent=0.007637 img=0.004696 null=0.000000
+[ref 139/240] loss=0.012307 latent=0.007627 img=0.004679 null=0.000000
+[ref 140/240] loss=0.012320 latent=0.007633 img=0.004686 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4589 gain_raw=+0.7116 gain_den=+0.7686 
+[ref 141/240] loss=0.012279 latent=0.007603 img=0.004676 null=0.000000
+[ref 142/240] loss=0.012326 latent=0.007630 img=0.004696 null=0.000000
+[ref 143/240] loss=0.012279 latent=0.007602 img=0.004677 null=0.000000
+[ref 144/240] loss=0.012235 latent=0.007579 img=0.004657 null=0.000000
+[ref 145/240] loss=0.012236 latent=0.007579 img=0.004657 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4517 gain_raw=+0.7044 gain_den=+0.7614 
+[ref 146/240] loss=0.012221 latent=0.007565 img=0.004656 null=0.000000
+[ref 147/240] loss=0.012250 latent=0.007591 img=0.004659 null=0.000000
+[ref 148/240] loss=0.012204 latent=0.007555 img=0.004649 null=0.000000
+[ref 149/240] loss=0.012187 latent=0.007540 img=0.004647 null=0.000000
+[ref 150/240] loss=0.012204 latent=0.007556 img=0.004649 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4498 gain_raw=+0.7025 gain_den=+0.7595 
+[ref 151/240] loss=0.012186 latent=0.007543 img=0.004644 null=0.000000
+[ref 152/240] loss=0.012200 latent=0.007554 img=0.004646 null=0.000000
+[ref 153/240] loss=0.012157 latent=0.007524 img=0.004633 null=0.000000
+[ref 154/240] loss=0.012160 latent=0.007535 img=0.004625 null=0.000000
+[ref 155/240] loss=0.012144 latent=0.007517 img=0.004626 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5216 gain_raw=+0.7743 gain_den=+0.8313 
+[ref 156/240] loss=0.012194 latent=0.007554 img=0.004639 null=0.000000
+[ref 157/240] loss=0.012143 latent=0.007518 img=0.004625 null=0.000000
+[ref 158/240] loss=0.012134 latent=0.007511 img=0.004623 null=0.000000
+[ref 159/240] loss=0.012097 latent=0.007490 img=0.004607 null=0.000000
+[ref 160/240] loss=0.012106 latent=0.007496 img=0.004610 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4083 gain_raw=+0.6610 gain_den=+0.7180 
+[ref 161/240] loss=0.012105 latent=0.007497 img=0.004608 null=0.000000
+[ref 162/240] loss=0.012105 latent=0.007489 img=0.004616 null=0.000000
+[ref 163/240] loss=0.012092 latent=0.007486 img=0.004606 null=0.000000
+[ref 164/240] loss=0.012072 latent=0.007476 img=0.004597 null=0.000000
+[ref 165/240] loss=0.012062 latent=0.007468 img=0.004594 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4465 gain_raw=+0.6992 gain_den=+0.7563 
+[ref 166/240] loss=0.012050 latent=0.007456 img=0.004594 null=0.000000
+[ref 167/240] loss=0.012043 latent=0.007457 img=0.004586 null=0.000000
+[ref 168/240] loss=0.012034 latent=0.007446 img=0.004587 null=0.000000
+[ref 169/240] loss=0.012048 latent=0.007462 img=0.004586 null=0.000000
+[ref 170/240] loss=0.012018 latent=0.007435 img=0.004582 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4488 gain_raw=+0.7015 gain_den=+0.7585 
+[ref 171/240] loss=0.012029 latent=0.007445 img=0.004584 null=0.000000
+[ref 172/240] loss=0.012017 latent=0.007434 img=0.004583 null=0.000000
+[ref 173/240] loss=0.012026 latent=0.007446 img=0.004581 null=0.000000
+[ref 174/240] loss=0.012041 latent=0.007455 img=0.004586 null=0.000000
+[ref 175/240] loss=0.012024 latent=0.007445 img=0.004579 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4737 gain_raw=+0.7264 gain_den=+0.7834 
+[ref 176/240] loss=0.012022 latent=0.007444 img=0.004578 null=0.000000
+[ref 177/240] loss=0.011979 latent=0.007412 img=0.004567 null=0.000000
+[ref 178/240] loss=0.012007 latent=0.007432 img=0.004574 null=0.000000
+[ref 179/240] loss=0.011974 latent=0.007407 img=0.004567 null=0.000000
+[ref 180/240] loss=0.011978 latent=0.007414 img=0.004564 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.3718 gain_raw=+0.6245 gain_den=+0.6815 
+[ref 181/240] loss=0.011958 latent=0.007403 img=0.004555 null=0.000000
+[ref 182/240] loss=0.011960 latent=0.007402 img=0.004558 null=0.000000
+[ref 183/240] loss=0.011961 latent=0.007397 img=0.004563 null=0.000000
+[ref 184/240] loss=0.012038 latent=0.007453 img=0.004585 null=0.000000
+[ref 185/240] loss=0.012001 latent=0.007425 img=0.004576 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5292 gain_raw=+0.7818 gain_den=+0.8389 
+[ref 186/240] loss=0.011954 latent=0.007395 img=0.004560 null=0.000000
+[ref 187/240] loss=0.011926 latent=0.007381 img=0.004546 null=0.000000
+[ref 188/240] loss=0.011944 latent=0.007394 img=0.004550 null=0.000000
+[ref 189/240] loss=0.011926 latent=0.007386 img=0.004539 null=0.000000
+[ref 190/240] loss=0.011899 latent=0.007364 img=0.004535 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.3887 gain_raw=+0.6414 gain_den=+0.6985 
+[ref 191/240] loss=0.011898 latent=0.007360 img=0.004537 null=0.000000
+[ref 192/240] loss=0.011881 latent=0.007351 img=0.004530 null=0.000000
+[ref 193/240] loss=0.011920 latent=0.007377 img=0.004544 null=0.000000
+[ref 194/240] loss=0.011931 latent=0.007381 img=0.004549 null=0.000000
+[ref 195/240] loss=0.011891 latent=0.007355 img=0.004535 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4296 gain_raw=+0.6823 gain_den=+0.7394 
+[ref 196/240] loss=0.011890 latent=0.007355 img=0.004534 null=0.000000
+[ref 197/240] loss=0.011855 latent=0.007331 img=0.004524 null=0.000000
+[ref 198/240] loss=0.011902 latent=0.007370 img=0.004531 null=0.000000
+[ref 199/240] loss=0.011890 latent=0.007354 img=0.004536 null=0.000000
+[ref 200/240] loss=0.011852 latent=0.007331 img=0.004521 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4589 gain_raw=+0.7116 gain_den=+0.7686 
+[ref 201/240] loss=0.011861 latent=0.007341 img=0.004519 null=0.000000
+[ref 202/240] loss=0.011862 latent=0.007341 img=0.004522 null=0.000000
+[ref 203/240] loss=0.011830 latent=0.007316 img=0.004515 null=0.000000
+[ref 204/240] loss=0.011844 latent=0.007329 img=0.004515 null=0.000000
+[ref 205/240] loss=0.011841 latent=0.007324 img=0.004517 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.5187 gain_raw=+0.7714 gain_den=+0.8284 
+[ref 206/240] loss=0.011871 latent=0.007344 img=0.004526 null=0.000000
+[ref 207/240] loss=0.011880 latent=0.007349 img=0.004532 null=0.000000
+[ref 208/240] loss=0.011938 latent=0.007389 img=0.004549 null=0.000000
+[ref 209/240] loss=0.011848 latent=0.007328 img=0.004520 null=0.000000
+[ref 210/240] loss=0.011812 latent=0.007307 img=0.004505 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.3999 gain_raw=+0.6526 gain_den=+0.7096 
+[ref 211/240] loss=0.011825 latent=0.007315 img=0.004510 null=0.000000
+[ref 212/240] loss=0.011805 latent=0.007305 img=0.004500 null=0.000000
+[ref 213/240] loss=0.011777 latent=0.007286 img=0.004490 null=0.000000
+[ref 214/240] loss=0.011775 latent=0.007285 img=0.004490 null=0.000000
+[ref 215/240] loss=0.011775 latent=0.007283 img=0.004491 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.3980 gain_raw=+0.6507 gain_den=+0.7077 
+[ref 216/240] loss=0.011788 latent=0.007295 img=0.004493 null=0.000000
+[ref 217/240] loss=0.011789 latent=0.007293 img=0.004496 null=0.000000
+[ref 218/240] loss=0.011774 latent=0.007286 img=0.004488 null=0.000000
+[ref 219/240] loss=0.011750 latent=0.007267 img=0.004482 null=0.000000
+[ref 220/240] loss=0.011753 latent=0.007267 img=0.004486 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4531 gain_raw=+0.7058 gain_den=+0.7628 
+[ref 221/240] loss=0.011746 latent=0.007265 img=0.004481 null=0.000000
+[ref 222/240] loss=0.011775 latent=0.007281 img=0.004494 null=0.000000
+[ref 223/240] loss=0.011753 latent=0.007268 img=0.004484 null=0.000000
+[ref 224/240] loss=0.011734 latent=0.007252 img=0.004482 null=0.000000
+[ref 225/240] loss=0.011739 latent=0.007262 img=0.004477 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4584 gain_raw=+0.7111 gain_den=+0.7682 
+[ref 226/240] loss=0.011733 latent=0.007257 img=0.004476 null=0.000000
+[ref 227/240] loss=0.011732 latent=0.007255 img=0.004477 null=0.000000
+[ref 228/240] loss=0.011804 latent=0.007307 img=0.004498 null=0.000000
+[ref 229/240] loss=0.011720 latent=0.007250 img=0.004470 null=0.000000
+[ref 230/240] loss=0.011705 latent=0.007237 img=0.004468 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.3972 gain_raw=+0.6498 gain_den=+0.7069 
+[ref 231/240] loss=0.011724 latent=0.007250 img=0.004474 null=0.000000
+[ref 232/240] loss=0.011736 latent=0.007261 img=0.004475 null=0.000000
+[ref 233/240] loss=0.011701 latent=0.007231 img=0.004470 null=0.000000
+[ref 234/240] loss=0.011696 latent=0.007232 img=0.004464 null=0.000000
+[ref 235/240] loss=0.011700 latent=0.007231 img=0.004469 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.4548 gain_raw=+0.7075 gain_den=+0.7646 
+[ref 236/240] loss=0.011749 latent=0.007270 img=0.004479 null=0.000000
+[ref 237/240] loss=0.011719 latent=0.007247 img=0.004472 null=0.000000
+[ref 238/240] loss=0.011747 latent=0.007263 img=0.004483 null=0.000000
+[ref 239/240] loss=0.011753 latent=0.007261 img=0.004492 null=0.000000
+[ref 240/240] loss=0.011698 latent=0.007232 img=0.004465 null=0.000000 | raw=20.7473 den_low=20.6903 ref=21.3865 gain_raw=+0.6392 gain_den=+0.6962 
+stage2_best_psnr=21.8568 ckpt=/workspace/yongjia/paper_code/checkpoints-val-v2/two-stage/awgn12_rule/route_a_cond_refiner_div2k_c16_awgn12_best.pth
