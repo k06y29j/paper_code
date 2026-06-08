@@ -13,7 +13,7 @@ FID：原图集合 vs 重建图集合的 Fréchet Inception Distance（越低越
   python test/eval_jscc_lpips_fid.py --train-snr 12 --channel-type awgn --C 12
   python test/eval_jscc_lpips_fid.py --train-snr 12 --C 12 --eval-snrs 0,3,12,50
   python test/eval_jscc_lpips_fid.py --cddm --train-snr 12 --C 12 --eval-snrs 12
-  CUDA_VISIBLE_DEVICES=2 python test/eval_jscc_lpips_fid.py --gpu 2 --train-snr 0 --C 4
+  CUDA_VISIBLE_DEVICES=2 python CDDM/test/eval_jscc_lpips_fid.py --gpu 2 --train-snr 0 --C 4
 
 若某物理 GPU 存在 ECC/硬件问题：请传 ``--gpu N``（须在 import torch 之前生效），或外层
 ``CUDA_VISIBLE_DEVICES=N python ...``。

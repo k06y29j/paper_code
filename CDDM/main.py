@@ -24,13 +24,13 @@ class experiment():
     channel_type = ["awgn"]
     dataset = ["DIV2K"]
     SNRs = []
-    train_snr = [12]
+    train_snr = [9, 12, 15]
     C_confirm = [36]
     # True：从零跑 train_JSCC_seqeratly（会覆盖 encoder/decoder）。False：使用已有 checkpoints/JSCC/.../encoder_* / decoder_* 继续后面阶段。
     jscc_stage1_train = False
     # True：只训 JSCC，不执行 train_CHDDIM / train_JSCC_with_CDDM（需同时 jscc_stage1_train=True 才有完整意义）
     jscc_train_only = False
-    C_CIFAR = [24,16, 12, 8]
+    C_CIFAR = [36]
     C_DIV2K = [36,24, 12]
     #C_CelebA = [48, 24, 16, 8]
     C=[C_DIV2K]

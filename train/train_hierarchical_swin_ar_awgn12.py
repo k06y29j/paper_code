@@ -129,11 +129,14 @@ class SmallLatentUNet(nn.Module):
 
 
 class ARReceiver(nn.Module):
-    def __init__(self, hidden: int = 160, depth: int = 4) -> None:
+    def __init__(self, hidden: int = 160, depth: int = 4, use_scale: bool = True) -> None:
         super().__init__()
-        self.pred1 = GroupPredictor(5, hidden, depth)
-        self.pred2 = GroupPredictor(9, hidden, depth)
-        self.pred3 = GroupPredictor(13, hidden, depth)
+        self.use_scale = bool(use_scale)
+        extra = 1 if self.use_scale else 0
+        self.pred1 = GroupPredictor(4 + extra, hidden, depth)
+        self.pred2 = GroupPredictor(8 + extra, hidden, depth)
+        self.pred3 = GroupPredictor(12 + extra, hidden, depth)
+        self.high_gate_logits = nn.Parameter(torch.full((3,), -6.0, dtype=torch.float32))
 
     def forward(
         self,
@@ -147,17 +150,28 @@ class ARReceiver(nn.Module):
         teacher_prob: float = 0.0,
     ) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
         h, w = z0_rx.shape[-2:]
-        scale_map = scale.float().log().view(-1, 1, 1, 1).expand(-1, 1, h, w).to(dtype=z0_rx.dtype)
-        z1 = self.pred1(torch.cat([z0_rx, scale_map], dim=1))
+        scale_map = None
+        if self.use_scale:
+            scale_map = scale.float().log().view(-1, 1, 1, 1).expand(-1, 1, h, w).to(dtype=z0_rx.dtype)
+        inp1 = [z0_rx]
+        if scale_map is not None:
+            inp1.append(scale_map)
+        z1 = self.pred1(torch.cat(inp1, dim=1))
         p = float(teacher_prob)
         z1_cond = z1
         if z_gt is not None and p > 0:
             z1_cond = p * z_gt[:, 4:8].to(dtype=z1.dtype) + (1.0 - p) * z1
-        z2 = self.pred2(torch.cat([z0_rx, z1_cond, scale_map], dim=1))
+        inp2 = [z0_rx, z1_cond]
+        if scale_map is not None:
+            inp2.append(scale_map)
+        z2 = self.pred2(torch.cat(inp2, dim=1))
         z2_cond = z2
         if z_gt is not None and p > 0:
             z2_cond = p * z_gt[:, 8:12].to(dtype=z2.dtype) + (1.0 - p) * z2
-        z3 = self.pred3(torch.cat([z0_rx, z1_cond, z2_cond, scale_map], dim=1))
+        inp3 = [z0_rx, z1_cond, z2_cond]
+        if scale_map is not None:
+            inp3.append(scale_map)
+        z3 = self.pred3(torch.cat(inp3, dim=1))
         return torch.cat([z0_rx, z1, z2, z3], dim=1), (z1, z2, z3)
 
 
@@ -170,6 +184,7 @@ class ARUNetReceiver(nn.Module):
         self.head1 = ARHead(base, base, 4)
         self.head2 = ARHead(base + 4, base, 4)
         self.head3 = ARHead(base + 8, base, 4)
+        self.high_gate_logits = nn.Parameter(torch.full((3,), -6.0, dtype=torch.float32))
 
     def forward(
         self,
@@ -217,6 +232,35 @@ def teacher_force_prob(epoch: int, full_epochs: int, decay_epochs: int) -> float
     return max(0.0, 1.0 - t)
 
 
+def high_gate_alpha(epoch: int, warmup_epochs: int) -> float:
+    if int(warmup_epochs) <= 0:
+        return 1.0
+    return min(1.0, max(0.0, float(epoch) / float(max(1, int(warmup_epochs)))))
+
+
+def apply_high_gate(
+    z0_rx: torch.Tensor,
+    pred_groups: tuple[torch.Tensor, torch.Tensor, torch.Tensor],
+    ar: nn.Module,
+    alpha: float,
+    mode: str,
+) -> tuple[torch.Tensor, tuple[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor]:
+    if str(mode) == "alpha":
+        gate = torch.full((3,), float(alpha), device=z0_rx.device, dtype=z0_rx.dtype)
+    else:
+        logits = getattr(ar, "high_gate_logits", None)
+        if logits is None:
+            gate = torch.ones(3, device=z0_rx.device, dtype=z0_rx.dtype)
+        else:
+            gate = torch.sigmoid(logits.to(device=z0_rx.device, dtype=z0_rx.dtype))
+        gate = gate * float(alpha)
+    gated = tuple(
+        pred_groups[i] * gate[i].view(1, 1, 1, 1).to(dtype=pred_groups[i].dtype)
+        for i in range(3)
+    )
+    return torch.cat([z0_rx, gated[0], gated[1], gated[2]], dim=1), gated, gate
+
+
 def charbonnier_loss(x: torch.Tensor, y: torch.Tensor, eps: float = 1e-3) -> torch.Tensor:
     return torch.sqrt((x.float() - y.float()).square() + float(eps) ** 2).mean()
 
@@ -252,6 +296,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--init_sc_encoder_ckpt", type=str, default="checkpoints-val-v2/route_a/sc_dct_c4_awgn12/sc_encoder_div2k_c16.pth")
     p.add_argument("--init_sc_decoder_ckpt", type=str, default="checkpoints-val-v2/route_a/sc_dct_c4_awgn12/sc_decoder_div2k_c16.pth")
     p.add_argument("--init_hier_ckpt", type=str, default="", help="Optional checkpoint from a previous hierarchical stage")
+    p.add_argument("--skip_init_ar", action="store_true", help="Load encoder/decoder from --init_hier_ckpt but leave AR randomly initialized")
     p.add_argument(
         "--stage",
         type=str,
@@ -263,6 +308,9 @@ def parse_args() -> argparse.Namespace:
             "hierarchical_group_ar_frozen_swin",
             "hierarchical_group_ar_decoder_tune",
             "hierarchical_group_ar_joint_tune",
+            "hierarchical_receiver_gated_ar_decoder",
+            "hierarchical_receiver_gated_ar_only",
+            "receiver_norm_ar_frozen_swin",
         ],
     )
     p.add_argument("--snr_db", type=float, default=12.0)
@@ -278,6 +326,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--ar_arch", type=str, default="simple", choices=["simple", "arunet"])
     p.add_argument("--ar_hidden", type=int, default=160)
     p.add_argument("--ar_depth", type=int, default=4)
+    p.add_argument("--ar_use_scale", action="store_true", default=True)
+    p.add_argument("--no_ar_scale", action="store_false", dest="ar_use_scale")
+    p.add_argument("--encoder_use_vae", action="store_true", default=True)
+    p.add_argument("--no_encoder_vae", action="store_false", dest="encoder_use_vae")
+    p.add_argument("--receiver_observation", type=str, default="raw", choices=["raw", "norm"])
     p.add_argument("--teacher_force_epochs", type=int, default=50)
     p.add_argument("--teacher_decay_epochs", type=int, default=100)
 
@@ -286,7 +339,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--lambda_low", type=float, default=0.5)
     p.add_argument("--lambda_mid", type=float, default=0.4)
     p.add_argument("--lambda_midhigh", type=float, default=0.3)
+    p.add_argument("--lambda_base", type=float, default=0.0)
     p.add_argument("--lambda_ar", type=float, default=0.1)
+    p.add_argument("--lambda_high_norm", type=float, default=0.03)
     p.add_argument("--lambda_ar_img", type=float, default=0.5)
     p.add_argument("--lambda_energy", type=float, default=1e-4)
     p.add_argument("--lambda_order", type=float, default=1e-3)
@@ -294,6 +349,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--recv_mse_weight", type=float, default=0.8)
     p.add_argument("--recv_charb_weight", type=float, default=0.2)
     p.add_argument("--charb_eps", type=float, default=1e-3)
+    p.add_argument("--high_gate_init", type=float, default=-6.0)
+    p.add_argument("--high_gate_warmup_epochs", type=int, default=80)
+    p.add_argument("--high_gate_mode", type=str, default="learned", choices=["learned", "alpha"])
     p.add_argument("--blur_low_sigma", type=float, default=4.0)
     p.add_argument("--blur_mid_sigma", type=float, default=2.0)
     p.add_argument("--blur_midhigh_sigma", type=float, default=1.0)
@@ -310,11 +368,11 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
-def build_semantic_modules(device: torch.device) -> tuple[SemanticEncoder, SemanticDecoder, object]:
+def build_semantic_modules(device: torch.device, args: argparse.Namespace) -> tuple[SemanticEncoder, SemanticDecoder, object]:
     cfg = get_div2k_config()
     cfg.semantic.embed_dim = 16
-    cfg.semantic.use_vae = True
-    cfg.semantic.lambda_kl = 1e-6
+    cfg.semantic.use_vae = bool(args.encoder_use_vae)
+    cfg.semantic.lambda_kl = float(args.lambda_kl)
     cfg.channel.input_channels = 16
     cfg.channel.channel_symbols = 4
     cfg.unet_uncond.input_channel = 16
@@ -331,7 +389,7 @@ def build_semantic_modules(device: torch.device) -> tuple[SemanticEncoder, Seman
         stage_num_heads=sc.stage_num_heads,
         stem_stride=sc.stem_stride,
         stage_downsample=sc.stage_downsample,
-        use_vae=True,
+        use_vae=bool(args.encoder_use_vae),
     ).to(device)
     dec = SemanticDecoder(
         out_channels=sc.image_channels,
@@ -444,7 +502,7 @@ def save_checkpoint(path: str, encoder: nn.Module, decoder: nn.Module, ar: nn.Mo
     torch.save({**common, "part": "ar_receiver", "state_dict": ar.state_dict()}, os.path.join(split_dir, "ar_receiver_hier_c16_awgn12.pth"))
 
 
-def load_hier_checkpoint(path: str, encoder: nn.Module, decoder: nn.Module, ar: nn.Module, device: torch.device) -> None:
+def load_hier_checkpoint(path: str, encoder: nn.Module, decoder: nn.Module, ar: nn.Module, device: torch.device, load_ar: bool = True) -> None:
     if not path:
         return
     ckpt_path = path if os.path.isabs(path) else os.path.join(PROJECT_ROOT, path)
@@ -461,7 +519,9 @@ def load_hier_checkpoint(path: str, encoder: nn.Module, decoder: nn.Module, ar: 
         decoder.load_state_dict(ckpt["state_dict"], strict=True)
     else:
         raise KeyError(f"no decoder_state_dict in {ckpt_path}")
-    if "ar_state_dict" in ckpt:
+    if not load_ar:
+        print(f"skipped AR state from hierarchical checkpoint by request: {ckpt_path}")
+    elif "ar_state_dict" in ckpt:
         try:
             ar.load_state_dict(ckpt["ar_state_dict"], strict=True)
         except RuntimeError as exc:
@@ -485,6 +545,12 @@ def stage_trainable(stage: str) -> tuple[bool, bool, bool]:
         return False, True, False
     if stage == "hierarchical_group_ar_joint_tune":
         return False, True, True
+    if stage == "hierarchical_receiver_gated_ar_decoder":
+        return False, True, True
+    if stage == "hierarchical_receiver_gated_ar_only":
+        return False, False, True
+    if stage == "receiver_norm_ar_frozen_swin":
+        return False, False, True
     return True, True, True
 
 
@@ -528,6 +594,7 @@ def run_batch(
     generator: torch.Generator | None,
     train: bool,
     teacher_prob: float,
+    gate_alpha: float,
     sample_latent: bool,
 ) -> tuple[torch.Tensor | None, dict[str, float]]:
     device = imgs.device
@@ -544,8 +611,14 @@ def run_batch(
 
         y4 = encode_a(z, a)
         y4_norm, y4_raw, scale = power_normalize_awgn(y4, snr_b, generator=generator)
-        z0_rx = y4_raw.float()
+        rx_y4 = y4_norm if str(args.receiver_observation) == "norm" else y4_raw
+        z0_rx = rx_y4.float()
         aux_clean_ar = args.stage == "hierarchical_swin_pretrain_ar_predictable"
+        receiver_gated = args.stage in {
+            "hierarchical_receiver_gated_ar_decoder",
+            "hierarchical_receiver_gated_ar_only",
+            "receiver_norm_ar_frozen_swin",
+        }
         if aux_clean_ar:
             ar_z0 = y4.float()
             ar_y4_raw = y4.float()
@@ -553,9 +626,13 @@ def run_batch(
             ar_scale = torch.ones_like(scale)
         else:
             ar_z0 = z0_rx
-            ar_y4_raw = y4_raw
+            ar_y4_raw = rx_y4
             ar_y4_norm = y4_norm
             ar_scale = scale
+        teacher_z = z
+        if receiver_gated:
+            scale_view = scale.float().view(-1, 1, 1, 1).clamp_min(1e-12)
+            teacher_z = torch.cat([z[:, :4].float(), z[:, 4:].float() / scale_view], dim=1)
         ar_dtype = next(ar.parameters()).dtype
         z_ar, pred_groups = ar(
             ar_z0.to(dtype=ar_dtype),
@@ -563,21 +640,35 @@ def run_batch(
             y4_norm=ar_y4_norm.to(dtype=ar_dtype),
             scale=ar_scale,
             snr_db=snr_b,
-            z_gt=(z if train else None),
+            z_gt=(teacher_z if train else None),
             teacher_prob=(teacher_prob if train else 0.0),
         )
-        z_base = decode_a(y4_raw.float(), a)
+        high_gate = torch.ones(3, device=device, dtype=z0_rx.dtype)
+        if receiver_gated:
+            z_ar, _gated_groups, high_gate = apply_high_gate(
+                z0_rx,
+                pred_groups,
+                ar,
+                float(gate_alpha),
+                str(args.high_gate_mode),
+            )
+        z_base = decode_a(rx_y4.float(), a)
+        scale_view = scale.float().view(-1, 1, 1, 1).clamp_min(1e-12)
+        z_oracle_norm = torch.cat([z0_rx, z[:, 4:16].float() / scale_view], dim=1)
 
         x0 = decoder(keep_groups(z, 1)).float().clamp(0, 1)
         x1 = decoder(keep_groups(z, 2)).float().clamp(0, 1)
         x2 = decoder(keep_groups(z, 3)).float().clamp(0, 1)
         x_full = decoder(z).float().clamp(0, 1)
+        x_oracle_norm = decoder(z_oracle_norm.float()).float().clamp(0, 1)
         x_recv = decoder(z_ar.float()).float().clamp(0, 1)
+        x_base = decoder(z_base.float()).float().clamp(0, 1)
 
         loss_low = F.mse_loss(x0, x_low_t)
         loss_mid = F.mse_loss(x1, x_mid_t)
         loss_mh = F.mse_loss(x2, x_mh_t)
         loss_full = F.mse_loss(x_full, imgs.float())
+        loss_base = F.mse_loss(x_base, imgs.float())
         loss_recv_mse = F.mse_loss(x_recv, imgs.float())
         loss_recv_charb = charbonnier_loss(x_recv, imgs, eps=float(args.charb_eps))
         loss_recv = float(args.recv_mse_weight) * loss_recv_mse + float(args.recv_charb_weight) * loss_recv_charb
@@ -586,6 +677,12 @@ def run_batch(
             F.mse_loss(pred_groups[0].float(), z_det[:, 4:8])
             + F.mse_loss(pred_groups[1].float(), z_det[:, 8:12])
             + F.mse_loss(pred_groups[2].float(), z_det[:, 12:16])
+        ) / 3.0
+        z_det_norm = z_det[:, 4:16] / scale_view
+        loss_high_norm = (
+            F.mse_loss(pred_groups[0].float(), z_det_norm[:, 0:4])
+            + F.mse_loss(pred_groups[1].float(), z_det_norm[:, 4:8])
+            + F.mse_loss(pred_groups[2].float(), z_det_norm[:, 8:12])
         ) / 3.0
         loss_energy = z.float().square().mean()
         loss_ord = order_loss(z)
@@ -599,6 +696,7 @@ def run_batch(
                 + float(args.lambda_low) * loss_low
                 + float(args.lambda_mid) * loss_mid
                 + float(args.lambda_midhigh) * loss_mh
+                + float(args.lambda_base) * loss_base
                 + float(args.lambda_energy) * loss_energy
                 + float(args.lambda_order) * loss_ord
                 + float(args.lambda_kl) * loss_kl
@@ -609,6 +707,7 @@ def run_batch(
                 + float(args.lambda_low) * loss_low
                 + float(args.lambda_mid) * loss_mid
                 + float(args.lambda_midhigh) * loss_mh
+                + float(args.lambda_base) * loss_base
                 + float(args.lambda_ar) * loss_ar
                 + float(args.lambda_ar_img) * loss_recv
                 + float(args.lambda_energy) * loss_energy
@@ -618,7 +717,11 @@ def run_batch(
         elif args.stage == "hierarchical_group_ar_frozen_swin":
             loss = float(args.lambda_recv) * loss_recv + float(args.lambda_ar) * loss_ar
         elif args.stage == "hierarchical_group_ar_decoder_tune":
-            loss = float(args.lambda_recv) * loss_recv + float(args.lambda_full) * loss_full
+            loss = (
+                float(args.lambda_recv) * loss_recv
+                + float(args.lambda_full) * loss_full
+                + float(args.lambda_base) * loss_base
+            )
         elif args.stage == "hierarchical_group_ar_joint_tune":
             loss = (
                 float(args.lambda_recv) * loss_recv
@@ -626,7 +729,14 @@ def run_batch(
                 + float(args.lambda_low) * loss_low
                 + float(args.lambda_mid) * loss_mid
                 + float(args.lambda_midhigh) * loss_mh
+                + float(args.lambda_base) * loss_base
                 + float(args.lambda_ar) * loss_ar
+            )
+        elif args.stage in {"hierarchical_receiver_gated_ar_decoder", "hierarchical_receiver_gated_ar_only", "receiver_norm_ar_frozen_swin"}:
+            loss = (
+                float(args.lambda_recv) * loss_recv
+                + float(args.lambda_base) * loss_base
+                + float(args.lambda_high_norm) * loss_high_norm
             )
         else:
             loss = (
@@ -635,6 +745,7 @@ def run_batch(
                 + float(args.lambda_low) * loss_low
                 + float(args.lambda_mid) * loss_mid
                 + float(args.lambda_midhigh) * loss_mh
+                + float(args.lambda_base) * loss_base
                 + float(args.lambda_ar) * loss_ar
                 + float(args.lambda_energy) * loss_energy
                 + float(args.lambda_order) * loss_ord
@@ -647,20 +758,27 @@ def run_batch(
         "loss_recv_mse": float(loss_recv_mse.detach().item()),
         "loss_recv_charb": float(loss_recv_charb.detach().item()),
         "loss_full": float(loss_full.detach().item()),
+        "loss_base": float(loss_base.detach().item()),
         "loss_low": float(loss_low.detach().item()),
         "loss_mid": float(loss_mid.detach().item()),
         "loss_midhigh": float(loss_mh.detach().item()),
         "loss_ar": float(loss_ar.detach().item()),
+        "loss_high_norm": float(loss_high_norm.detach().item()),
         "loss_energy": float(loss_energy.detach().item()),
         "loss_order": float(loss_ord.detach().item()),
         "loss_kl": float(loss_kl.detach().item()),
         "teacher_prob": float(teacher_prob if train else 0.0),
+        "high_gate_alpha": float(gate_alpha),
+        "high_gate_1": float(high_gate[0].detach().item()),
+        "high_gate_2": float(high_gate[1].detach().item()),
+        "high_gate_3": float(high_gate[2].detach().item()),
         "psnr_recv": float(psnr_per_image(x_recv, imgs.float()).mean().item()),
         "psnr_full": float(psnr_per_image(x_full, imgs.float()).mean().item()),
+        "psnr_oracle": float(psnr_per_image(x_oracle_norm, imgs.float()).mean().item()),
         "psnr_low": float(psnr_per_image(x0, x_low_t).mean().item()),
         "psnr_mid": float(psnr_per_image(x1, x_mid_t).mean().item()),
         "psnr_midhigh": float(psnr_per_image(x2, x_mh_t).mean().item()),
-        "psnr_base": float(psnr_per_image(decoder(z_base.float()).float().clamp(0, 1), imgs.float()).mean().item()) if not train else 0.0,
+        "psnr_base": float(psnr_per_image(x_base, imgs.float()).mean().item()),
     }
     return (loss if train else None), stats
 
@@ -681,36 +799,42 @@ def main() -> None:
         amp_enabled = False
 
     print(f"device={device}, amp={amp_dtype if amp_enabled else 'fp32'}, stage={args.stage}")
-    print("rule2: PSNR=mean(per-image PSNR), train/test SNR=12 dB, A=[I4,0], A A^T=I_4, power norm after channel encoder")
+    print(f"rule2: PSNR=mean(per-image PSNR), train/test SNR={float(args.snr_db):g} dB, A=[I4,0], A A^T=I_4, power norm after channel encoder")
     train_ds, val_ds, train_loader, val_loader = make_loaders(args, device)
     print(
         f"train={len(train_ds)} valid={len(val_ds)} input=[3,{args.crop_size},{args.crop_size}] "
         "cache_decoded=full images; train crops are dynamic"
     )
 
-    encoder, decoder, cfg = build_semantic_modules(device)
+    encoder, decoder, cfg = build_semantic_modules(device, args)
     load_state_dict_from_ckpt(encoder, args.init_sc_encoder_ckpt, "semantic_encoder")
     load_state_dict_from_ckpt(decoder, args.init_sc_decoder_ckpt, "semantic_decoder")
     if str(args.ar_arch) == "arunet":
         ar = ARUNetReceiver(base=int(args.ar_hidden), depth=int(args.ar_depth)).to(device)
     else:
-        ar = ARReceiver(hidden=int(args.ar_hidden), depth=int(args.ar_depth)).to(device)
-    load_hier_checkpoint(args.init_hier_ckpt, encoder, decoder, ar, device)
+        ar = ARReceiver(hidden=int(args.ar_hidden), depth=int(args.ar_depth), use_scale=bool(args.ar_use_scale)).to(device)
+    if hasattr(ar, "high_gate_logits"):
+        with torch.no_grad():
+            ar.high_gate_logits.fill_(float(args.high_gate_init))
+    load_hier_checkpoint(args.init_hier_ckpt, encoder, decoder, ar, device, load_ar=not bool(args.skip_init_ar))
 
     enc_trainable, dec_trainable, ar_trainable = stage_trainable(str(args.stage))
     set_trainable(encoder, enc_trainable)
     set_trainable(decoder, dec_trainable)
     set_trainable(ar, ar_trainable)
-    sample_latent = bool(enc_trainable)
+    sample_latent = bool(enc_trainable and args.encoder_use_vae)
     a = fixed_select_a(device=device, dtype=torch.float32)
     aat_err = semiorth_error(a)
     if aat_err > 1e-7:
         raise RuntimeError(f"A A^T != I4, err={aat_err:.3e}")
     print(f"channel_encoder_output=[4,16,16], A_shape={tuple(a.shape)}, aat_error={aat_err:.3e}")
+    print(f"encoder_use_vae={bool(args.encoder_use_vae)} lambda_kl={float(args.lambda_kl):g}")
     print(
-        f"ar_arch={args.ar_arch} hidden={args.ar_hidden} depth={args.ar_depth}; "
+        f"ar_arch={args.ar_arch} hidden={args.ar_hidden} depth={args.ar_depth} use_scale={bool(args.ar_use_scale)} "
+        f"receiver_observation={args.receiver_observation}; "
         f"teacher_forcing=1.0 for {args.teacher_force_epochs} epochs then linear decay over {args.teacher_decay_epochs}; "
-        f"recv_loss={args.recv_mse_weight}*mse+{args.recv_charb_weight}*charb"
+        f"recv_loss={args.recv_mse_weight}*mse+{args.recv_charb_weight}*charb; "
+        f"high_gate_mode={args.high_gate_mode} init={float(args.high_gate_init):.3f} warmup={int(args.high_gate_warmup_epochs)}"
     )
     print(
         f"trainable: encoder={enc_trainable} decoder={dec_trainable} ar={ar_trainable}; "
@@ -730,10 +854,11 @@ def main() -> None:
     ckpt_prefix = "hierarchical_swin_ar_awgn12" if args.stage == "joint" else str(args.stage)
     for epoch in range(1, int(args.epochs) + 1):
         tf_prob = teacher_force_prob(epoch, int(args.teacher_force_epochs), int(args.teacher_decay_epochs))
+        gate_alpha = high_gate_alpha(epoch, int(args.high_gate_warmup_epochs))
         set_stage_mode(encoder, decoder, ar, str(args.stage), train=True)
         meters = {k: AverageMeter() for k in (
-            "loss", "loss_recv", "loss_full", "loss_low", "loss_mid", "loss_midhigh", "loss_ar",
-            "psnr_recv", "psnr_full", "psnr_low", "psnr_mid", "psnr_midhigh"
+            "loss", "loss_recv", "loss_full", "loss_base", "loss_low", "loss_mid", "loss_midhigh", "loss_ar",
+            "psnr_recv", "psnr_full", "psnr_oracle", "psnr_base", "psnr_low", "psnr_mid", "psnr_midhigh"
         )}
         for bi, batch in enumerate(train_loader):
             if int(args.max_train_batches) > 0 and bi >= int(args.max_train_batches):
@@ -754,6 +879,7 @@ def main() -> None:
                 generator=None,
                 train=True,
                 teacher_prob=tf_prob,
+                gate_alpha=gate_alpha,
                 sample_latent=sample_latent,
             )
             assert loss is not None
@@ -772,8 +898,8 @@ def main() -> None:
         if do_eval:
             set_stage_mode(encoder, decoder, ar, str(args.stage), train=False)
             val_meters = {k: AverageMeter() for k in (
-                "loss", "loss_recv", "loss_full", "loss_low", "loss_mid", "loss_midhigh", "loss_ar",
-                "psnr_recv", "psnr_full", "psnr_low", "psnr_mid", "psnr_midhigh", "psnr_base"
+                "loss", "loss_recv", "loss_full", "loss_base", "loss_low", "loss_mid", "loss_midhigh", "loss_ar",
+                "psnr_recv", "psnr_full", "psnr_oracle", "psnr_low", "psnr_mid", "psnr_midhigh", "psnr_base"
             )}
             gen = torch.Generator(device=device)
             gen.manual_seed(int(args.seed) + 1000)
@@ -796,6 +922,7 @@ def main() -> None:
                         generator=gen,
                         train=False,
                         teacher_prob=0.0,
+                        gate_alpha=gate_alpha,
                         sample_latent=False,
                     )
                     for k in val_meters:
@@ -810,15 +937,18 @@ def main() -> None:
             print(
                 f"[epoch {epoch:03d}/{args.epochs}] loss={meters['loss'].avg:.6f} recv_loss={meters['loss_recv'].avg:.6f} "
                 f"| base={metrics['val_psnr_base']:.4f} recv={metrics['val_psnr_recv']:.4f} full={metrics['val_psnr_full']:.4f} "
+                f"oracle={metrics['val_psnr_oracle']:.4f} gain={metrics['val_psnr_recv'] - metrics['val_psnr_base']:+.4f} "
+                f"gap_oracle={metrics['val_psnr_oracle'] - metrics['val_psnr_recv']:+.4f} "
                 f"low={metrics['val_psnr_low']:.4f} mid={metrics['val_psnr_mid']:.4f} mh={metrics['val_psnr_midhigh']:.4f} "
                 f"score({score_metric})={score:.4f} gain_baseline={metrics['val_psnr_recv'] - float(args.baseline_psnr):+.4f} "
-                f"tf={tf_prob:.3f} aat_err={semiorth_error(a):.2e} "
+                f"tf={tf_prob:.3f} gate_alpha={gate_alpha:.3f} aat_err={semiorth_error(a):.2e} "
                 f"{'BEST' if is_best else ''}"
             )
         else:
             print(
                 f"[epoch {epoch:03d}/{args.epochs}] loss={meters['loss'].avg:.6f} "
-                f"recv={meters['psnr_recv'].avg:.4f} full={meters['psnr_full'].avg:.4f} tf={tf_prob:.3f} aat_err={semiorth_error(a):.2e}"
+                f"recv={meters['psnr_recv'].avg:.4f} oracle={meters['psnr_oracle'].avg:.4f} full={meters['psnr_full'].avg:.4f} tf={tf_prob:.3f} "
+                f"gate_alpha={gate_alpha:.3f} aat_err={semiorth_error(a):.2e}"
             )
     print(f"best_{score_metric}={best:.4f} target_recv>{float(args.baseline_psnr) + 0.5:.4f}")
 

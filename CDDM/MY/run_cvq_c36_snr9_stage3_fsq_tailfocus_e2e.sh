@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+SAVE_DIR="${SAVE_DIR:-MY/checkpoints-cvq-fsq16-tailfocus-e2e-vq1e3}"
+mkdir -p "$SAVE_DIR"
+
+export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-2}"
+export SAVE_DIR
+export CVQ_MODE="${CVQ_MODE:-fsq}"
+export K_A="${K_A:-16}"
+export K_B="${K_B:-16}"
+export FSQ_LEVELS_A="${FSQ_LEVELS_A:-16}"
+export FSQ_LEVELS_B="${FSQ_LEVELS_B:-16}"
+export STAGE3_EPOCHS="${STAGE3_EPOCHS:-160}"
+export STAGE3_SCORE="${STAGE3_SCORE:-psnr_vq}"
+export LR="${LR:-2e-5}"
+export LAMBDA_VQ_START="${LAMBDA_VQ_START:-0.0001}"
+export LAMBDA_VQ_END="${LAMBDA_VQ_END:-0.001}"
+export LAMBDA_USAGE="${LAMBDA_USAGE:-0.0}"
+export LAMBDA_CONT_STAGE3="${LAMBDA_CONT_STAGE3:-0.01}"
+export LAMBDA_TAIL_DISTILL="${LAMBDA_TAIL_DISTILL:-0.02}"
+export LAMBDA_PREFIX_FLOOR_STAGE3="${LAMBDA_PREFIX_FLOOR_STAGE3:-10.0}"
+export STAGE3_PREFIX_FLOOR_DB="${STAGE3_PREFIX_FLOOR_DB:-25.2}"
+export STAGE3_MIN_PSNR_PREFIX="${STAGE3_MIN_PSNR_PREFIX:-25.2}"
+export STAGE3_MIN_TAIL_GAIN_VQ="${STAGE3_MIN_TAIL_GAIN_VQ:-0.05}"
+export STAGE3_MIN_TAIL_GAIN_CONT="${STAGE3_MIN_TAIL_GAIN_CONT:-0.5}"
+export STAGE3_MIN_USED_A="${STAGE3_MIN_USED_A:-8}"
+export STAGE3_MIN_USED_B="${STAGE3_MIN_USED_B:-8}"
+export STAGE3_MIN_PERPLEXITY_A="${STAGE3_MIN_PERPLEXITY_A:-4}"
+export STAGE3_MIN_PERPLEXITY_B="${STAGE3_MIN_PERPLEXITY_B:-4}"
+export STAGE3_TRAIN_ENCODER="${STAGE3_TRAIN_ENCODER:-1}"
+export STAGE3_TRAIN_DECODER="${STAGE3_TRAIN_DECODER:-1}"
+export STAGE3_FREEZE_ENCODER_BODY="${STAGE3_FREEZE_ENCODER_BODY:-1}"
+export STAGE3_FREEZE_PREFIX_HEAD="${STAGE3_FREEZE_PREFIX_HEAD:-1}"
+export DEAD_CODE_RESTART_EVERY="${DEAD_CODE_RESTART_EVERY:-0}"
+
+{
+  echo "CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+  echo "SAVE_DIR=$SAVE_DIR"
+  echo "CVQ_MODE=$CVQ_MODE"
+  echo "tail_focus=freeze_encoder_body:${STAGE3_FREEZE_ENCODER_BODY},freeze_prefix_head:${STAGE3_FREEZE_PREFIX_HEAD}"
+  echo "prefix_floor_db=$STAGE3_PREFIX_FLOOR_DB lambda_prefix_floor=$LAMBDA_PREFIX_FLOOR_STAGE3"
+  echo "started_at=$(date '+%Y-%m-%d %H:%M:%S')"
+} > "$SAVE_DIR/launch.meta"
+
+MY/run_cvq_c36_snr9_stage3_e2e.sh 2>&1 | tee "$SAVE_DIR/launch.console.log"

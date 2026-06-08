@@ -117,6 +117,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cache_decoded", action="store_true", default=True)
 
     p.add_argument("--embed_dim", type=int, default=36, help="语义瓶颈 C（须为偶数）")
+    p.add_argument("--use_vae", action="store_true", dest="use_vae", default=None, help="覆盖 config，启用 encoder VAE 头")
+    p.add_argument("--no_vae", action="store_false", dest="use_vae", help="覆盖 config，禁用 encoder VAE 头")
     p.add_argument("--sc_encoder_ckpt", type=str, default="", help="可选：已有 SemanticEncoder split 权重")
     p.add_argument("--sc_decoder_ckpt", type=str, default="", help="可选：已有 SemanticDecoder split 权重")
     p.add_argument("--snr_db", type=float, default=12.0, help="SISO AWGN 信噪比（dB）")
@@ -135,7 +137,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--warmup_steps", type=int, default=200)
     p.add_argument("--min_lr_ratio", type=float, default=0.05)
     p.add_argument("--clip_grad_norm", type=float, default=1.0)
-    p.add_argument("--loss_type", type=str, default="smooth_l1", choices=["smooth_l1", "mse", "psnr"])
+    p.add_argument(
+        "--loss_type",
+        type=str,
+        default="smooth_l1",
+        choices=["smooth_l1", "mse", "psnr", "cddm_mse"],
+        help=(
+            "cddm_mse 对齐 CDDM/train.py 的 JSCC MSE："
+            "sum((clamp(x_hat,0,1)-x)^2)/batch_size，不加 KL。"
+        ),
+    )
     p.add_argument("--lambda_kl", type=float, default=-1.0, help="<0 使用 config；>=0 覆盖 VAE KL 权重")
     p.add_argument("--deterministic_latent", action="store_true", help="训练时也使用 VAE 均值 latent，不做重参数采样")
     p.add_argument("--noise_repeats", type=int, default=1, help="每个 batch 平均多少次独立 AWGN")
@@ -183,6 +194,10 @@ def parse_args() -> argparse.Namespace:
 def build_config(args: argparse.Namespace) -> SystemConfig:
     cfg = get_div2k_config() if args.dataset == "div2k" else get_cifar10_config()
     cfg.semantic.embed_dim = int(args.embed_dim)
+    if args.use_vae is not None:
+        cfg.semantic.use_vae = bool(args.use_vae)
+        if not cfg.semantic.use_vae:
+            cfg.semantic.lambda_kl = 0.0
     cfg.mimo.snr_db = float(args.snr_db)
     cfg.mimo.fading = str(args.fading)
     cfg.mimo.mode = "siso"
@@ -270,6 +285,12 @@ def image_loss(
     lambda_kl: float,
     use_vae: bool,
 ) -> torch.Tensor:
+    if loss_type == "cddm_mse":
+        return F.mse_loss(
+            x_hat.float().clamp(0.0, 1.0),
+            x.float(),
+            reduction="sum",
+        ) / x.shape[0]
     if loss_type == "mse":
         loss = F.mse_loss(x_hat, x)
     elif loss_type == "psnr":

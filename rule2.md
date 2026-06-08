@@ -9,5 +9,4 @@
 9.模型和日志保存到checkpoints-codex
 10.信道编码器后需要功率归一化
 11.训练图片不能固定裁剪成cache_decoded,而是完整图片保存成cache_decoded，每次epoch再随机裁剪
-
 在这个基础上，联合训练SWIN编解码器和信道编解码器

@@ -46,6 +46,7 @@ import time
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -168,6 +169,17 @@ def parse_args() -> argparse.Namespace:
         help="梯度范数裁剪上限（>0 启用 clip_grad_norm_，0 关闭）",
     )
     parser.add_argument(
+        "--loss_type",
+        type=str,
+        default="semantic",
+        choices=["semantic", "cddm_mse"],
+        help=(
+            "Stage1 反传损失。semantic=沿用本项目 semantic_codec_loss；"
+            "cddm_mse=对齐 CDDM/train.py 的 JSCC MSE："
+            "sum((clamp(x_hat,0,1)-x)^2)/batch_size，不加 KL。"
+        ),
+    )
+    parser.add_argument(
         "--lr_scheduler",
         type=str,
         default="cosine_warmup",
@@ -270,6 +282,19 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="若指定则覆盖 config 中的 semantic.embed_dim（潜空间瓶颈维）；不指定则用数据集预设。",
     )
+    parser.add_argument(
+        "--use_vae",
+        action="store_true",
+        dest="use_vae",
+        default=None,
+        help="覆盖 config，启用 SemanticEncoder VAE 头。",
+    )
+    parser.add_argument(
+        "--no_vae",
+        action="store_false",
+        dest="use_vae",
+        help="覆盖 config，禁用 SemanticEncoder VAE 头；CDDM JSCC 对齐实验建议使用。",
+    )
 
     args = parser.parse_args()
     if args.eval_every_epochs < 1:
@@ -362,6 +387,32 @@ def compute_psnr(pred: torch.Tensor, target: torch.Tensor) -> float:
     if mse_val < 1e-12:
         return float("inf")
     return 10.0 * math.log10(1.0 / mse_val)
+
+
+def stage1_loss(
+    x_hat: torch.Tensor,
+    x: torch.Tensor,
+    mu: torch.Tensor | None,
+    logvar: torch.Tensor | None,
+    *,
+    args: argparse.Namespace,
+    lambda_kl: float,
+    use_vae: bool,
+) -> torch.Tensor:
+    if args.loss_type == "cddm_mse":
+        return F.mse_loss(
+            x_hat.float().clamp(0.0, 1.0),
+            x.float(),
+            reduction="sum",
+        ) / x.shape[0]
+    return semantic_codec_loss(
+        x_hat=x_hat,
+        x=x,
+        mu=mu,
+        logvar=logvar,
+        lambda_kl=lambda_kl,
+        use_vae=use_vae,
+    )
 
 
 # ===========================================================================
@@ -595,10 +646,14 @@ def train_one_epoch(
         with sync_context:
             with torch.autocast("cuda", **autocast_kw):
                 x_hat, mu, logvar = model(images_non_blocking)
-            loss = semantic_codec_loss(
-                x_hat=x_hat, x=images_non_blocking,
-                mu=mu, logvar=logvar,
-                lambda_kl=lam_kl, use_vae=use_vae,
+            loss = stage1_loss(
+                x_hat=x_hat,
+                x=images_non_blocking,
+                mu=mu,
+                logvar=logvar,
+                args=args,
+                lambda_kl=lam_kl,
+                use_vae=use_vae,
             )
             loss_for_backward = loss / accum_steps
             if scaler.is_enabled():
@@ -682,9 +737,14 @@ def validate(model, loader: DataLoader, device, args,
         images_d = images.to(device, non_blocking=True)
         with torch.autocast("cuda", **autocast_kw):
             x_hat, mu, logvar = model(images_d)
-            loss = semantic_codec_loss(
-                x_hat=x_hat, x=images_d, mu=mu, logvar=logvar,
-                lambda_kl=lam_kl, use_vae=cfg.semantic.use_vae,
+            loss = stage1_loss(
+                x_hat=x_hat,
+                x=images_d,
+                mu=mu,
+                logvar=logvar,
+                args=args,
+                lambda_kl=lam_kl,
+                use_vae=cfg.semantic.use_vae,
             )
 
         bs = images.shape[0]
@@ -879,6 +939,10 @@ def main():
     cfg = build_config(args.dataset)
     if args.embed_dim is not None:
         cfg.semantic.embed_dim = int(args.embed_dim)
+    if args.use_vae is not None:
+        cfg.semantic.use_vae = bool(args.use_vae)
+        if not cfg.semantic.use_vae:
+            cfg.semantic.lambda_kl = 0.0
 
     # ---- 打印信息 ----
     if args.is_main:
@@ -942,6 +1006,7 @@ def main():
                 + ("（≤0 表示训练期内不做间隔验证）" if _eb <= 0 else "")
             )
         print(f"  Loss params  (from config.py SemanticConfig):")
+        print(f"    loss_type    = {args.loss_type}")
         print(f"    lambda_kl    = {cfg.semantic.lambda_kl}")
         print(f"    use_vae      = {cfg.semantic.use_vae}")
         print(f"    embed_dim    = {cfg.semantic.embed_dim}" + (

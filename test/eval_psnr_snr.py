@@ -182,7 +182,7 @@ def plot_one_curve(snr_vals: list[float], psnr_vals: list[float], title: str, ou
 
 
 def default_checkpoints() -> list[str]:
-    base = os.path.join(PROJECT_ROOT, "checkpoints-val", "sc")
+    base = os.path.join(PROJECT_ROOT, "checkpoints-ar/twofreq_receiver_norm_swin_snr6_v1", "sc")
     return [
         os.path.join(base, "sc_div2k_c4_best.pth"),
         os.path.join(base, "sc_div2k_c12_best.pth"),

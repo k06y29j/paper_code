@@ -11,7 +11,7 @@ JSCC + 条件扩散（CHDDIM）验证集 PSNR，流程对齐 ``Diffusion/Train.e
 
 用法（在 CODM 根目录）::
 
-  python test/eval_jscc_cddm_psnr.py --channel-type awgn --train-snr 12 --C 12 --eval-snrs 12
+  python test/eval_jscc_cddm_psnr.py --channel-type awgn --train-snr 6 --C 4 --eval-snrs 6
   python test/eval_jscc_cddm_psnr.py --eval-snrs 0,3,15,50             # 任意多个、逗号分隔 SNR(dB)
   python test/eval_jscc_cddm_psnr.py --sweep  # 训练 SNR {0,6,12} × C {4,12} × 当前 channel-type
 
@@ -24,6 +24,7 @@ import argparse
 import csv
 import math
 import os
+import random
 import sys
 from typing import Sequence
 
@@ -44,6 +45,7 @@ def _apply_cuda_visible_devices_before_torch() -> None:
 _apply_cuda_visible_devices_before_torch()
 
 import torch
+import numpy as np
 from tqdm import tqdm
 
 _CDDM_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -62,6 +64,13 @@ def default_jscc_snr_ckpt_root() -> str:
 
 def default_cddm_snr_ckpt_root() -> str:
     return os.path.join(_CDDM_ROOT, "checkpoints", "CDDM", "DIV2K", "MSE", "SNRs")
+
+
+def seed_everything(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 def _snr_ckpt_base(train_snr: int, channel_type: str, C: int) -> str:
@@ -140,14 +149,18 @@ def build_config_ns(
     encoder_path: str,
     decoder_path: str,
     re_decoder_path: str,
+    seed: int,
+    batch_size: int,
+    num_workers: int,
+    force_cpu: bool,
 ) -> argparse.Namespace:
     ns = argparse.Namespace()
     ns.loss_function = "MSE"
     ns.dataset = "DIV2K"
     ns.C = C
     ns.SNRs = float(train_snr)
-    ns.seed = 1024
-    ns.CUDA = torch.cuda.is_available()
+    ns.seed = int(seed)
+    ns.CUDA = torch.cuda.is_available() and not force_cpu
     ns.device = torch.device("cuda:0" if ns.CUDA else "cpu")
     ns.database_address = "mongodb://localhost:27017"
     ns.channel_type = channel_type.lower()
@@ -183,11 +196,11 @@ def build_config_ns(
     ns.re_decoder_path = re_decoder_path
     ns.train_data_dir = test_data_dir
     ns.test_data_dir = test_data_dir
-    ns.test_batch = 1
-    ns.batch_size = 1
+    ns.test_batch = int(batch_size)
+    ns.batch_size = int(batch_size)
     ns.CDDM_batch = 1
-    ns.num_workers = 4
-    ns.val_num_workers = 4
+    ns.num_workers = int(num_workers)
+    ns.val_num_workers = int(num_workers)
     ns.pin_memory = ns.CUDA
     ns.preload_div2k_cpu = False
     ns.load_val_data = True
@@ -207,6 +220,8 @@ def avg_psnr_jscc_cddm_multi_snr(
     config,
     chddim_dict: dict,
     eval_snrs: Sequence[float],
+    *,
+    seed: int,
 ) -> tuple[list[tuple[float, float]], dict[str, float]]:
     """
     对每个 eval_snr（信道 SNR dB）在验证集上算平均 PSNR。
@@ -252,14 +267,14 @@ def avg_psnr_jscc_cddm_multi_snr(
     last_cbr = 0.0
     result: list[tuple[float, float]] = []
 
-    for snr_test in eval_snrs:
+    n_img = 0
+    for snr_idx, snr_test in enumerate(eval_snrs):
+        seed_everything(int(seed) + 100003 * snr_idx)
         snr_f = float(snr_test)
         sum_psnr = 0.0
-        i = -1
+        seen = 0
 
-        for i, (images, _) in enumerate(
-            tqdm(test_loader, dynamic_ncols=True, desc="CDDM SNR_eval={}".format(snr_f))
-        ):
+        for images, _ in tqdm(test_loader, dynamic_ncols=True, desc="CDDM SNR_eval={}".format(snr_f)):
             x_0 = images.to(device)
             feature, _ = encoder(x_0)
             y_c = feature
@@ -273,14 +288,15 @@ def avg_psnr_jscc_cddm_multi_snr(
             feat_hat = feat_hat * torch.sqrt(pwr)
             x_hat = decoder(feat_hat)
 
-            mse = torch.nn.MSELoss()(x_0 * 255.0, x_hat.clamp(0.0, 1.0) * 255.0)
-            psnr = 10.0 * math.log10(255.0 * 255.0 / max(mse.item(), 1e-18))
-            sum_psnr += psnr
+            mse_i = (x_hat.float().clamp(0.0, 1.0) - x_0.float()).square().mean(dim=(1, 2, 3)).clamp_min(1e-12)
+            psnr_i = 10.0 * torch.log10(1.0 / mse_i)
+            sum_psnr += float(psnr_i.sum().cpu())
+            seen += int(x_0.shape[0])
 
-        n = max(i + 1, 1)
-        result.append((snr_f, sum_psnr / n))
+        n_img = max(n_img, seen)
+        result.append((snr_f, sum_psnr / max(1, seen)))
 
-    meta = {"CBR_approx": float(last_cbr)}
+    meta = {"CBR_approx": float(last_cbr), "n_images": float(n_img)}
     return result, meta
 
 
@@ -297,6 +313,10 @@ def run_one_setting(
     large_snr_unused: float,
     noise_schedule: int,
     t_max: int,
+    seed: int,
+    batch_size: int,
+    num_workers: int,
+    force_cpu: bool,
 ) -> tuple[list[tuple[float, float]], argparse.Namespace]:
     _ = large_snr_unused
     encoder_path = resolve_encoder_path(jscc_root, train_snr, channel_type, C)
@@ -313,6 +333,10 @@ def run_one_setting(
         encoder_path=encoder_path,
         decoder_path=_decoder_std,
         re_decoder_path=re_decoder_path,
+        seed=seed,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        force_cpu=force_cpu,
     )
 
     chddim_dict = dict(
@@ -328,7 +352,7 @@ def run_one_setting(
         save_path=cddm_path,
     )
 
-    rows, _meta = avg_psnr_jscc_cddm_multi_snr(cfg, chddim_dict, eval_snrs)
+    rows, _meta = avg_psnr_jscc_cddm_multi_snr(cfg, chddim_dict, eval_snrs, seed=seed)
     return rows, cfg
 
 
@@ -337,10 +361,34 @@ def print_result_table(
     C: int,
     channel_type: str,
     rows: list[tuple[float, float]],
+    cfg: argparse.Namespace,
+    redecoder_offset: int,
 ) -> None:
     print(
         "\n=== train_SNR {} dB · C {} · {} ===".format(train_snr, C, channel_type)
     )
+    print(
+        "device={} visible_cuda={} batch={} workers={} metric=mean(per-image PSNR) seed={}".format(
+            cfg.device,
+            os.environ.get("CUDA_VISIBLE_DEVICES", "<unset>"),
+            cfg.test_batch,
+            cfg.val_num_workers,
+            cfg.seed,
+        )
+    )
+    print("data={} transform=CenterCrop(256)+ToTensor".format(cfg.test_data_dir))
+    print("encoder={}".format(cfg.encoder_path))
+    print("redecoder={}".format(cfg.re_decoder_path))
+    nominal_redecoder_snr = float(train_snr - redecoder_offset)
+    mismatched = [snr for snr, _ in rows if abs(float(snr) - nominal_redecoder_snr) > 1e-6]
+    if mismatched:
+        print(
+            "WARNING: redecoder nominal SNR is {:.1f} dB (train_snr - redecoder_offset); "
+            "eval SNR(s) {} are mismatched.".format(
+                nominal_redecoder_snr,
+                ",".join("{:g}".format(float(s)) for s in mismatched),
+            )
+        )
     print("eval SNR(dB):" + "".join("{:>8}".format(r[0]) for r in rows))
     vals = "".join("{:>8.3f}".format(r[1]) for r in rows)
     print("PSNR (dB):   " + vals)
@@ -363,7 +411,7 @@ def main() -> None:
     p.add_argument(
         "--eval-snrs",
         type=parse_float_csv,
-        default=(50.0),
+        default=(6.0,),
         help=(
             "评估信道 SNR（dB，逗号分隔，可任意多个实数）；例：--eval-snrs 0,3,50 或单一值 --eval-snrs 50（请用字符串）"
         ),
@@ -387,7 +435,11 @@ def main() -> None:
     p.add_argument("--large-snr", type=float, default=3.0, help="仅保留接口；sampler 沿用 train_SNR，与原版 eval 等价")
     p.add_argument("--noise-schedule", type=int, default=1)
     p.add_argument("--t-max", type=int, default=10)
+    p.add_argument("--batch-size", type=int, default=1, help="验证 batch；默认 1，对齐 CDDM/JSCC 公平比较条件")
+    p.add_argument("--num-workers", type=int, default=4, help="验证 DataLoader worker 数")
+    p.add_argument("--seed", type=int, default=20260602, help="每个 eval SNR 前重置随机种子；第 i 个 SNR 使用 seed+100003*i")
     p.add_argument("--gpu", type=str, default=None, help="见文首说明：须在 import torch 之前生效；本脚本已据此在启动时解析 argv 并设置 CUDA_VISIBLE_DEVICES（如 3）")
+    p.add_argument("--cpu", action="store_true")
     p.add_argument("--csv-out", type=str, default=None, help="追加写入 CSV：train_snr,C,channel,eval_snr,PSNR")
 
     args = p.parse_args()
@@ -414,11 +466,15 @@ def main() -> None:
                 large_snr_unused=args.large_snr,
                 noise_schedule=args.noise_schedule,
                 t_max=args.t_max,
+                seed=args.seed,
+                batch_size=args.batch_size,
+                num_workers=args.num_workers,
+                force_cpu=args.cpu,
             )
         except FileNotFoundError as e:
             print("[跳过 train_snr={} C={}] {}".format(ts, Cc, e))
             continue
-        print_result_table(ts, Cc, args.channel_type, rows)
+        print_result_table(ts, Cc, args.channel_type, rows, _cfg, args.redecoder_offset)
         if args.csv_out:
             for snr_ev, pv in rows:
                 append_csv(
