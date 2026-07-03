@@ -1,0 +1,35 @@
+{
+  "analyses": [
+    "basis",
+    "pca",
+    "predictability",
+    "sensitivity",
+    "spatial"
+  ],
+  "c2_shape": [
+    100,
+    20,
+    16,
+    16
+  ],
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-cvq-v2-v01-c36-snr9-pca-frequency-rvq-g10/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best.pth",
+  "idx_shape": [
+    100,
+    20,
+    10
+  ],
+  "max_batches": 0,
+  "outputs": {
+    "cluster_recall_summary": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/outputs/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best_valid_c2_diagnostics/cluster_recall_summary.csv",
+    "decoder_aware_basis_sensitivity": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/outputs/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best_valid_c2_diagnostics/decoder_aware_basis_sensitivity.csv",
+    "decoder_sensitivity": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/outputs/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best_valid_c2_diagnostics/decoder_sensitivity.csv",
+    "entropy_summary": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/outputs/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best_valid_c2_diagnostics/entropy_summary.csv",
+    "pca_structure": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/outputs/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best_valid_c2_diagnostics/pca_structure.csv",
+    "spatial_structure": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/outputs/cvq_v2_v01_c36_snr9_k512_shared_level_pca_frequency_rvq_stage2_best_valid_c2_diagnostics/spatial_structure.csv"
+  },
+  "quantizer": "shared_level_pca_frequency_rvq",
+  "split": "valid",
+  "stat_epochs": 1,
+  "total_batches": 100,
+  "total_images": 100
+}

@@ -1,0 +1,31 @@
+{
+  "channels": [
+    16
+  ],
+  "ckpt_dir": "/workspace/yongjia/paper_code/CDDM/MY/jscc-no-awgn",
+  "data_dir": "/workspace/yongjia/datasets/DIV2K",
+  "rows": [
+    {
+      "c1_ch": 16,
+      "c2_ch": 0,
+      "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY/jscc-no-awgn/cvq_v2_c16_stage0_best_no-c1.pth",
+      "checkpoint_epoch": 5,
+      "checkpoint_metric_psnr_full": 27.490862560272216,
+      "checkpoint_route": "cvq_v2_stage0_jscc_only_c36_c1_16_c2_20",
+      "checkpoint_stage": "stage0",
+      "eval_images": 100,
+      "latent_ch": 16,
+      "loss": 0.002817235125985462,
+      "loss_c1_rec": 0.002817235125985462,
+      "loss_drop_rec": 0.0,
+      "loss_full_rec": 0.002817235125985462,
+      "psnr_c1_only": 27.490862598419188,
+      "psnr_drop": 0.0,
+      "psnr_full": 27.490862598419188,
+      "snr_db": 12.0,
+      "test_batch": 1,
+      "val_num_workers": 8
+    }
+  ],
+  "script": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/eval_jscc_no_awgn_stage0_best.py"
+}

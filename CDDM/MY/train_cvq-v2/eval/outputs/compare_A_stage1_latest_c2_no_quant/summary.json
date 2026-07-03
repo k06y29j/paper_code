@@ -1,0 +1,49 @@
+{
+  "args": {
+    "batch_size": 16,
+    "ckpt": "MY/VQ-Stage1/cvq_v2_c36_snr12_stage1_latest-v2.pth",
+    "cpu": false,
+    "crop": "center",
+    "data_dir": "/workspace/yongjia/datasets/DIV2K",
+    "max_images": 0,
+    "num_workers": 0,
+    "out_dir": "MY/train_cvq-v2/eval/outputs/compare_A_stage1_latest_c2_no_quant",
+    "seed": 20260610,
+    "test_batch": 1,
+    "val_num_workers": 0
+  },
+  "checkpoint": {
+    "c1_ch": 16,
+    "c2_ch": 20,
+    "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY/VQ-Stage1/cvq_v2_c36_snr12_stage1_latest-v2.pth",
+    "checkpoint_epoch": 800,
+    "checkpoint_psnr_full_quantized": 30.000454177856444,
+    "checkpoint_route": "cvq_v2_c36_c1_16_c2_20_k16384",
+    "checkpoint_stage": "stage1",
+    "crop": "center",
+    "eval_images": 100.0,
+    "k": 16384,
+    "latent_ch": 36,
+    "loss_c1_only": 0.014987037039827556,
+    "loss_no_quant": 0.015120065375231206,
+    "loss_quantized": 0.013074982271064073,
+    "psnr_c1_only": 18.46654877662659,
+    "psnr_no_quant": 18.55969566345215,
+    "psnr_quantized": 19.062577934265136,
+    "quant_mse": 0.09198370780795813,
+    "snr_db": 12.0,
+    "test_batch": 1,
+    "val_num_workers": 0
+  },
+  "metrics": {
+    "eval_images": 100.0,
+    "loss_c1_only": 0.014987037039827556,
+    "loss_no_quant": 0.015120065375231206,
+    "loss_quantized": 0.013074982271064073,
+    "psnr_c1_only": 18.46654877662659,
+    "psnr_no_quant": 18.55969566345215,
+    "psnr_quantized": 19.062577934265136,
+    "quant_mse": 0.09198370780795813
+  },
+  "script": "/workspace/yongjia/paper_code/CDDM/MY/train_cvq-v2/eval/eval_stage1_c2_no_quant_psnr.py"
+}

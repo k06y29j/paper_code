@@ -17,16 +17,29 @@ if str(CDDM_ROOT) not in sys.path:
     sys.path.insert(0, str(CDDM_ROOT))
 
 from Autoencoder.data.datasets import get_loader  # noqa: E402
-from MY.train_cvq.common import AverageMeter, check_args, psnr_per_image, resolve_path, seed_everything, write_json  # noqa: E402
-from MY.train_cvq.io import build_config, build_models, default_save_dir, load_experiment_checkpoint  # noqa: E402
+from Autoencoder.net.network import JSCC_decoder, JSCC_encoder  # noqa: E402
+from MY.train_cvq.common import (  # noqa: E402
+    AverageMeter,
+    CDDMJSCCConfig,
+    prefix_power_normalize,
+    psnr_per_image,
+    real_awgn,
+    resolve_path,
+    seed_everything,
+    write_json,
+)
+
+
+def default_save_dir() -> str:
+    return str(CDDM_ROOT / "MY" / "checkpoints-cvq-v2-v01-c36-snr9-k4096")
 
 
 def default_checkpoint() -> str:
     save_dir = Path(default_save_dir())
-    stage3 = save_dir / "cvq_c36_snr9_stage3_best.pth"
+    stage3 = save_dir / "cvq_v2_v01_c36_snr9_k4096_stage3_best.pth"
     if stage3.exists():
         return str(stage3)
-    return str(save_dir / "cvq_c36_snr9_stage1_best.pth")
+    return str(save_dir / "cvq_v2_v01_c36_snr9_k4096_stage1_best.pth")
 
 
 def default_out_dir() -> str:
@@ -42,6 +55,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--snr-db", type=float, default=9.0)
     p.add_argument("--latent-ch", type=int, default=36)
     p.add_argument("--prefix-ch", type=int, default=16)
+    p.add_argument("--c1-ch", type=int, default=None, help="Alias for --prefix-ch; inferred from checkpoint when present.")
     p.add_argument("--latent-h", type=int, default=16)
     p.add_argument("--latent-w", type=int, default=16)
     p.add_argument("--batch-size", type=int, default=4)
@@ -55,17 +69,68 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--freq-high", type=float, default=0.35)
     p.add_argument("--random-trials", type=int, default=5)
     p.add_argument("--random-ms", type=str, default="1,2,4,8,10,20")
-
-    # Unused by this evaluation, but required by build_models().
-    p.add_argument("--k-a", type=int, default=1024)
-    p.add_argument("--k-b", type=int, default=512)
-    p.add_argument("--vq-beta", type=float, default=0.25)
-    p.add_argument("--vq-chunk-size", type=int, default=128)
-    p.add_argument("--car-dim", type=int, default=256)
-    p.add_argument("--car-heads", type=int, default=8)
-    p.add_argument("--car-layers", type=int, default=4)
-    p.add_argument("--car-dropout", type=float, default=0.1)
     return p.parse_args()
+
+
+def build_config(args: argparse.Namespace, batch_size: int | None = None) -> CDDMJSCCConfig:
+    return CDDMJSCCConfig(
+        C=int(args.latent_ch),
+        SNRs=float(args.snr_db),
+        channel_type="awgn",
+        batch_size=int(args.batch_size if batch_size is None else batch_size),
+        test_batch=int(args.test_batch),
+        num_workers=int(args.num_workers),
+        val_num_workers=int(args.val_num_workers),
+        train_data_dir=resolve_path(Path(args.data_dir) / "DIV2K_train_HR"),
+        test_data_dir=resolve_path(Path(args.data_dir) / "DIV2K_valid_HR"),
+        CUDA=(not bool(args.cpu)),
+    )
+
+
+def validate_eval_args(args: argparse.Namespace, checkpoint: dict | None = None) -> None:
+    if args.c1_ch is None:
+        args.c1_ch = int(args.prefix_ch)
+    else:
+        args.prefix_ch = int(args.c1_ch)
+    if checkpoint is not None:
+        if "latent_ch" in checkpoint and int(checkpoint["latent_ch"]) != int(args.latent_ch):
+            raise ValueError(f"checkpoint latent_ch={checkpoint['latent_ch']} but --latent-ch={args.latent_ch}")
+        if "c1_ch" in checkpoint and int(checkpoint["c1_ch"]) != int(args.prefix_ch):
+            raise ValueError(f"checkpoint c1_ch={checkpoint['c1_ch']} but --prefix-ch/--c1-ch={args.prefix_ch}")
+    if int(args.latent_ch) != 36:
+        raise ValueError("coarse_to_fine.py currently expects C=36; use --latent-ch 36.")
+    if int(args.prefix_ch) != 16:
+        raise ValueError("coarse_to_fine.py currently expects C1/prefix=16; use --prefix-ch 16.")
+    if int(args.latent_ch) - int(args.prefix_ch) != 20:
+        raise ValueError("coarse_to_fine.py expects a 20-channel C2 tail.")
+    if int(args.latent_h) != 16 or int(args.latent_w) != 16:
+        raise ValueError("The C36 JSCC encoder is expected to produce 16x16 latents for 256x256 crops.")
+
+
+def build_encoder_decoder(args: argparse.Namespace, device: torch.device):
+    encoder = JSCC_encoder(build_config(args), int(args.latent_ch)).to(device)
+    decoder = JSCC_decoder(build_config(args), int(args.latent_ch)).to(device)
+    return encoder, decoder
+
+
+def load_state(module, state: dict[str, torch.Tensor], name: str, strict: bool = True) -> None:
+    missing, unexpected = module.load_state_dict(state, strict=strict)
+    if strict and (missing or unexpected):
+        raise RuntimeError(f"{name} load mismatch: missing={missing}, unexpected={unexpected}")
+    print(f"loaded {name}: missing={missing} unexpected={unexpected}")
+
+
+def load_eval_checkpoint(path: str, encoder, decoder) -> dict:
+    abs_path = resolve_path(path)
+    checkpoint = torch.load(abs_path, map_location="cpu", weights_only=False)
+    if not isinstance(checkpoint, dict):
+        raise TypeError(f"expected checkpoint dict, got {type(checkpoint)}")
+    if "encoder_state_dict" not in checkpoint or "decoder_state_dict" not in checkpoint:
+        raise KeyError("checkpoint must contain encoder_state_dict and decoder_state_dict")
+    load_state(encoder, checkpoint["encoder_state_dict"], "encoder", strict=True)
+    load_state(decoder, checkpoint["decoder_state_dict"], "decoder", strict=True)
+    print(f"loaded checkpoint: {abs_path}")
+    return checkpoint
 
 
 def parse_m_list(text: str, tail_ch: int) -> list[int]:
@@ -306,9 +371,13 @@ def eval_random_order(loader, encoder, decoder, args: argparse.Namespace) -> lis
 
 
 def forward_parts_for_eval(imgs: torch.Tensor, encoder, args: argparse.Namespace):
-    from MY.train_cvq.io import forward_parts
-
-    return forward_parts(imgs, encoder, args)
+    z, _ = encoder(imgs)
+    if z.shape[1] != int(args.latent_ch):
+        raise RuntimeError(f"expected latent channels={args.latent_ch}, got {z.shape[1]}")
+    z_norm, _power = prefix_power_normalize(z.float(), prefix_ch=int(args.prefix_ch))
+    y_prefix = real_awgn(z_norm[:, : int(args.prefix_ch)], float(args.snr_db))
+    tail = z_norm[:, int(args.prefix_ch) :]
+    return z, z_norm, y_prefix, tail
 
 
 def finite_mean(values: list[float]) -> float:
@@ -386,16 +455,18 @@ def write_markdown(path: Path, summary: dict, csv_names: list[str]) -> None:
 
 def main() -> None:
     args = parse_args()
-    check_args(args)
+    validate_eval_args(args)
     seed_everything(int(args.seed))
     out_dir = make_eval_dir(args)
     cfg = build_config(args)
     _train_loader, val_loader = get_loader(cfg)
-    encoder, decoder, cvq, car = build_models(args, cfg.device)
-    load_experiment_checkpoint(resolve_path(args.checkpoint), encoder=encoder, decoder=decoder, cvq=cvq, car=car, strict=False)
+    encoder, decoder = build_encoder_decoder(args, cfg.device)
+    checkpoint = load_eval_checkpoint(resolve_path(args.checkpoint), encoder, decoder)
+    validate_eval_args(args, checkpoint)
 
     print("=== C36 tail coarse-to-fine evaluation ===")
     print(f"checkpoint={resolve_path(args.checkpoint)}")
+    print(f"checkpoint_stage={checkpoint.get('stage', '<unknown>')} route={checkpoint.get('route', '<unknown>')}")
     print(f"out_dir={out_dir}")
     print(f"device={cfg.device} val={len(val_loader.dataset)} max_batches={args.max_batches}")
     t0 = time.time()

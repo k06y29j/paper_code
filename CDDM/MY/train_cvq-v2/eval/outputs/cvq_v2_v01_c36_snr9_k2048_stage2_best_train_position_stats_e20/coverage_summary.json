@@ -1,0 +1,86 @@
+{
+  "args": {
+    "batch_size": 12,
+    "c1_ch": 16,
+    "cpu": false,
+    "data_dir": "/workspace/yongjia/datasets/DIV2K",
+    "epochs": 300,
+    "gate": "none",
+    "init_ckpt": "",
+    "init_codebook_method": "kmeans",
+    "init_codebook_samples": 65536,
+    "init_jscc_decoder": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-jscc/decoder_snr9_channel_awgn_C36.pt",
+    "init_jscc_encoder": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-jscc/encoder_snr9_channel_awgn_C36.pt",
+    "init_stage1_ckpt": "",
+    "init_stage2_ckpt": "",
+    "k": 2048,
+    "kmeans_chunk_size": 4096,
+    "kmeans_iters": 20,
+    "lambda_c1": 0.5,
+    "lambda_q": 1.0,
+    "lambda_q_drop": 0.05,
+    "lambda_vq": 0.001,
+    "latent_ch": 36,
+    "latent_h": 16,
+    "latent_w": 16,
+    "latest_every": 10,
+    "log_file": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-cvq-v2-v01-c36-snr9-k4096/stage2_v01_cvq_v2_c36_snr9_k2048.log",
+    "lr": 0.0001,
+    "num_workers": 16,
+    "patch_size": 4,
+    "predictor": "none",
+    "quantizer": "patch_vq",
+    "save_dir": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-cvq-v2-v01-c36-snr9-k4096",
+    "seed": 20260610,
+    "simvq_proj_dim": 256,
+    "snr_db": 9.0,
+    "stage": 2,
+    "test_batch": 1,
+    "train_encoder": false,
+    "val_every": 5,
+    "val_num_workers": 8,
+    "vq_beta": 0.25,
+    "vq_chunk_size": 128,
+    "weight_decay": 0.0001
+  },
+  "coverage": {
+    "128": {
+      "coverage": 0.2902919921875,
+      "per_cell_max": 0.3840624988079071,
+      "per_cell_mean": 0.290291965007782,
+      "per_cell_min": 0.22893750667572021,
+      "per_cell_std": 0.03308560326695442
+    },
+    "256": {
+      "coverage": 0.4107271484375,
+      "per_cell_max": 0.5059999823570251,
+      "per_cell_mean": 0.4107271134853363,
+      "per_cell_min": 0.3426874876022339,
+      "per_cell_std": 0.0367431640625
+    },
+    "64": {
+      "coverage": 0.2080138671875,
+      "per_cell_max": 0.29081249237060547,
+      "per_cell_mean": 0.2080138623714447,
+      "per_cell_min": 0.1536875069141388,
+      "per_cell_std": 0.02822374366223812
+    }
+  },
+  "hist_shape": [
+    20,
+    4,
+    4,
+    2048
+  ],
+  "interpretation": "M=256 coverage < 60%: channel/position alone is weak; add C1-cluster conditioning.",
+  "m_values": [
+    64,
+    128,
+    256
+  ],
+  "split": "train",
+  "stage2_ckpt": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-cvq-v2-v01-c36-snr9-k4096/cvq_v2_v01_c36_snr9_k2048_stage2_best.pth",
+  "stat_epochs": 20,
+  "total_batches": 1340,
+  "total_images": 16000
+}

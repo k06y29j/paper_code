@@ -10,5 +10,7 @@ if str(CDDM_ROOT) not in sys.path:
 
 from MY.train_cvq.cli import main
 
+
 if __name__ == "__main__":
     main()
+

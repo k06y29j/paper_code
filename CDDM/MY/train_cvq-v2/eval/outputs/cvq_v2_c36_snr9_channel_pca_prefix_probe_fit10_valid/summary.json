@@ -1,0 +1,11 @@
+{
+  "c1_mode": "rx",
+  "eval_images": 100,
+  "fit_epochs": 10,
+  "fit_images": 8000,
+  "pca_normalize_channel_rms": false,
+  "pca_q20_minus_full": -3.051757815342171e-07,
+  "psnr_c1_zero": 25.315723648071287,
+  "psnr_full_c2": 27.284572525024416,
+  "psnr_pca_q0": 25.246714096069336
+}

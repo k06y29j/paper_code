@@ -1,0 +1,2 @@
+latent_ch,c1_ch,c2_ch,checkpoint,checkpoint_epoch,checkpoint_stage,checkpoint_route,checkpoint_metric_psnr_full,eval_images,test_batch,val_num_workers,snr_db,loss,loss_c1_rec,loss_drop_rec,loss_full_rec,psnr_c1_only,psnr_drop,psnr_full
+16,16,0,/workspace/yongjia/paper_code/CDDM/MY/jscc-no-awgn/cvq_v2_c16_stage0_best_no-c1.pth,5,stage0,cvq_v2_stage0_jscc_only_c36_c1_16_c2_20,27.490862560272216,100,1,8,12.0,0.002817235125985462,0.002817235125985462,0.0,0.002817235125985462,27.490862598419188,0.0,27.490862598419188

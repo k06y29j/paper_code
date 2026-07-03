@@ -1,0 +1,2 @@
+checkpoint,checkpoint_epoch,checkpoint_stage,checkpoint_route,checkpoint_psnr_full_quantized,latent_ch,c1_ch,c2_ch,k,crop,test_batch,val_num_workers,snr_db,loss_no_quant,loss_quantized,loss_c1_only,quant_mse,psnr_no_quant,psnr_quantized,psnr_c1_only,eval_images
+/workspace/yongjia/paper_code/CDDM/MY/VQ-Stage1/cvq_v2_c36_snr12_stage1_best.pth,790,stage1,cvq_v2_c36_c1_16_c2_20_k16384,27.863965854644775,36,16,20,16384,center,1,0,12.0,0.002896253019134747,0.002588550119617139,0.002676387518222327,0.01929807957808407,27.747707300186157,27.863951377868652,27.725825061798094,100.0

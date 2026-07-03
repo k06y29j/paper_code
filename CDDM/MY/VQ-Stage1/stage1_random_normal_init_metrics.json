@@ -1,0 +1,13 @@
+{
+  "codebook_entropy_bits": 10.103182792663574,
+  "codebook_perplexity": 1099.919921875,
+  "codebook_top10_ratio": 0.1005,
+  "codebook_top1_ratio": 0.053,
+  "codebook_usage": 0.09246826171875,
+  "codebook_used": 1515.0,
+  "psnr_c1_only_init": 17.445495977401734,
+  "psnr_mix_init": 17.485166721343994,
+  "psnr_q_full_init": 17.485166721343994,
+  "quant_mse_init": 5.646553747653961,
+  "random_codebook_std": 0.0625
+}

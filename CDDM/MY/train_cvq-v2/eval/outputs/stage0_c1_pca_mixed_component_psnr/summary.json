@@ -1,0 +1,20 @@
+{
+  "c1_mse_mixed": 6.147804378997535e-05,
+  "c1_mse_pca16": 2.837995680474159e-13,
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY/checkpoints-cvq-v2-c36-snr12-k16384/cvq_v2_c36_snr12_stage0_best.pth",
+  "delta_mixed_minus_original": -0.003887176513671875,
+  "delta_mixed_minus_pca16": -0.003887176513671875,
+  "delta_pca16_minus_original": 0.0,
+  "images": 100,
+  "keep_components_c16": 16,
+  "latent_shape": [
+    100,
+    36,
+    16,
+    16
+  ],
+  "psnr_mixed_c17_components_1_to_n": 29.089548110961914,
+  "psnr_original_c1": 29.093435287475586,
+  "psnr_pca16_components": 29.093435287475586,
+  "replace_components": 16
+}

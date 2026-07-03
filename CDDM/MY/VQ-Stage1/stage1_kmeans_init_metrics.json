@@ -1,0 +1,22 @@
+{
+  "codebook_entropy_bits": 9.793829917907715,
+  "codebook_perplexity": 887.639404296875,
+  "codebook_top10_ratio": 0.041,
+  "codebook_top1_ratio": 0.005,
+  "codebook_usage": 0.06573486328125,
+  "codebook_used": 1077.0,
+  "kmeans_active_count": 16384.0,
+  "kmeans_count1": 11940.0,
+  "kmeans_count_p50": 1.0,
+  "kmeans_count_p90": 46.0,
+  "kmeans_count_p99": 214.0,
+  "kmeans_max_count": 2158.0,
+  "kmeans_max_over_mean": 134.875,
+  "kmeans_mean_count": 16.0,
+  "kmeans_perplexity": 2418.240966796875,
+  "kmeans_usage_entropy_bits": 11.239742279052734,
+  "psnr_c1_only_init": 17.958922328948976,
+  "psnr_mix_init": 19.863410263061525,
+  "psnr_q_full_init": 19.863410263061525,
+  "quant_mse_init": 0.7659685539919883
+}
