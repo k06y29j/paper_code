@@ -834,7 +834,7 @@ def train(args: argparse.Namespace) -> None:
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("--recon", type=str, default="recon_x2",choices=["recon_u2","recon_x2"])
-    p.add_argument("--version", type=str, default="simvq", help="Version of the JSCC-f training; affects checkpoint and log names.")
+    p.add_argument("--version", type=str, default="fsq", help="Version of the JSCC-f training; affects checkpoint and log names.")
     p.add_argument("--data-dir", type=str, default="/workspace/yongjia/datasets/DIV2K")
     p.add_argument("--save-dir", type=str, default=jsccf_io.default_save_dir())
     p.add_argument("--log-file", type=str, default="")
@@ -859,7 +859,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--cpu", action="store_true")
     p.add_argument("--layer1-ckpt", type=str, default="MY-V2/jscc-f/checkpoints/jscc_f_no-c1_layer1_best.pth")
     p.add_argument("--layer2-ckpt", type=str, default="MY-V2/jscc-f/checkpoints/jscc_f_only-z2_layer2_combiner_best.pth", help="Optional warm start for E1/D1/E2/D2/Combiner from continuous Layer2.")
-    p.add_argument("--quantizer", type=str, default="vq", choices=["simvq", "vq", "fsq", "cvq", "fullmap_simvq"], help="Stage3 z2 quantizer.")
+    p.add_argument("--quantizer", type=str, default="fsq", choices=["simvq", "vq", "fsq", "cvq", "fullmap_simvq"], help="Stage3 z2 quantizer.")
     p.add_argument("--vq-k", type=int, default=128, help="Plain VQ codebook size; codebook shape is [K,z2_ch].")
     p.add_argument("--fsq-levels", type=str, default="15", help="Scalar FSQ levels. Set one integer for all z2 channels, or 20 comma-separated integers.")
     p.add_argument("--fsq-init-quantile", type=float, default=0.001, help="Lower/upper z2 quantile used to initialize FSQ affine range.")

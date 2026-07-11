@@ -220,7 +220,7 @@ def z1_ch(args) -> int:
 
 
 def z2_ch(_args) -> int:
-    return 20
+    return 3
 
 
 def total_latent_ch(args) -> int:

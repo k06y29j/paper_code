@@ -650,7 +650,7 @@ def build_layer2(args, device: torch.device) -> tuple[nn.Module, nn.Module, nn.M
     e1, d1 = build_layer1(args, device)
     e2_in = 3 if str(args.variant) == "residual_input" else 6
     e2 = build_jscc_encoder(args, device, latent_ch=z2_ch(args), in_chans=e2_in)
-    d2 = build_jscc_decoder(args, device, latent_ch=20)
+    d2 = build_jscc_decoder(args, device, latent_ch=3)
     combiner = OutputsCombiner().to(device)
     return e1, d1, e2, d2, combiner
 

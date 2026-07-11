@@ -1,0 +1,17 @@
+{
+  "drop_shuffle": 0.0,
+  "drop_zero": 0.06685314178466584,
+  "images": 20.0,
+  "psnr_final": 25.258064174652098,
+  "psnr_shuffle": 25.258064174652098,
+  "psnr_x1": 28.128235912323,
+  "psnr_x1_x1": 11.75585641860962,
+  "psnr_zero": 25.191211032867432,
+  "q3_spatial_std": 0.0,
+  "token_spatial_change_ratio": 0.0,
+  "token_unique_per_image": 1.0,
+  "z3_abs_mean": 5.189916825294494,
+  "z3_channel_std": 5.0071209192276,
+  "z3_norm_spatial_std": 0.0017522858004667796,
+  "z3_spatial_std": 0.021381118195131422
+}

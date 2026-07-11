@@ -1296,11 +1296,11 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     p.add_argument("--experiment", type=str, default="custom", choices=["custom", *EXPERIMENTS.keys()])
     p.add_argument("--version", type=str, default="auto")
-    p.add_argument("--arch", type=str, default="swin", choices=["swin", "swin_320", "cnn"])
+    p.add_argument("--arch", type=str, default="cnn", choices=["swin", "swin_320", "cnn"])
     p.add_argument(
         "--quantizer",
         type=str,
-        default="channel_map",
+        default="image_vector",
         choices=["channel_map", "image_vector", "image_vector_ema", "channel_map_simvq", "image_vector_simvq", "none"],
     )
     p.add_argument("--data-dir", type=str, default="/workspace/yongjia/datasets/DIV2K")
@@ -1324,7 +1324,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--vq-ema-decay", type=float, default=0.99, help="EMA decay for ImageVectorEMA/VQ-DeepISC codebook updates.")
     p.add_argument("--vq-ema-eps", type=float, default=1e-5, help="Denominator epsilon for ImageVectorEMA/VQ-DeepISC codebook updates.")
     p.add_argument("--lambda-ssim", type=float, default=0.0, help="Weight for differentiable SSIM loss term 1-SSIM; default keeps old MSE+VQ objective.")
-    p.add_argument("--lambda-vq", type=float, default=1.0)
+    p.add_argument("--lambda-vq", type=float, default=1)
     p.add_argument("--lambda-gan", type=float, default=0.0, help="Weight for PatchGAN generator loss; 0 disables GAN training.")
     p.add_argument("--gan-start-epoch", type=int, default=1, help="First epoch where GAN losses are active.")
     p.add_argument("--gan-loss", type=str, default="hinge", choices=["hinge", "vanilla", "non_saturate"], help="Discriminator loss. Generator loss always uses SimVQ-style non-saturating loss.")

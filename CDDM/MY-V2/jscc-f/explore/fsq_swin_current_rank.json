@@ -1,0 +1,86 @@
+[
+  {
+    "checkpoint": "MY-V2/jscc-f/explore/checkpoints/swin-l8-batch-usage-e10/jscc_f_swin-l8-batch-usage-e10_stage3_fsq_tokenizer_swin_d3_l8x8x8_none_batch_joint_u5em03_best.pth",
+    "epoch": 55,
+    "levels": [
+      8,
+      8,
+      8
+    ],
+    "fsq_d": 3,
+    "normalizer": "batch",
+    "usage_objective": "uniform_kl",
+    "lambda_usage": 0.005,
+    "fixed_bits_per_image": 2304,
+    "psnr_final": 25.78951093673706,
+    "psnr_x1": 27.565001964569092,
+    "code_perplexity": 487.2772372111728,
+    "code_used": 512.0,
+    "drop_zero": 1.3996059036254882,
+    "drop_shuffle": 1.1803427505493165,
+    "eligible": true
+  },
+  {
+    "checkpoint": "MY-V2/jscc-f/explore/checkpoints/swin-l8-batch-only-e10/jscc_f_swin-l8-batch-only-e10_stage3_fsq_tokenizer_swin_d3_l8x8x8_none_batch_joint_u0ep00_best.pth",
+    "epoch": 100,
+    "levels": [
+      8,
+      8,
+      8
+    ],
+    "fsq_d": 3,
+    "normalizer": "batch",
+    "usage_objective": "uniform_kl",
+    "lambda_usage": 0.0,
+    "fixed_bits_per_image": 2304,
+    "psnr_final": 25.765914268493653,
+    "psnr_x1": 27.565002479553222,
+    "code_perplexity": 29.331313693253193,
+    "code_used": 60.0,
+    "drop_zero": 1.2304120063781738,
+    "drop_shuffle": 1.228214340209961,
+    "eligible": true
+  },
+  {
+    "checkpoint": "MY-V2/jscc-f/explore/checkpoints/swin-l8-batch-only-e10/jscc_f_swin-l8-batch-only-e10_stage3_fsq_tokenizer_swin_d3_l16x16x16_none_batch_joint_u0ep00_best.pth",
+    "epoch": 35,
+    "levels": [
+      16,
+      16,
+      16
+    ],
+    "fsq_d": 3,
+    "normalizer": "batch",
+    "usage_objective": "uniform_kl",
+    "lambda_usage": 0.0,
+    "fixed_bits_per_image": 3072,
+    "psnr_final": 25.640775451660158,
+    "psnr_x1": 27.565001964569092,
+    "code_perplexity": 59.86717012499798,
+    "code_used": 208.0,
+    "drop_zero": 1.143081817626953,
+    "drop_shuffle": 1.2831994819641113,
+    "eligible": true
+  },
+  {
+    "checkpoint": "MY-V2/jscc-f/explore/checkpoints/swin-l8-batch-usage-e10/jscc_f_swin-l8-batch-usage-e10_stage3_fsq_tokenizer_swin_d3_l16x16x16_none_batch_joint_u5em03_best.pth",
+    "epoch": 60,
+    "levels": [
+      16,
+      16,
+      16
+    ],
+    "fsq_d": 3,
+    "normalizer": "batch",
+    "usage_objective": "uniform_kl",
+    "lambda_usage": 0.005,
+    "fixed_bits_per_image": 3072,
+    "psnr_final": 25.229007148742674,
+    "psnr_x1": 27.565001964569092,
+    "code_perplexity": 3637.329825265212,
+    "code_used": 4062.0,
+    "drop_zero": 0.999594841003418,
+    "drop_shuffle": 1.0785519409179687,
+    "eligible": true
+  }
+]
