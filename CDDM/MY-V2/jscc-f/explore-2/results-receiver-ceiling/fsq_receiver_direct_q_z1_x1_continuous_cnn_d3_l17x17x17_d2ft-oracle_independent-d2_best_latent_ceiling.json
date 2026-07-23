@@ -1,0 +1,120 @@
+{
+  "checkpoint": {
+    "epoch": 35,
+    "path": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-v5/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_best.pth",
+    "receiver_contract": {
+      "forbidden_inputs": [
+        "img",
+        "z2",
+        "q2",
+        "oracle_indices"
+      ],
+      "inputs": [
+        "z1",
+        "x1"
+      ],
+      "output": "q2_hat"
+    },
+    "receiver_topology": {
+      "independent_receiver_d2": true,
+      "receiver_combiner_isolated": true
+    },
+    "saved_metrics": {
+      "condition_shuffle_drop": 0.32448225021362304,
+      "delta_oracle": 0.971475830078125,
+      "delta_x1": 0.25981605529785157,
+      "gap_oracle": 0.7116597747802734,
+      "goal_delta_db": 0.5,
+      "goal_met": 0.0,
+      "index_accuracy": 0.7462239813804626,
+      "loss": 0.00893978244625032,
+      "loss_final": 0.008657261319458485,
+      "loss_index": 0.0,
+      "loss_oracle": 0.0008539477130398154,
+      "loss_q": 0.0034517150465399027,
+      "oracle_drop_shuffle": 3.1105388450622558,
+      "oracle_drop_zero": 2.9355230808258055,
+      "pred_drop_shuffle": 2.2469313621520994,
+      "pred_drop_zero": 1.7804335117340089,
+      "psnr_condition_shuffle": 21.707346420288086,
+      "psnr_oracle": 22.743488845825194,
+      "psnr_pred": 22.03182907104492,
+      "psnr_x1": 21.77201301574707,
+      "q_mse_hard": 0.004206950003281236,
+      "receiver_only_audit": 1.0
+    },
+    "stage": "explore2_fsq_receiver",
+    "version": "cnn-fsq-k4913-independent-d2-v5"
+  },
+  "created_at_utc": "2026-07-12T21:40:50.704994+00:00",
+  "dataset": {
+    "batch_size": 4,
+    "data_dir": "/workspace/yongjia/datasets/DIV2K",
+    "dataset_images": 100,
+    "full_validation": true,
+    "max_val_batches": 0,
+    "name": "DIV2K_valid_HR",
+    "num_workers": 0,
+    "transform": "CenterCrop(256x256) + ToTensor"
+  },
+  "definitions": {
+    "delta": "path PSNR minus x1 PSNR, averaged over per-image PSNR",
+    "gap_to_receiver_true_q": "receiver_true_q PSNR minus path PSNR",
+    "q_mid": "0.5 * (qhat + q_true); continuous interpolation diagnostic, not necessarily a hard FSQ token",
+    "q_true": "sender E2/FSQ hard quantized q3_hard; sender-only diagnostic",
+    "qhat": "predictor(z1, x1) evaluation output; predictor receives no img, z2, q_true, or indices",
+    "receiver_true_q_ceiling": "exact sender hard q decoded by the fixed receiver D2/combiner; empirical latent-side ceiling, not a mathematical upper bound"
+  },
+  "evaluation": {
+    "batch_count": 25,
+    "delta_vs_x1_db": {
+      "receiver_mid_q": 0.5086661624908437,
+      "receiver_qhat": 0.25981482505798326,
+      "receiver_true_q": 0.7562735176086406,
+      "sender_oracle": 0.9714760780334473
+    },
+    "gap_to_receiver_true_q_db": {
+      "receiver_mid_q": 0.24760735511779686,
+      "receiver_qhat": 0.49645869255065733,
+      "receiver_true_q": 0.0,
+      "sender_oracle": -0.21520256042480668,
+      "x1": 0.7562735176086406
+    },
+    "image_count": 100,
+    "metrics": {
+      "delta_receiver_mid_q_vs_x1_db": 0.5086661624908437,
+      "delta_receiver_qhat_vs_x1_db": 0.25981482505798326,
+      "delta_receiver_true_q_vs_x1_db": 0.7562735176086406,
+      "delta_sender_oracle_vs_x1_db": 0.9714760780334473,
+      "gap_receiver_mid_q_minus_qhat_db": 0.24885133743286048,
+      "gap_receiver_true_q_minus_mid_q_db": 0.24760735511779686,
+      "gap_receiver_true_q_minus_qhat_db": 0.49645869255065733,
+      "gap_sender_oracle_minus_qhat_db": 0.711661252975464,
+      "gap_sender_oracle_minus_receiver_mid_q_db": 0.46280991554260353,
+      "gap_sender_oracle_minus_receiver_true_q_db": 0.21520256042480668,
+      "psnr_receiver_mid_q_db": 22.280678882598878,
+      "psnr_receiver_qhat_db": 22.031827545166017,
+      "psnr_receiver_true_q_db": 22.528286237716674,
+      "psnr_sender_oracle_db": 22.74348879814148,
+      "psnr_x1_db": 21.772012720108034,
+      "qhat_true_q_mse": 0.0034517189482015462
+    },
+    "psnr_db": {
+      "receiver_mid_q": 22.280678882598878,
+      "receiver_qhat": 22.031827545166017,
+      "receiver_true_q": 22.528286237716674,
+      "sender_oracle": 22.74348879814148,
+      "x1": 21.772012720108034
+    },
+    "receiver_only_audit": true
+  },
+  "runtime": {
+    "all_modules_frozen": true,
+    "command": "/home/yongjia/.conda/envs/cddm_ddnm/bin/python /workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/probe_fsq_receiver_latent_ceiling.py --batch-size 4 --num-workers 0 --device auto",
+    "device": "cuda",
+    "seed": 20260712,
+    "strict_no_grad": true,
+    "torch_version": "2.4.1+cu124"
+  },
+  "schema": "explore2_fsq_receiver_latent_ceiling_v1"
+}

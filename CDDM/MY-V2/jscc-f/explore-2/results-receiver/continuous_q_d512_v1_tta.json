@@ -1,0 +1,30 @@
+{
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-d1init-v1/continuous_q_receiver_best.pth",
+  "checkpoint_epoch": 95,
+  "receiver_contract": {
+    "deployment_inputs": [
+      "z1",
+      "x1"
+    ],
+    "forbidden_inputs": [
+      "img",
+      "z2",
+      "q2",
+      "oracle_indices"
+    ],
+    "q_ensemble": "D4(z1,x1) -> G -> inverse-D4 -> mean q2_hat -> one D2/combiner"
+  },
+  "metrics": {
+    "psnr_x1": 21.771972427368166,
+    "psnr_base": 22.104614000320435,
+    "psnr_q_ensemble": 22.008351268768312,
+    "psnr_x_ensemble": 15.182855520248413,
+    "delta_base": 0.33264157295226937,
+    "delta_q_ensemble": 0.2363788414001462,
+    "delta_x_ensemble": -6.589116907119752,
+    "evaluated_images": 100.0,
+    "full_validation": 1.0,
+    "receiver_only_audit": 1.0,
+    "q_ensemble_single_decode": 1.0
+  }
+}

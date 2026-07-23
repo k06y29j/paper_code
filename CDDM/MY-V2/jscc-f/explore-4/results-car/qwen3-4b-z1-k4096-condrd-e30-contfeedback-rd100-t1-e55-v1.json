@@ -1,0 +1,78 @@
+[
+  {
+    "epoch": 31,
+    "train": {
+      "loss": 5.8413300907611845,
+      "loss_ce": 5.189188369512558,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.006521417202893644,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.006521417202893644,
+      "psnr_x1": 23.65059513092041,
+      "psnr_oracle": 24.85737144470215,
+      "psnr_x2_hat": 24.044127111434936,
+      "delta_x1_hat": 0.39353200793266296,
+      "delta_x1_oracle": 1.2067763662338258,
+      "teacher_index_accuracy": 0.10368229698389769,
+      "index_accuracy": 0.10368229698389769,
+      "receiver_only_audit": 1.0
+    }
+  },
+  {
+    "epoch": 32,
+    "train": {
+      "loss": 5.9338840794563295,
+      "loss_ce": 5.27524894118309,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.006586351353325881,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.006586351353325881,
+      "psnr_x1": 23.47652801513672,
+      "psnr_oracle": 24.763247003555296,
+      "psnr_x2_hat": 23.921183385848998,
+      "delta_x1_hat": 0.44465532898902893,
+      "delta_x1_oracle": 1.2867189860343933,
+      "teacher_index_accuracy": 0.1013437558338046,
+      "index_accuracy": 0.1013437558338046,
+      "receiver_only_audit": 1.0
+    }
+  },
+  {
+    "epoch": 33,
+    "train": {
+      "loss": 5.873502644300461,
+      "loss_ce": 5.22341261267662,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.006500900265527889,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.006500900265527889,
+      "psnr_x1": 23.62805004119873,
+      "psnr_oracle": 24.93354724884033,
+      "psnr_x2_hat": 24.0853310585022,
+      "delta_x1_hat": 0.4572809815406799,
+      "delta_x1_oracle": 1.3054970824718475,
+      "teacher_index_accuracy": 0.10284896398894489,
+      "index_accuracy": 0.10284896398894489,
+      "receiver_only_audit": 1.0
+    }
+  },
+  {
+    "epoch": 34,
+    "train": {
+      "loss": 5.940835683345795,
+      "loss_ce": 5.265196191072464,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.006756395109114237,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.006756395109114237,
+      "psnr_x1": 23.350571155548096,
+      "psnr_oracle": 24.643684644699096,
+      "psnr_x2_hat": 23.832656831741332,
+      "delta_x1_hat": 0.4820855820178986,
+      "delta_x1_oracle": 1.29311354637146,
+      "teacher_index_accuracy": 0.10148958896286786,
+      "index_accuracy": 0.10148958896286786,
+      "receiver_only_audit": 1.0
+    }
+  }
+]

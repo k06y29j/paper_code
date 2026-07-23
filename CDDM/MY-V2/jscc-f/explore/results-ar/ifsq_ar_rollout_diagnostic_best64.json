@@ -1,0 +1,39 @@
+{
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/checkpoints-ar-ifsq/jscc_f_ifsq-prefix-ar-k125_stage_ifsq_ar_fsq_l5x5x5_best.pth",
+  "epoch": 40,
+  "device": "cuda:0",
+  "images": 20,
+  "rollout_steps": 64,
+  "max_cache_error": 4.291534423828125e-06,
+  "teacher_ce": 3.821406674385071,
+  "generated_prefix_ce": 5.485037231445313,
+  "teacher_accuracy": 0.08749999850988388,
+  "rollout_accuracy": 0.04453125596046448,
+  "first_token_teacher_accuracy": 0.0,
+  "first_token_rollout_accuracy": 0.0,
+  "prefix_exact_at_16": 0.0,
+  "prefix_exact_at_64": 0.0,
+  "prefix_exact_at_128": 0.0,
+  "prefix_exact_at_256": null,
+  "conditional_accuracy_bins": {
+    "0:16": 0.0,
+    "16:64": 0.0
+  },
+  "teacher_accuracy_bins": {
+    "0:16": 0.13437500596046448,
+    "16:64": 0.07187500596046448
+  },
+  "rollout_accuracy_bins": {
+    "0:16": 0.078125,
+    "16:64": 0.03333333507180214
+  },
+  "prefix_exact_bins": {
+    "0:16": 0.0,
+    "16:64": 0.0
+  },
+  "target_mode_accuracy_mean": 0.12421874701976776,
+  "target_entropy_bits_mean": 3.965606451034546,
+  "generated_entropy_bits": 3.5866751670837402,
+  "generated_unique_tokens": 23,
+  "image_metrics": null
+}

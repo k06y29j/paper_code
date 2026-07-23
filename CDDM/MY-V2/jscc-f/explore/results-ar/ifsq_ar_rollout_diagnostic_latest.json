@@ -1,0 +1,55 @@
+{
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/checkpoints-ar-ifsq/jscc_f_ifsq-prefix-ar-k125_stage_ifsq_ar_fsq_l5x5x5_latest.pth",
+  "epoch": 60,
+  "device": "cpu",
+  "images": 100,
+  "max_cache_error": 8.344650268554688e-06,
+  "teacher_ce": 3.8354705142974854,
+  "generated_prefix_ce": 6.469572868347168,
+  "teacher_accuracy": 0.0979296863079071,
+  "rollout_accuracy": 0.038750000298023224,
+  "first_token_teacher_accuracy": 0.08,
+  "first_token_rollout_accuracy": 0.08,
+  "prefix_exact_at_16": 0.0,
+  "prefix_exact_at_64": 0.0,
+  "prefix_exact_at_128": 0.0,
+  "prefix_exact_at_256": 0.0,
+  "conditional_accuracy_bins": {
+    "0:16": 0.020624998956918716,
+    "16:64": 0.0,
+    "64:128": 0.0,
+    "128:192": 0.0,
+    "192:256": 0.0
+  },
+  "teacher_accuracy_bins": {
+    "0:16": 0.1443749964237213,
+    "16:64": 0.0949999988079071,
+    "64:128": 0.09046874940395355,
+    "128:192": 0.08687499910593033,
+    "192:256": 0.10703125596046448
+  },
+  "rollout_accuracy_bins": {
+    "0:16": 0.09812499582767487,
+    "16:64": 0.038333337754011154,
+    "64:128": 0.03671874850988388,
+    "128:192": 0.030625000596046448,
+    "192:256": 0.03437500074505806
+  },
+  "prefix_exact_bins": {
+    "0:16": 0.00624999962747097,
+    "16:64": 0.0,
+    "64:128": 0.0,
+    "128:192": 0.0,
+    "192:256": 0.0
+  },
+  "target_mode_accuracy_mean": 0.06746093928813934,
+  "target_entropy_bits_mean": 317.3646240234375,
+  "generated_entropy_bits": 3.851759195327759,
+  "generated_unique_tokens": 57,
+  "image_metrics": {
+    "psnr_x1": 21.77198024749756,
+    "psnr_oracle": 22.876220741271972,
+    "psnr_generated": 21.65922197341919,
+    "gap_generated": 1.2169987678527832
+  }
+}

@@ -1,0 +1,35 @@
+[
+  {
+    "epoch": 30,
+    "eval": {
+      "loss": 6.608401775360107,
+      "loss_ce": 6.608401775360107,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.01074119471013546,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.0,
+      "psnr_x1": 21.532672882080078,
+      "psnr_oracle": 25.2949161529541,
+      "psnr_x2_hat": 21.618059158325195,
+      "delta_x1_hat": 0.0853872299194336,
+      "delta_x1_oracle": 3.76224422454834,
+      "teacher_index_accuracy": 0.02916666865348816,
+      "index_accuracy": 0.02083333395421505,
+      "psnr_x2_hat_hard": 21.35785675048828,
+      "delta_x1_hat_hard": -0.17481613159179688,
+      "psnr_x2_hat_mean": 21.618059158325195,
+      "delta_x1_hat_mean": 0.0853872299194336,
+      "psnr_x2_hat_mean_hard_history": 21.35041046142578,
+      "delta_x1_hat_mean_hard_history": -0.18226146697998047,
+      "psnr_x2_teacher_history_hard": 22.793291091918945,
+      "delta_x1_teacher_history_hard": 1.2606191635131836,
+      "psnr_x2_teacher_history_mean": 22.752410888671875,
+      "delta_x1_teacher_history_mean": 1.2197380065917969,
+      "drop_zero": 0.0853872299194336,
+      "drop_shuffle": 1.2163972854614258,
+      "condition_shuffle_drop": 0.016037940979003906,
+      "receiver_only_audit": 1.0,
+      "goal_met": 0.0
+    }
+  }
+]

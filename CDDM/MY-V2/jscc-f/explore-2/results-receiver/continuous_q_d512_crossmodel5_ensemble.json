@@ -1,0 +1,47 @@
+{
+  "reference_checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-hardp05-v9/continuous_q_receiver_best.pth",
+  "generator_checkpoints": [
+    "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-hardp05-v9/continuous_q_receiver_best.pth",
+    "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-d1init-v1/continuous_q_receiver_best.pth",
+    "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-logmse-lr2e5-v7/continuous_q_receiver_best.pth",
+    "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-logmse-lr5e6-v8/continuous_q_receiver_best.pth",
+    "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/explore-2/checkpoints-continuous-q/cnn-continuous-q-d512-hardp10-v11/continuous_q_receiver_best.pth"
+  ],
+  "ensemble_state": "ema",
+  "receiver_contract": {
+    "deployment_inputs": [
+      "z1",
+      "x1"
+    ],
+    "generation": "mean_i(G_i(z1,x1)) -> q2_hat",
+    "decode_path": "q2_hat -> reference_D2 -> reference_combiner(x1,u2_hat)",
+    "forbidden_inputs": [
+      "img",
+      "z2",
+      "q2",
+      "oracle_indices"
+    ],
+    "validation_transform": "CenterCrop(256)+ToTensor"
+  },
+  "metrics": {
+    "psnr_x1": 21.77199188232422,
+    "psnr_ensemble": 22.161006889343263,
+    "psnr_condition_shuffle": 10.691921138763428,
+    "psnr_zero": 10.39790075302124,
+    "psnr_q_shuffle": 10.691921138763428,
+    "psnr_members_reference_decode": [
+      22.164851989746094,
+      22.124978561401367,
+      22.171277694702148,
+      22.145082359313964,
+      22.1337459564209
+    ],
+    "delta_x1": 0.3890150070190437,
+    "condition_shuffle_drop": 11.469085750579834,
+    "pred_drop_zero": 11.763106136322023,
+    "pred_drop_q_shuffle": 11.469085750579834,
+    "evaluated_images": 100,
+    "full_validation": 1.0,
+    "receiver_only_audit": 1.0
+  }
+}

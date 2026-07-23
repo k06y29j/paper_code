@@ -1,0 +1,152 @@
+{
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/checkpoints-ar-ifsq/jscc_f_ifsq-prefix-ar-k125_stage_ifsq_ar_fsq_l5x5x5_best.pth",
+  "epoch": 40,
+  "device": "cuda:0",
+  "images": 100,
+  "grid": [
+    16,
+    16
+  ],
+  "levels": [
+    5,
+    5,
+    5
+  ],
+  "orders": {
+    "raster": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.878913602941177,
+      "transition_markov_top1_accuracy": 0.058313725490196075,
+      "adjacent_same_token_ratio": 0.029725490137934685,
+      "adjacent_fsq_code_l1": 1.1416208744049072
+    },
+    "column": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.981780637254902,
+      "transition_markov_top1_accuracy": 0.05196078431372549,
+      "adjacent_same_token_ratio": 0.0210588239133358,
+      "adjacent_fsq_code_l1": 1.2581961154937744
+    },
+    "snake": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.866241421568628,
+      "transition_markov_top1_accuracy": 0.05745098039215686,
+      "adjacent_same_token_ratio": 0.03164706006646156,
+      "adjacent_fsq_code_l1": 1.1215816736221313
+    },
+    "column_snake": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.964451593137255,
+      "transition_markov_top1_accuracy": 0.05137254901960785,
+      "adjacent_same_token_ratio": 0.024117646738886833,
+      "adjacent_fsq_code_l1": 1.2183791399002075
+    },
+    "reverse_raster": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        15,
+        15
+      ],
+      "first_mode_accuracy": 0.08,
+      "first_entropy_bits": 5.072110652923584,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.883568014705882,
+      "transition_markov_top1_accuracy": 0.05623529411764706,
+      "adjacent_same_token_ratio": 0.029725490137934685,
+      "adjacent_fsq_code_l1": 1.1416208744049072
+    },
+    "reverse_snake": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        15,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.829317569732666,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.869431985294118,
+      "transition_markov_top1_accuracy": 0.05815686274509804,
+      "adjacent_same_token_ratio": 0.03164706006646156,
+      "adjacent_fsq_code_l1": 1.1215816736221313
+    },
+    "morton": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.97456556372549,
+      "transition_markov_top1_accuracy": 0.050509803921568626,
+      "adjacent_same_token_ratio": 0.023058824241161346,
+      "adjacent_fsq_code_l1": 1.2217254638671875
+    },
+    "hilbert": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.935264705882353,
+      "transition_markov_top1_accuracy": 0.053137254901960786,
+      "adjacent_same_token_ratio": 0.02670588158071041,
+      "adjacent_fsq_code_l1": 1.179764747619629
+    },
+    "diagonal": {
+      "samples": 100,
+      "tokens": 256,
+      "start_coord": [
+        0,
+        0
+      ],
+      "first_mode_accuracy": 0.11,
+      "first_entropy_bits": 4.9811882972717285,
+      "global_entropy_bits": 6.538110256195068,
+      "transition_conditional_entropy_bits": 5.9356341911764705,
+      "transition_markov_top1_accuracy": 0.055568627450980394,
+      "adjacent_same_token_ratio": 0.03086274489760399,
+      "adjacent_fsq_code_l1": 1.1509803533554077
+    }
+  }
+}

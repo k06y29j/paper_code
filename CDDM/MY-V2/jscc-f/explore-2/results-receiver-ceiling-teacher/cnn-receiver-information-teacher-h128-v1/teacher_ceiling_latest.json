@@ -1,0 +1,62 @@
+{
+  "args": {
+    "_layer2_arch": "cnn",
+    "arch": "cnn",
+    "attention_every": 2,
+    "batch_size": 4,
+    "blocks": 6,
+    "cpu": false,
+    "data_dir": "/workspace/yongjia/datasets/DIV2K",
+    "epochs": 20,
+    "heads": 4,
+    "hidden": 128,
+    "layer2_arch": "match",
+    "layer2_source_checkpoint": "MY-V2/jscc-f/checkpoints/jscc_f_cnn-stage2-no_compressor-gpu2_layer2_v2_no_compressor_combiner_best.pth",
+    "lr": 0.0001,
+    "max_train_batches": 0,
+    "max_val_batches": 0,
+    "num_workers": 8,
+    "results_dir": "MY-V2/jscc-f/explore-2/results-receiver-ceiling-teacher",
+    "save_dir": "MY-V2/jscc-f/explore-2/checkpoints-receiver-ceiling-teacher",
+    "seed": 20260713,
+    "smoke": false,
+    "source_checkpoint": "MY-V2/jscc-f/checkpoints/jscc_f_cnn-stage2-no_compressor-gpu2_layer2_v2_no_compressor_combiner_best.pth",
+    "test_batch": 2,
+    "val_every": 2,
+    "val_num_workers": 4,
+    "version": "cnn-receiver-information-teacher-h128-v1",
+    "weight_decay": 0.0001
+  },
+  "deployment_prohibited": true,
+  "epoch": 4,
+  "interpretation": "Finite-model receiver-information restoration diagnostic only; not a mathematical ceiling and not a q2/index receiver deployment result.",
+  "metrics": {
+    "delta_x1": 0.026618843078612286,
+    "evaluated_batches": 50.0,
+    "evaluated_images": 100.0,
+    "full_validation": 1.0,
+    "loss": 0.009085320041049273,
+    "psnr_teacher": 21.79861072540283,
+    "psnr_x1": 21.77199188232422,
+    "receiver_only_audit": 1.0
+  },
+  "stage": "explore2_training_only_receiver_information_teacher_ceiling",
+  "teacher_contract": {
+    "approved_use": "training-time teacher/distillation target only",
+    "forbidden_teacher_inputs": [
+      "img",
+      "z2",
+      "q2",
+      "oracle_indices"
+    ],
+    "layer2_execution": "prohibited; Layer2 modules replaced by Identity",
+    "supervision_target_only": "img",
+    "teacher_inputs": [
+      "z1",
+      "x1"
+    ],
+    "teacher_output": "clamp(x1 + residual_hat)",
+    "train_transform": "RandomCrop(256)+RandomHorizontalFlip+ToTensor",
+    "validation_transform": "CenterCrop(256)+ToTensor"
+  }
+}

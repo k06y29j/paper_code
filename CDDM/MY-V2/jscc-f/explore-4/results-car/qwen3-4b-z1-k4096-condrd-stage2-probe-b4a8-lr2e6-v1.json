@@ -1,0 +1,50 @@
+[
+  {
+    "epoch": 46,
+    "train": {
+      "loss": 6.041057527065277,
+      "loss_ce": 5.315034627914429,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.007260228419909254,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.007260228419909254,
+      "psnr_x1": 23.104275703430176,
+      "psnr_oracle": 24.559775352478027,
+      "psnr_x2_hat": 23.826163291931152,
+      "delta_x1_hat": 0.7218877375125885,
+      "delta_x1_oracle": 1.455499291419983,
+      "teacher_index_accuracy": 0.08632813114672899,
+      "index_accuracy": 0.08632813114672899,
+      "receiver_only_audit": 1.0
+    },
+    "val": {
+      "loss": 5.293724536895752,
+      "loss_ce": 5.293724536895752,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.0028715571388602257,
+      "loss_hard_st_recon": 0.0,
+      "loss_continuous_code_recon": 0.0,
+      "psnr_x1": 25.741806030273438,
+      "psnr_oracle": 27.260433197021484,
+      "psnr_x2_hat": 25.418827056884766,
+      "delta_x1_hat": -0.3229789733886719,
+      "delta_x1_oracle": 1.5186271667480469,
+      "teacher_index_accuracy": 0.07500000298023224,
+      "index_accuracy": 0.07500000298023224,
+      "psnr_x2_hat_hard": 22.547266006469727,
+      "delta_x1_hat_hard": -3.194540023803711,
+      "psnr_x2_hat_mean": 25.418827056884766,
+      "delta_x1_hat_mean": -0.3229789733886719,
+      "psnr_x2_hat_mean_hard_history": 22.88546371459961,
+      "delta_x1_hat_mean_hard_history": -2.856342315673828,
+      "psnr_x2_teacher_history_hard": 26.612890243530273,
+      "delta_x1_teacher_history_hard": 0.8710842132568359,
+      "psnr_x2_teacher_history_mean": 26.523923873901367,
+      "delta_x1_teacher_history_mean": 0.7821178436279297,
+      "drop_zero": -0.3229789733886719,
+      "drop_shuffle": 1.4819221496582031,
+      "receiver_only_audit": 1.0,
+      "goal_met": 0.0
+    }
+  }
+]

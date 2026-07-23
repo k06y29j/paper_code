@@ -1,0 +1,41 @@
+[
+  {
+    "epoch": 11,
+    "train": {
+      "loss": 11.06800651550293,
+      "loss_ce": 7.237277030944824,
+      "loss_scheduled": 7.641528129577637,
+      "loss_recon": 0.009964944794774055,
+      "psnr_x1": 21.772411346435547,
+      "psnr_oracle": 23.800567626953125,
+      "psnr_x2_hat": 21.84387969970703,
+      "delta_x1_hat": 0.07146716117858887,
+      "delta_x1_oracle": 2.0281572341918945,
+      "teacher_index_accuracy": 0.013541667722165585,
+      "index_accuracy": 0.013541667722165585,
+      "receiver_only_audit": 1.0
+    },
+    "val": {
+      "loss": 7.322266578674316,
+      "loss_ce": 7.30476188659668,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.017504503950476646,
+      "psnr_x1": 20.25386619567871,
+      "psnr_oracle": 23.38412857055664,
+      "psnr_x2_hat": 19.390609741210938,
+      "delta_x1_hat": -0.8632569313049316,
+      "delta_x1_oracle": 3.130260467529297,
+      "teacher_index_accuracy": 0.015625,
+      "index_accuracy": 0.0010416667209938169,
+      "psnr_x2_hat_hard": 19.390609741210938,
+      "delta_x1_hat_hard": -0.8632569313049316,
+      "psnr_x2_hat_mean": 19.022687911987305,
+      "delta_x1_hat_mean": -1.2311787605285645,
+      "drop_zero": -0.8632569313049316,
+      "drop_shuffle": -0.15937376022338867,
+      "condition_shuffle_drop": 0.17457127571105957,
+      "receiver_only_audit": 1.0,
+      "goal_met": 0.0
+    }
+  }
+]

@@ -1,0 +1,41 @@
+{
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/checkpoints-ar-ifsq/jscc_f_ifsq-prefix-ar-k125_stage_ifsq_ar_fsq_l5x5x5_best.pth",
+  "epoch": 40,
+  "device": "cuda:0",
+  "images": 100,
+  "rollout_steps": 64,
+  "max_cache_error": 5.7220458984375e-06,
+  "teacher_ce": 3.9077790212631225,
+  "generated_prefix_ce": 5.339285249710083,
+  "teacher_accuracy": 0.08046874403953552,
+  "rollout_accuracy": 0.049843743443489075,
+  "first_token_teacher_accuracy": 0.1,
+  "first_token_rollout_accuracy": 0.1,
+  "prefix_exact_at_16": 0.0,
+  "prefix_exact_at_64": 0.0,
+  "prefix_exact_at_128": 0.0,
+  "prefix_exact_at_256": null,
+  "conditional_accuracy_bins": {
+    "0:16": 0.046875,
+    "16:64": 0.0
+  },
+  "teacher_accuracy_bins": {
+    "0:16": 0.1081250011920929,
+    "16:64": 0.07124999910593033
+  },
+  "rollout_accuracy_bins": {
+    "0:16": 0.09562499821186066,
+    "16:64": 0.034583333879709244
+  },
+  "prefix_exact_bins": {
+    "0:16": 0.00937500037252903,
+    "16:64": 0.0
+  },
+  "target_mode_accuracy_mean": 0.07484374940395355,
+  "target_entropy_bits_mean": 5.347958087921143,
+  "target_global_entropy_bits": 6.692254543304443,
+  "target_global_unique_tokens": 125,
+  "generated_entropy_bits": 3.798126697540283,
+  "generated_unique_tokens": 29,
+  "image_metrics": null
+}

@@ -1,0 +1,1881 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-07-12T21:21:07+00:00",
+  "stage": "explore2_fsq_receiver",
+  "search_roots": [
+    "MY-V2/jscc-f/explore-2/checkpoints-receiver"
+  ],
+  "selection_policy": "one checkpoint per args.version: goal_best > best > latest > other; then epoch and psnr_pred",
+  "strict_policy": {
+    "thresholds": {
+      "receiver_only_audit": 1.0,
+      "condition_shuffle_drop": 0.1,
+      "pred_drop_zero": 0.1,
+      "pred_drop_shuffle": 0.1,
+      "delta_oracle": 0.8,
+      "oracle_drop_zero": 0.5,
+      "oracle_drop_shuffle": 0.5,
+      "delta_x1": 0.5
+    },
+    "additional_requirements": [
+      "explicit and args-consistent receiver_topology",
+      "explicit receiver contract with inputs limited to z1/x1 and img/z2/q2/oracle_indices forbidden",
+      "valid FSQ dimension/levels",
+      "historical cnn-fsq-k4913-joint-predictable-v3 sender-freeze checkpoint is diagnostic-only"
+    ],
+    "canonical_selection": "strict-eligible first; goal_best > best > latest > other; then psnr_pred and epoch"
+  },
+  "summary": {
+    "pth_files_scanned": 24,
+    "matching_stage_checkpoints": 24,
+    "selected_versions": 12,
+    "strict_eligible_versions": 0,
+    "strict_canonical_checkpoint": null,
+    "strict_complete": false,
+    "load_errors": 0
+  },
+  "strict_canonical": null,
+  "runs": [
+    {
+      "version": "cnn-fsq-k125-joint-index-v1",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k125-joint-index-v1/fsq_receiver_joint_index_z1_x1_continuous_cnn_d3_l5x5x5_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 95,
+      "route": "joint_index",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        5,
+        5,
+        5
+      ],
+      "K": 125,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": null,
+      "finetune_d2": null,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.876004486083986,
+        "psnr_pred": 21.979728088378906,
+        "delta_x1": 0.20771507263183595,
+        "delta_oracle": 1.103991470336915,
+        "gap_oracle": 0.8962763977050782,
+        "loss_q": 0.283145843744278,
+        "q_mse_hard": 0.3946126425266266,
+        "index_accuracy": 0.05421875,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": null,
+        "pred_drop_shuffle": null,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": 1.103991470336915,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.20771507263183595,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-direct-cont-v1",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-direct-cont-v1/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 75,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": null,
+      "finetune_d2": null,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.947509689331056,
+        "psnr_pred": 21.954302978515624,
+        "delta_x1": 0.1822899627685547,
+        "delta_oracle": 1.1754966735839858,
+        "gap_oracle": 0.9932067108154297,
+        "loss_q": 0.05357352450489998,
+        "q_mse_hard": 0.054652507901191714,
+        "index_accuracy": 0.27283854901790616,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": null,
+        "pred_drop_shuffle": null,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": 1.1754966735839858,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.1822899627685547,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-direct-hard-v1",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-direct-hard-v1/fsq_receiver_direct_q_z1_x1_hard_cnn_d3_l17x17x17_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 20,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": true,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": null,
+      "finetune_d2": null,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.947509689331056,
+        "psnr_pred": 21.80104621887207,
+        "delta_x1": 0.029033203125,
+        "delta_oracle": 1.1754966735839858,
+        "gap_oracle": 1.1464634704589844,
+        "loss_q": 0.055749036967754365,
+        "q_mse_hard": 0.056808473467826845,
+        "index_accuracy": 0.2652213609218597,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": null,
+        "pred_drop_shuffle": null,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": 1.1754966735839858,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.029033203125,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-independent-d2-final-v6",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-final-v6/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 5,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "independent-d2",
+        "explicit": true,
+        "consistent_with_args": true,
+        "independent_receiver_d2": true,
+        "receiver_combiner_isolated": true
+      },
+      "receiver_combiner": "oracle",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": false,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.743488845825194,
+        "psnr_pred": 21.970651321411133,
+        "delta_x1": 0.1986383056640625,
+        "delta_oracle": 0.971475830078125,
+        "gap_oracle": 0.7728375244140625,
+        "loss_q": 0.003955211695283651,
+        "q_mse_hard": 0.0047528078220784665,
+        "index_accuracy": 0.7201692986488343,
+        "psnr_condition_shuffle": 21.730791931152343,
+        "condition_shuffle_drop": 0.23985903739929199,
+        "pred_drop_zero": 2.044124002456665,
+        "pred_drop_shuffle": 1.967632942199707,
+        "oracle_drop_zero": 2.9355230808258055,
+        "oracle_drop_shuffle": 3.1576694774627687,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "metrics.delta_oracle"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": 0.23985903739929199,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_zero": {
+            "value": 2.044124002456665,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_shuffle": {
+            "value": 1.967632942199707,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "delta_oracle": {
+            "value": 0.971475830078125,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": 2.9355230808258055,
+            "threshold": 0.5,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_shuffle": {
+            "value": 3.1576694774627687,
+            "threshold": 0.5,
+            "present": true,
+            "pass": true
+          },
+          "delta_x1": {
+            "value": 0.1986383056640625,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "delta_x1"
+        ]
+      },
+      "diagnostics": [
+        "checkpoint metadata contracts are explicit"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-independent-d2-v5",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-v5/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 35,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "independent-d2",
+        "explicit": true,
+        "consistent_with_args": true,
+        "independent_receiver_d2": true,
+        "receiver_combiner_isolated": true
+      },
+      "receiver_combiner": "oracle",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": false,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.743488845825194,
+        "psnr_pred": 22.03182907104492,
+        "delta_x1": 0.25981605529785157,
+        "delta_oracle": 0.971475830078125,
+        "gap_oracle": 0.7116597747802734,
+        "loss_q": 0.0034517150465399027,
+        "q_mse_hard": 0.004206950003281236,
+        "index_accuracy": 0.7462239813804626,
+        "psnr_condition_shuffle": 21.707346420288086,
+        "condition_shuffle_drop": 0.32448225021362304,
+        "pred_drop_zero": 1.7804335117340089,
+        "pred_drop_shuffle": 2.2469313621520994,
+        "oracle_drop_zero": 2.9355230808258055,
+        "oracle_drop_shuffle": 3.1105388450622558,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "metrics.delta_oracle"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": 0.32448225021362304,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_zero": {
+            "value": 1.7804335117340089,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_shuffle": {
+            "value": 2.2469313621520994,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "delta_oracle": {
+            "value": 0.971475830078125,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": 2.9355230808258055,
+            "threshold": 0.5,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_shuffle": {
+            "value": 3.1105388450622558,
+            "threshold": 0.5,
+            "present": true,
+            "pass": true
+          },
+          "delta_x1": {
+            "value": 0.25981605529785157,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "delta_x1"
+        ]
+      },
+      "diagnostics": [
+        "checkpoint metadata contracts are explicit"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-joint-predictable-v3",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-joint-predictable-v3/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 40,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": "oracle",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": true,
+        "known_v3_sender_frozen_bug": true
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.97546127319336,
+        "psnr_pred": 21.973753128051758,
+        "delta_x1": 0.2017401123046875,
+        "delta_oracle": 1.203448257446289,
+        "gap_oracle": 1.0017081451416017,
+        "loss_q": 0.0547174583375454,
+        "q_mse_hard": 0.05585774853825569,
+        "index_accuracy": 0.26977865397930145,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": 1.8988915538787843,
+        "pred_drop_shuffle": 2.0946080493927,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "metrics.delta_oracle"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": 1.8988915538787843,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_shuffle": {
+            "value": 2.0946080493927,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "delta_oracle": {
+            "value": 1.203448257446289,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.2017401123046875,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": false,
+            "threshold": true,
+            "present": true,
+            "pass": false
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear",
+          "historical_sender_integrity"
+        ]
+      },
+      "diagnostics": [
+        "KNOWN_INVALID: v3 requested joint sender training while E2/FSQ remained frozen; diagnostic only",
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-joint-predictable-v4",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-joint-predictable-v4/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 20,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": "oracle",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": true,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.743488845825194,
+        "psnr_pred": 21.983676376342775,
+        "delta_x1": 0.21166336059570312,
+        "delta_oracle": 0.971475830078125,
+        "gap_oracle": 0.7598124694824219,
+        "loss_q": 0.003540118942037225,
+        "q_mse_hard": 0.004339396329596639,
+        "index_accuracy": 0.7402734589576722,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": 2.1757107639312743,
+        "pred_drop_shuffle": 2.3047669315338135,
+        "oracle_drop_zero": 2.9355230808258055,
+        "oracle_drop_shuffle": 3.0905524349212645,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "metrics.delta_oracle"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": 2.1757107639312743,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_shuffle": {
+            "value": 2.3047669315338135,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "delta_oracle": {
+            "value": 0.971475830078125,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": 2.9355230808258055,
+            "threshold": 0.5,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_shuffle": {
+            "value": 3.0905524349212645,
+            "threshold": 0.5,
+            "present": true,
+            "pass": true
+          },
+          "delta_x1": {
+            "value": 0.21166336059570312,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-preinit-oracleft-v2",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-preinit-oracleft-v2/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 30,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": "oracle",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 22.7652978515625,
+        "psnr_pred": 21.963081817626954,
+        "delta_x1": 0.19106880187988282,
+        "delta_oracle": 0.9932848358154303,
+        "gap_oracle": 0.8022160339355469,
+        "loss_q": 0.05452034384012222,
+        "q_mse_hard": 0.05571716472506523,
+        "index_accuracy": 0.26582032203674316,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": 1.8968002414703369,
+        "pred_drop_shuffle": 1.8684111976623534,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": 1.8968002414703369,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "pred_drop_shuffle": {
+            "value": 1.8684111976623534,
+            "threshold": 0.1,
+            "present": true,
+            "pass": true
+          },
+          "delta_oracle": {
+            "value": 0.9932848358154303,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.19106880187988282,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-preinit-residual-anchor-v2",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-preinit-residual-anchor-v2/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-residual_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 10,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": "residual",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 20.65425064086914,
+        "psnr_pred": 21.86849136352539,
+        "delta_x1": 0.09647834777832032,
+        "delta_oracle": -1.1177623748779304,
+        "gap_oracle": -1.21424072265625,
+        "loss_q": 0.058054590821266176,
+        "q_mse_hard": 0.0590633150935173,
+        "index_accuracy": 0.2592187571525574,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": 0.09227232933044434,
+        "pred_drop_shuffle": 0.09499073028564453,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": 0.09227232933044434,
+            "threshold": 0.1,
+            "present": true,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": 0.09499073028564453,
+            "threshold": 0.1,
+            "present": true,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": -1.1177623748779304,
+            "threshold": 0.8,
+            "present": true,
+            "pass": false
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.09647834777832032,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "delta_oracle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-rx-cont-jointft-v1",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-rx-cont-jointft-v1/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-residual_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 190,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": "residual",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 20.928440628051757,
+        "psnr_pred": 22.021681594848634,
+        "delta_x1": 0.2496685791015625,
+        "delta_oracle": -0.8435723876953141,
+        "gap_oracle": -1.093240966796875,
+        "loss_q": 0.27038071990013124,
+        "q_mse_hard": 0.2717104184627533,
+        "index_accuracy": 0.10769531458616256,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": null,
+        "pred_drop_shuffle": null,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": -0.8435723876953141,
+            "threshold": 0.8,
+            "present": true,
+            "pass": false
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.2496685791015625,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "delta_oracle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "cnn-fsq-k4913-rx-jointft-v1",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-rx-jointft-v1/fsq_receiver_direct_q_z1_x1_hard_cnn_d3_l17x17x17_d2ft-residual_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 75,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": true,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": "residual",
+      "finetune_d2": true,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 21.77201301574707,
+        "psnr_oracle": 20.15171371459961,
+        "psnr_pred": 21.93791030883789,
+        "delta_x1": 0.16589729309082032,
+        "delta_oracle": -1.6202993011474618,
+        "gap_oracle": -1.7861965942382811,
+        "loss_q": 0.2650582772493362,
+        "q_mse_hard": 0.2665120530128479,
+        "index_accuracy": 0.09812500268220901,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": null,
+        "pred_drop_shuffle": null,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": -1.6202993011474618,
+            "threshold": 0.8,
+            "present": true,
+            "pass": false
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": 0.16589729309082032,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "delta_oracle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    },
+    {
+      "version": "launcher-smoke",
+      "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/launcher-smoke/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_best.pth",
+      "checkpoint_kind": "best",
+      "epoch": 1,
+      "route": "direct_q",
+      "condition_mode": "z1_x1",
+      "hard_fsq": false,
+      "arch": "cnn",
+      "fsq_dimension": 3,
+      "levels": [
+        17,
+        17,
+        17
+      ],
+      "K": 4913,
+      "topology": {
+        "mode": "unknown",
+        "explicit": false,
+        "consistent_with_args": false,
+        "independent_receiver_d2": null,
+        "receiver_combiner_isolated": null
+      },
+      "receiver_combiner": null,
+      "finetune_d2": null,
+      "joint_sender": {
+        "requested": null,
+        "known_v3_sender_frozen_bug": false
+      },
+      "contract": {
+        "inputs": [
+          "z1",
+          "x1"
+        ],
+        "forbidden_inputs": [
+          "img",
+          "z2",
+          "q2",
+          "oracle_indices"
+        ],
+        "output": "q2_hat",
+        "explicit_no_sender_leakage_contract": true
+      },
+      "metrics": {
+        "psnr_x1": 20.25386619567871,
+        "psnr_oracle": 22.897567749023438,
+        "psnr_pred": 18.751304626464844,
+        "delta_x1": -1.5025615692138672,
+        "delta_oracle": 2.6437015533447266,
+        "gap_oracle": 4.146263122558594,
+        "loss_q": 0.24818304181098938,
+        "q_mse_hard": 0.2478434294462204,
+        "index_accuracy": 0.0696614608168602,
+        "psnr_condition_shuffle": null,
+        "condition_shuffle_drop": null,
+        "pred_drop_zero": null,
+        "pred_drop_shuffle": null,
+        "oracle_drop_zero": null,
+        "oracle_drop_shuffle": null,
+        "receiver_only_audit": 1.0,
+        "goal_met": 0.0
+      },
+      "metric_sources": {
+        "delta_x1": "metrics.delta_x1",
+        "delta_oracle": "derived from metrics.psnr_oracle-metrics.psnr_x1"
+      },
+      "strict": {
+        "eligible": false,
+        "canonical": false,
+        "gates": {
+          "receiver_only_audit": {
+            "value": 1.0,
+            "threshold": 1.0,
+            "present": true,
+            "pass": true
+          },
+          "condition_shuffle_drop": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_zero": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "pred_drop_shuffle": {
+            "value": null,
+            "threshold": 0.1,
+            "present": false,
+            "pass": false
+          },
+          "delta_oracle": {
+            "value": 2.6437015533447266,
+            "threshold": 0.8,
+            "present": true,
+            "pass": true
+          },
+          "oracle_drop_zero": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "oracle_drop_shuffle": {
+            "value": null,
+            "threshold": 0.5,
+            "present": false,
+            "pass": false
+          },
+          "delta_x1": {
+            "value": -1.5025615692138672,
+            "threshold": 0.5,
+            "present": true,
+            "pass": false
+          },
+          "topology_contract_clear": {
+            "value": false,
+            "threshold": true,
+            "present": false,
+            "pass": false
+          },
+          "historical_sender_integrity": {
+            "value": true,
+            "threshold": true,
+            "present": true,
+            "pass": true
+          }
+        },
+        "failures": [
+          "condition_shuffle_drop",
+          "pred_drop_zero",
+          "pred_drop_shuffle",
+          "oracle_drop_zero",
+          "oracle_drop_shuffle",
+          "delta_x1",
+          "topology_contract_clear"
+        ]
+      },
+      "diagnostics": [
+        "MISSING: condition_shuffle_drop; legacy no-condition audit cannot be strict",
+        "MISSING: explicit receiver_topology metadata"
+      ]
+    }
+  ],
+  "discovery": {
+    "pth_files_scanned": 24,
+    "matching_stage_checkpoints": 24,
+    "ignored_non_stage_checkpoints": 0,
+    "load_errors": [],
+    "tensor_load_policy": "torch.load(map_location=meta, mmap=True); meta-only fallback for legacy files",
+    "selected_versions": 12,
+    "discarded_same_version": [
+      {
+        "version": "cnn-fsq-k125-joint-index-v1",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k125-joint-index-v1/fsq_receiver_joint_index_z1_x1_continuous_cnn_d3_l5x5x5_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 100,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k125-joint-index-v1/fsq_receiver_joint_index_z1_x1_continuous_cnn_d3_l5x5x5_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-direct-cont-v1",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-direct-cont-v1/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 100,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-direct-cont-v1/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-direct-hard-v1",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-direct-hard-v1/fsq_receiver_direct_q_z1_x1_hard_cnn_d3_l17x17x17_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 35,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-direct-hard-v1/fsq_receiver_direct_q_z1_x1_hard_cnn_d3_l17x17x17_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-independent-d2-final-v6",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-final-v6/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 5,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-final-v6/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-independent-d2-v5",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-v5/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 40,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-independent-d2-v5/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_independent-d2_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-joint-predictable-v3",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-joint-predictable-v3/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 45,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-joint-predictable-v3/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-joint-predictable-v4",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-joint-predictable-v4/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 25,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-joint-predictable-v4/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-preinit-oracleft-v2",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-preinit-oracleft-v2/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 40,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-preinit-oracleft-v2/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-oracle_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-preinit-residual-anchor-v2",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-preinit-residual-anchor-v2/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-residual_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 20,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-preinit-residual-anchor-v2/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-residual_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-rx-cont-jointft-v1",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-rx-cont-jointft-v1/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-residual_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 200,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-rx-cont-jointft-v1/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_d2ft-residual_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "cnn-fsq-k4913-rx-jointft-v1",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-rx-jointft-v1/fsq_receiver_direct_q_z1_x1_hard_cnn_d3_l17x17x17_d2ft-residual_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 100,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/cnn-fsq-k4913-rx-jointft-v1/fsq_receiver_direct_q_z1_x1_hard_cnn_d3_l17x17x17_d2ft-residual_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      },
+      {
+        "version": "launcher-smoke",
+        "checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/launcher-smoke/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_latest.pth",
+        "checkpoint_kind": "latest",
+        "epoch": 1,
+        "selected_checkpoint": "MY-V2/jscc-f/explore-2/checkpoints-receiver/launcher-smoke/fsq_receiver_direct_q_z1_x1_continuous_cnn_d3_l17x17x17_best.pth",
+        "reason": "lower goal_best > best > latest > other selection rank within version"
+      }
+    ]
+  }
+}

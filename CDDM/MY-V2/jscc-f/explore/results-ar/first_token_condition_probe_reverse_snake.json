@@ -1,0 +1,34 @@
+{
+  "checkpoint": "/workspace/yongjia/paper_code/CDDM/MY-V2/jscc-f/checkpoints-ar-ifsq/jscc_f_ifsq-prefix-ar-k125_stage_ifsq_ar_fsq_l5x5x5_best.pth",
+  "epoch": 40,
+  "device": "cuda:0",
+  "train_images": 768,
+  "val_images": 100,
+  "vocabulary": 125,
+  "target_coordinate": [
+    15,
+    0
+  ],
+  "train_mode_accuracy": 0.0703125,
+  "val_mode_accuracy": 0.11,
+  "modes": {
+    "z1": {
+      "ce": 3.8810855102539064,
+      "nll_bits": 5.599222818909323,
+      "perplexity": 48.476808593581936,
+      "accuracy": 0.08
+    },
+    "x1": {
+      "ce": 3.840283203125,
+      "nll_bits": 5.540357532757621,
+      "perplexity": 46.53865246548361,
+      "accuracy": 0.07
+    },
+    "z1_x1": {
+      "ce": 3.846002502441406,
+      "nll_bits": 5.5486087375187605,
+      "perplexity": 46.8055835504841,
+      "accuracy": 0.06
+    }
+  }
+}

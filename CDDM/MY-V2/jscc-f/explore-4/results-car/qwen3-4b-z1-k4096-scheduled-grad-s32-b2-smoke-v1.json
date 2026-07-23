@@ -1,0 +1,41 @@
+[
+  {
+    "epoch": 21,
+    "train": {
+      "loss": 10.55114459991455,
+      "loss_ce": 6.800220012664795,
+      "loss_scheduled": 7.4973626136779785,
+      "loss_recon": 0.0022432170808315277,
+      "psnr_x1": 27.207473754882812,
+      "psnr_oracle": 29.112133026123047,
+      "psnr_x2_hat": 26.51195526123047,
+      "delta_x1_hat": -0.6955175399780273,
+      "delta_x1_oracle": 1.9046592712402344,
+      "teacher_index_accuracy": 0.01666666753590107,
+      "index_accuracy": 0.01666666753590107,
+      "receiver_only_audit": 1.0
+    },
+    "val": {
+      "loss": 7.171441555023193,
+      "loss_ce": 7.153470516204834,
+      "loss_scheduled": 0.0,
+      "loss_recon": 0.01797095127403736,
+      "psnr_x1": 20.25386619567871,
+      "psnr_oracle": 23.38412857055664,
+      "psnr_x2_hat": 19.131282806396484,
+      "delta_x1_hat": -1.1225836277008057,
+      "delta_x1_oracle": 3.130260467529297,
+      "teacher_index_accuracy": 0.01979166828095913,
+      "index_accuracy": 0.0010416667209938169,
+      "psnr_x2_hat_hard": 19.131282806396484,
+      "delta_x1_hat_hard": -1.1225836277008057,
+      "psnr_x2_hat_mean": 19.244808197021484,
+      "delta_x1_hat_mean": -1.0090584754943848,
+      "drop_zero": -1.1225836277008057,
+      "drop_shuffle": -0.6679403781890869,
+      "condition_shuffle_drop": 0.014690160751342773,
+      "receiver_only_audit": 1.0,
+      "goal_met": 0.0
+    }
+  }
+]

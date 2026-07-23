@@ -329,6 +329,8 @@ def print_cnn_run_header(args: argparse.Namespace, modules: dict[str, nn.Module]
     z1 = int(args.latent_ch)
     z2 = stage2_z_ch(args)
     d2_ch = decoder_in_ch(args)
+    deep_ch = int(args.cnn_base_ch) * 16
+    latent_shape = f"[B,{z2},{int(args.latent_h)},{int(args.latent_w)}]"
     latent_ratio = (z1 + z2) * int(args.latent_h) * int(args.latent_w) / float(3 * 256 * 256) * 100.0
     device = next(modules["E2"].parameters()).device
     print(f"=== Layer 2 v2 | CNN E2-D2 refinement | {args.cnn_codec} ===", flush=True)
@@ -352,29 +354,29 @@ def print_cnn_run_header(args: argparse.Namespace, modules: dict[str, nn.Module]
     )
     if use_z1_concat(args):
         print(
-            f"  E2=CNNAnalysisEncoder({stage2_in_ch(args)}->320->{z2}) "
-            f"latent=[B,{z2},{args.latent_h},{args.latent_w}]",
+            f"  E2=CNNAnalysisEncoder({stage2_in_ch(args)}->{deep_ch}->{z2}) "
+            f"latent={latent_shape}",
             flush=True,
         )
         print(
             f"  D2 input=concat(z1,z2) [B,{d2_ch},{args.latent_h},{args.latent_w}] "
-            f"D2=CNNBottleneckDecoder({d2_ch}->320->3)",
+            f"D2=CNNBottleneckDecoder({d2_ch}->{deep_ch}->3)",
             flush=True,
         )
     elif str(args.cnn_codec) == "compressor":
         print(
-            f"  E2=CNNAnalysisEncoder({stage2_in_ch(args)}->320->16) with compressor "
-            "latent=[B,16,16,16]",
+            f"  E2=CNNAnalysisEncoder({stage2_in_ch(args)}->{deep_ch}->{z2}) with compressor "
+            f"latent={latent_shape}",
             flush=True,
         )
-        print("  D2=CNNBottleneckDecoder(16->320->3) with expander", flush=True)
+        print(f"  D2=CNNBottleneckDecoder({d2_ch}->{deep_ch}->3) with expander", flush=True)
     else:
         print(
-            f"  E2=CNNAnalysisEncoder({stage2_in_ch(args)}->320) without compressor "
-            "latent=[B,320,16,16]",
+            f"  E2=CNNAnalysisEncoder({stage2_in_ch(args)}->{deep_ch}) without compressor "
+            f"latent={latent_shape}",
             flush=True,
         )
-        print("  D2=CNNBottleneckDecoder(320->3) without expander", flush=True)
+        print(f"  D2=CNNBottleneckDecoder({d2_ch}->3) without expander", flush=True)
     print(
         f"  layer1_cnn_base_ch={int(args.layer1_cnn_base_ch)} layer1_cnn_num_res={int(args.layer1_cnn_num_res)} "
         f"cnn_base_ch={int(args.cnn_base_ch)} cnn_num_res={int(args.cnn_num_res)}",
@@ -523,19 +525,19 @@ def validate_args(args: argparse.Namespace) -> None:
     check_jsccf_args(args)
     if int(args.cnn_base_ch) * 16 != 320:
         raise ValueError("Stage2 CNN high feature is defined as [B,320,16,16]; keep --cnn-base-ch 20.")
-    if use_z1_concat(args) and int(args.z1_concat_z2_ch) != 20:
-        raise ValueError("--cnn-codec z1_concat is defined to use z2 [B,20,16,16]; keep --z1-concat-z2-ch 20.")
+    if use_z1_concat(args) and int(args.z1_concat_z2_ch) <= 0:
+        raise ValueError("--z1-concat-z2-ch must be positive.")
     if int(args.layer1_cnn_base_ch) != 16:
         raise ValueError("The default CNN layer1 checkpoint uses --layer1-cnn-base-ch 16.")
     if int(args.layer1_cnn_num_res) != 2:
         raise ValueError("The default CNN layer1 checkpoint uses --layer1-cnn-num-res 2.")
-    if str(args.cnn_codec) == "compressor" and int(args.cnn_bottleneck_ch) != 16:
-        raise ValueError("--cnn-codec compressor is defined to produce [B,16,16,16]; keep --cnn-bottleneck-ch 16.")
+    if str(args.cnn_codec) == "compressor" and int(args.cnn_bottleneck_ch) <= 0:
+        raise ValueError("--cnn-bottleneck-ch must be positive.")
 
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    p.add_argument("--version", type=str, default="cnn-stage2", help="Version of the JSCC-f training; affects checkpoint and log names.")
+    p.add_argument("--version", type=str, default="cnn-stage2-c-4", help="Version of the JSCC-f training; affects checkpoint and log names.")
     p.add_argument("--data-dir", type=str, default="/workspace/yongjia/datasets/DIV2K")
     p.add_argument("--save-dir", type=str, default=jsccf_io.default_save_dir())
     p.add_argument("--log-file", type=str, default="")
@@ -558,9 +560,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--layer1-ckpt", type=str, default="MY-V2/jscc-f/checkpoints/jscc_f_cnn_layer1_cnn_best.pth")
     p.add_argument("--variant", type=str, default="combiner", choices=["combiner", "no_combiner", "residual_input"])
     p.add_argument("--lambda-u2", type=float, default=0.0)
-    p.add_argument("--cnn-codec", type=str, default="no_compressor", choices=["compressor", "no_compressor", "z1_concat"])
+    p.add_argument("--cnn-codec", type=str, default="compressor", choices=["compressor", "no_compressor", "z1_concat"])
     p.add_argument("--cnn-base-ch", type=int, default=20, help="CNN base width; 20 gives the Swin-like 320-channel deep feature.")
-    p.add_argument("--cnn-bottleneck-ch", type=int, default=16, help="Compressor output channels for --cnn-codec compressor.")
+    p.add_argument("--cnn-bottleneck-ch", type=int, default=4, help="Compressor output channels for --cnn-codec compressor.")
     p.add_argument("--cnn-num-res", type=int, default=2)
     p.add_argument("--z1-concat-z2-ch", type=int, default=20, help="Layer2 z2 channels for --cnn-codec z1_concat.")
     p.add_argument("--layer1-cnn-base-ch", type=int, default=16, help="Frozen CNN layer1 base width.")
